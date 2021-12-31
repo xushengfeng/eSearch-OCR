@@ -1,4 +1,4 @@
-web.py
-numpy
-paddlepaddle
-paddleocr
+web.py==0.62
+numpy==1.21.5
+paddlepaddle==2.2.1
+paddleocr==2.3.0.2
