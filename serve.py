@@ -4,6 +4,7 @@ import json
 import base64
 import cv2
 import numpy as np
+import pycorrector
 
 
 def ocr(data, lang):
@@ -17,9 +18,11 @@ def ocr(data, lang):
     dic = {}
     dic["words_result_num"] = len(result)
     dic["words_result"] = []
+
     for index, line in enumerate(result):
         dic["words_result"].append({})
-        dic["words_result"][index]["words"] = str(line[1][0])
+        correct_sent, err = pycorrector.correct(str(line[1][0]))
+        dic["words_result"][index]["words"] = correct_sent
         dic["words_result"][index]["location"] = xywh(line[0])
         dic["words_result"][index]["probability"] = float(line[1][1])
     dic["language"] = lang
