@@ -36,14 +36,16 @@ class index:
     def POST(self):
         data = web.data()
         ocr_r = ocr(data, "ch")
-        print(type(ocr_r))
-        wr = []
-        for idx, val in enumerate(ocr_r["paragraphs_result"]):
-            wr.append({"words": ""})
-        for idx, val in enumerate(ocr_r["paragraphs_result"]):
-            for i in val["words_result_idx"]:
-                wr[idx]["words"] += ocr_r["words_result"][i]['words']
-        return json.dumps({"words_result": wr})
+        if ocr_r["error_code"]:
+            print(ocr_r)
+        else:
+            wr = []
+            for idx, val in enumerate(ocr_r["paragraphs_result"]):
+                wr.append({"words": ""})
+            for idx, val in enumerate(ocr_r["paragraphs_result"]):
+                for i in val["words_result_idx"]:
+                    wr[idx]["words"] += ocr_r["words_result"][i]["words"]
+            return json.dumps({"words_result": wr})
 
 
 if __name__ == "__main__":
