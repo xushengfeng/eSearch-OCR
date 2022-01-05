@@ -11,7 +11,7 @@ import base64
 
 
 def ocr(data, lang):
-    request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic"
+    request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic" # accurate(_basic) general(_basic)
     # 二进制方式打开图片文件
     data = json.loads(str(data, encoding="utf-8"))
     image_string = data["image"]
@@ -36,9 +36,7 @@ class index:
     def POST(self):
         data = web.data()
         ocr_r = ocr(data, "ch")
-        if ocr_r["error_code"]:
-            print(ocr_r)
-        else:
+        try:
             wr = []
             for idx, val in enumerate(ocr_r["paragraphs_result"]):
                 wr.append({"words": ""})
@@ -46,6 +44,8 @@ class index:
                 for i in val["words_result_idx"]:
                     wr[idx]["words"] += ocr_r["words_result"][i]["words"]
             return json.dumps({"words_result": wr})
+        except:
+            print(ocr_r)
 
 
 if __name__ == "__main__":
