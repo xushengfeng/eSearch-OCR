@@ -10,18 +10,21 @@ import base64
 """
 
 
+# client_id 为官网获取的AK， client_secret 为官网获取的SK
+host = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=[官网获取的AK]&client_secret={官网获取的SK]"
+response = requests.get(host)
+if response:
+    access_token = response.json()["access_token"]
+
+
 def ocr(data, lang):
-    request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic" # accurate(_basic) general(_basic)
+    request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate"
     # 二进制方式打开图片文件
     data = json.loads(str(data, encoding="utf-8"))
     image_string = data["image"]
     img = image_string
-    # img = base64.b64decode(image_string)
 
     params = {"image": img, "detect_direction": "true", "paragraph": "true"}
-    access_token = (
-        "[你的百度OCR access_token]"
-    )
     request_url = request_url + "?access_token=" + access_token
     headers = {"content-type": "application/x-www-form-urlencoded"}
     response = requests.post(request_url, data=params, headers=headers)
