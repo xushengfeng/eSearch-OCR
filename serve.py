@@ -74,6 +74,9 @@ def c_or_e(x):
 class index:
     def POST(self):
         data = web.data()
+        # 判断是否处于检测服务状态
+        if data == b'':
+            return
         x = ''
         ocr_r = ocr(data, 'ch')
         for i in ocr_r["words_result"]:
