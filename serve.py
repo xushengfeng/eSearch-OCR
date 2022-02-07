@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import pycorrector
 
+开启纠错=True
 
 def ocr(data, lang):
     ocr = PaddleOCR(use_gpu=False, lang=lang)  # 首次执行会自动下载模型文件
@@ -21,8 +22,11 @@ def ocr(data, lang):
 
     for index, line in enumerate(result):
         dic["words_result"].append({})
-        correct_sent, err = pycorrector.correct(str(line[1][0]))
-        dic["words_result"][index]["words"] = correct_sent
+        if 开启纠错:
+            correct_sent, err = pycorrector.correct(str(line[1][0]))
+            dic["words_result"][index]["words"] = correct_sent
+        else:
+            dic["words_result"][index]["words"] = str(line[1][0])
         dic["words_result"][index]["location"] = xywh(line[0])
         dic["words_result"][index]["probability"] = float(line[1][1])
     dic["language"] = lang
