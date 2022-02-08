@@ -1,3 +1,4 @@
+import argparse
 import web
 from paddleocr import PaddleOCR
 import json
@@ -6,12 +7,23 @@ import cv2
 import numpy as np
 import pycorrector
 
-开启纠错=True
+开启纠错 = False
+端口 = 8080
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--check", action="store_true")
+parser.add_argument("-p", "--port", type=int)
+args = parser.parse_args()
+if args.check:
+    开启纠错 = True
+if args.port:
+    端口 = args.port
+
 
 def ocr(data, lang):
     ocr = PaddleOCR(use_gpu=False, lang=lang)  # 首次执行会自动下载模型文件
-    data = json.loads(str(data, encoding='utf-8'))
-    image_string = data['image']
+    data = json.loads(str(data, encoding="utf-8"))
+    image_string = data["image"]
     img_data = base64.b64decode(image_string)
     nparr = np.fromstring(img_data, np.uint8)
     img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -41,14 +53,12 @@ def xywh(o_list):
     l = {}
     l["top"] = int(x1)
     l["left"] = int(y1)
-    l["width"] = int(x2-x1)
-    l["height"] = int(y2-y1)
+    l["width"] = int(x2 - x1)
+    l["height"] = int(y2 - y1)
     return l
 
 
-urls = (
-    '/', 'index'
-)
+urls = ("/", "index")
 
 
 def c_or_e(x):
@@ -65,32 +75,38 @@ def c_or_e(x):
             digit += 1
         else:
             others += 1
-    if letters/(len(x)-space) > 0.5:
-        return 'e'
+    if letters / (len(x) - space) > 0.5:
+        return "e"
     else:
-        return 'c'
+        return "c"
 
 
 class index:
     def POST(self):
         data = web.data()
         # 判断是否处于检测服务状态
-        if data == b'':
+        if data == b"":
             return
-        x = ''
-        ocr_r = ocr(data, 'ch')
+        x = ""
+        ocr_r = ocr(data, "ch")
         for i in ocr_r["words_result"]:
             x += i["words"]
-        if c_or_e(x) == 'e' and len(ocr_r) <= 15:
-            ocr_r['language'] == 'en'
-        if c_or_e(x) == 'c':
-            print('c')
+        if c_or_e(x) == "e" and len(ocr_r) <= 15:
+            ocr_r["language"] == "en"
+        if c_or_e(x) == "c":
+            print("c")
             return json.dumps((ocr_r))
         else:
-            print('e')
-            return json.dumps((ocr(data, 'en')))
+            print("e")
+            return json.dumps((ocr(data, "en")))
+
+
+class MyApplication(web.application):
+    def run(self, port=8080, *middleware):
+        func = self.wsgifunc(*middleware)
+        return web.httpserver.runsimple(func, ("0.0.0.0", port))
 
 
 if __name__ == "__main__":
-    app = web.application(urls, globals())
-    app.run()
+    app = MyApplication(urls, globals())
+    app.run(port=端口)
