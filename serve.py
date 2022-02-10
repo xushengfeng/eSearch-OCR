@@ -5,7 +5,6 @@ import json
 import base64
 import cv2
 import numpy as np
-import pycorrector
 
 开启纠错 = False
 端口 = 8080
@@ -16,6 +15,7 @@ parser.add_argument("-p", "--port", type=int)
 args = parser.parse_args()
 if args.check:
     开启纠错 = True
+    import pycorrector
 if args.port:
     端口 = args.port
 
