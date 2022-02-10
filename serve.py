@@ -41,7 +41,6 @@ def ocr(data, lang):
             dic["words_result"][index]["words"] = str(line[1][0])
         dic["words_result"][index]["location"] = xywh(line[0])
         dic["words_result"][index]["probability"] = float(line[1][1])
-    dic["language"] = lang
     return dic
 
 
@@ -89,16 +88,7 @@ class index:
             return
         x = ""
         ocr_r = ocr(data, "ch")
-        for i in ocr_r["words_result"]:
-            x += i["words"]
-        if c_or_e(x) == "e" and len(ocr_r) <= 15:
-            ocr_r["language"] == "en"
-        if c_or_e(x) == "c":
-            print("c")
-            return json.dumps((ocr_r))
-        else:
-            print("e")
-            return json.dumps((ocr(data, "en")))
+        return json.dumps((ocr_r))
 
 
 class MyApplication(web.application):
