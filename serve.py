@@ -1,4 +1,3 @@
-import local_ocr
 import argparse
 import web
 import os
@@ -41,16 +40,23 @@ if __name__ == "__main__":
 
 开启纠错 = False
 端口 = 8080
+服务 = 'local_ocr'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--check", action="store_true")
 parser.add_argument("-p", "--port", type=int)
+parser.add_argument("-s", "--set")
 args = parser.parse_args()
 if args.check:
     开启纠错 = True
     local_ocr.correct(True)
 if args.port:
     端口 = args.port
+if args.set:
+    exec('import '+args.set)
+    服务 = args.set
+else:
+    import local_ocr
 
 
 class HiddenPrints:
@@ -74,7 +80,7 @@ class index:
             return
         x = ""
         with HiddenPrints():
-            ocr_r = local_ocr.ocr(data)
+            ocr_r = eval(服务+'.ocr(data)')
         return json.dumps((ocr_r))
 
 

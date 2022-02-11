@@ -36,6 +36,6 @@ def ocr(data):
             for idx, val in enumerate(ocr_r["paragraphs_result"]):
                 for i in val["words_result_idx"]:
                     wr[idx]["words"] += ocr_r["words_result"][i]["words"]
-            return json.dumps({"words_result": wr})
+            return {"words_result": wr}
         except:
             print(ocr_r)
