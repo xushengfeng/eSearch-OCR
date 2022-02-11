@@ -5,3 +5,4 @@ paddleocr==2.4
 jieba>=0.39
 pypinyin
 six
+psutil==5.9.0

@@ -1,10 +1,44 @@
 import argparse
 import web
-from paddleocr import PaddleOCR
-import json
-import base64
-import cv2
-import numpy as np
+import os
+import psutil
+import time
+
+
+def write_pid():
+    pid = os.getpid()
+    fp = open("pid.log", 'w')
+    fp.write(str(pid))
+    fp.close()
+
+
+def read_pid():
+    if os.path.exists("pid.log"):
+        fp = open("pid.log", 'r')
+        pid = fp.read()
+        fp.close()
+        return pid
+    else:
+        return False
+
+
+def is_ran():
+    pid = int(read_pid())
+    print(pid)
+    if pid in psutil.pids():
+        return True
+    else:
+        write_pid()
+        return False
+
+
+def i():
+    from paddleocr import PaddleOCR
+    import json
+    import base64
+    import cv2
+    import numpy as np
+
 
 开启纠错 = False
 端口 = 8080
@@ -60,26 +94,6 @@ def xywh(o_list):
 urls = ("/", "index")
 
 
-def c_or_e(x):
-    letters = 0
-    space = 0
-    digit = 0
-    others = 0
-    for c in x:
-        if ord(c) in range(65, 91) or ord(c) in range(97, 123):
-            letters += 1
-        elif c.isspace():
-            space += 1
-        elif c.isdigit():
-            digit += 1
-        else:
-            others += 1
-    if letters / (len(x) - space) > 0.5:
-        return "e"
-    else:
-        return "c"
-
-
 class index:
     def POST(self):
         data = web.data()
@@ -98,5 +112,7 @@ class MyApplication(web.application):
 
 
 if __name__ == "__main__":
-    app = MyApplication(urls, globals())
-    app.run(port=端口)
+    if not is_ran():
+        i()  # 导入模块
+        app = MyApplication(urls, globals())
+        app.run(port=端口)
