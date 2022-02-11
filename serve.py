@@ -1,3 +1,8 @@
+from paddleocr import PaddleOCR
+import json
+import base64
+import cv2
+import numpy as np
 import argparse
 import web
 import os
@@ -24,7 +29,6 @@ def read_pid():
 
 def is_ran():
     pid = int(read_pid())
-    print(pid)
     if pid in psutil.pids():
         return True
     else:
@@ -32,12 +36,10 @@ def is_ran():
         return False
 
 
-def i():
-    from paddleocr import PaddleOCR
-    import json
-    import base64
-    import cv2
-    import numpy as np
+if __name__ == "__main__":
+    if is_ran():
+        import sys
+        sys.exit()
 
 
 开启纠错 = False
@@ -112,7 +114,5 @@ class MyApplication(web.application):
 
 
 if __name__ == "__main__":
-    if not is_ran():
-        i()  # 导入模块
-        app = MyApplication(urls, globals())
-        app.run(port=端口)
+    app = MyApplication(urls, globals())
+    app.run(port=端口)
