@@ -7,6 +7,10 @@ import sys
 import json
 
 
+__dir__ = os.path.dirname(__file__)
+sys.path.append(os.path.join(__dir__, ''))
+
+
 def write_pid():
     pid = os.getpid()
     fp = open("pid.log", 'w')
