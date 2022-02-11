@@ -8,6 +8,7 @@ import web
 import os
 import psutil
 import time
+import sys
 
 
 def write_pid():
@@ -38,7 +39,6 @@ def is_ran():
 
 if __name__ == "__main__":
     if is_ran():
-        import sys
         sys.exit()
 
 
@@ -54,6 +54,16 @@ if args.check:
     import pycorrector
 if args.port:
     端口 = args.port
+
+
+class HiddenPrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
 
 
 def ocr(data, lang):
@@ -103,7 +113,8 @@ class index:
         if data == b"":
             return
         x = ""
-        ocr_r = ocr(data, "ch")
+        with HiddenPrints():
+            ocr_r = ocr(data, "ch")
         return json.dumps((ocr_r))
 
 
