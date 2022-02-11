@@ -1,7 +1,6 @@
 # encoding:utf-8
 
 import requests
-import web
 import json
 import base64
 
@@ -17,7 +16,7 @@ if response:
     access_token = response.json()["access_token"]
 
 
-def ocr(data, lang):
+def ocr(data):
     request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate"
     # 二进制方式打开图片文件
     data = json.loads(str(data, encoding="utf-8"))
@@ -29,16 +28,7 @@ def ocr(data, lang):
     headers = {"content-type": "application/x-www-form-urlencoded"}
     response = requests.post(request_url, data=params, headers=headers)
     if response:
-        return response.json()
-
-
-urls = ("/", "index")
-
-
-class index:
-    def POST(self):
-        data = web.data()
-        ocr_r = ocr(data, "ch")
+        ocr_r = response.json()
         try:
             wr = []
             for idx, val in enumerate(ocr_r["paragraphs_result"]):
@@ -49,8 +39,3 @@ class index:
             return json.dumps({"words_result": wr})
         except:
             print(ocr_r)
-
-
-if __name__ == "__main__":
-    app = web.application(urls, globals())
-    app.run()
