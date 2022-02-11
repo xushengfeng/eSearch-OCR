@@ -74,7 +74,7 @@ class index:
             return
         x = ""
         with HiddenPrints():
-            ocr_r = local_ocr.ocr(data, "ch")
+            ocr_r = local_ocr.ocr(data)
         return json.dumps((ocr_r))
 
 

@@ -14,8 +14,8 @@ def correct(v):
         import pycorrector
 
 
-def ocr(data, lang):
-    ocr = PaddleOCR(use_gpu=False, lang=lang)  # 首次执行会自动下载模型文件
+def ocr(data):
+    ocr = PaddleOCR(use_gpu=False, lang="ch")  # 首次执行会自动下载模型文件
     data = json.loads(str(data, encoding="utf-8"))
     image_string = data["image"]
     img_data = base64.b64decode(image_string)
