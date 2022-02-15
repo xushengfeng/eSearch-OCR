@@ -4,7 +4,6 @@ import os
 
 print('安装相关库')
 os.system('pip install -r requirements.txt')
-os.system('pip install paddlepaddle==2.2.2 -i https://mirror.baidu.com/pypi/simple')
 
 print('初始化PaddleOCR')
 

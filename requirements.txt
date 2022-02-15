@@ -1,6 +1,7 @@
 web.py==0.62
 numpy==1.21.5
 paddleocr==2.4
+paddlepaddle==2.2.2
 jieba>=0.39
 pypinyin
 six
