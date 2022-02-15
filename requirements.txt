@@ -1,8 +1,9 @@
 web.py==0.62
 numpy==1.21.5
-paddlepaddle==2.2.1
 paddleocr==2.4
 jieba>=0.39
 pypinyin
 six
 psutil==5.9.0
+requests
+shapely
