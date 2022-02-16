@@ -57,3 +57,16 @@ docker run --rm -it -p 8080:8080 xsf0root/e-search-service:latest
 -s --set   设置ocr服务提供者（默认local_ocr(本地OCR) 可设置为baidu）
 -k --key   设置baidu ocr的ak和sk  [AK],[SK]  使用英文逗号连接
 ```
+
+## 卸载
+
+PaddleOcr 的模型数据存在用户目录的隐藏文件夹 paddleocr 下
+配置文件夹里的service-installed请手动卸载
+```
+Windows:
+    C:\Users\用户\eSearch\
+Linux:
+    ~/.config/eSearch/
+macOS:
+    ~/Library/Application Support/eSearch/
+```
