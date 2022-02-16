@@ -4,7 +4,7 @@
 
 目前支持本地 OCR（基于 PaddleOCR）和百度在线 OCR
 
-百度 OCR 需要在官网申请。你可以直接修改`serve.py`里面的 key 变量值，并使用下面的[参数](#cli)来使用百度 OCR，截止 2022 年 1 月，百度 OCR 还可以[免费领取服务](https://cloud.baidu.com/doc/OCR/s/dk3iqnq51)
+百度 OCR 需要在官网申请。你可以直接修改 `serve.py`里面的 key 变量值，并使用下面的[参数](#cli)来使用百度 OCR，截止 2022 年 1 月，百度 OCR 还可以[免费领取服务](https://cloud.baidu.com/doc/OCR/s/dk3iqnq51)
 
 ## 安装
 
@@ -45,7 +45,7 @@ docker run -it -p 8080:8080 xsf0root/e-search-service:latest
 建议在[eSearch](https://github.com/xushengfeng/eSearch)设置-自动运行命令中填入
 
 ```
-docker run --rm -it -p 8080:8080 xsf0root/e-search-service:latest
+docker run --rm -p 8080:8080 xsf0root/e-search-service:latest
 
 ```
 
@@ -60,8 +60,9 @@ docker run --rm -it -p 8080:8080 xsf0root/e-search-service:latest
 
 ## 卸载
 
-PaddleOcr 的模型数据存在用户目录的隐藏文件夹 paddleocr 下
-配置文件夹里的service-installed请手动卸载
+PaddleOCR 的模型数据存在用户目录的隐藏文件夹 paddleocr 下
+配置文件夹里的 service-installed 请手动卸载
+
 ```
 Windows:
     C:\Users\用户\eSearch\
