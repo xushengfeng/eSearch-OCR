@@ -18,10 +18,8 @@ COPY . /app
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
 RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
 USER root
-RUN apt update --force-yes
-RUN apt -y install libgl1-mesa-glx
-RUN python /app/setup.py
+RUN apt update --force-yes && apt -y install libgl1-mesa-glx && python /app/setup.py
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 SHELL [ "/bin/bash" ]
-CMD ["python", "serve.py"]
+ENTRYPOINT ["python", "serve.py"]
