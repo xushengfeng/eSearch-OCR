@@ -8,12 +8,19 @@ import base64
 通用文字识别（高精度版）
 """
 
+access_token = ''
 
-# client_id 为官网获取的AK， client_secret 为官网获取的SK
-host = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=[官网获取的AK]&client_secret={官网获取的SK]"
-response = requests.get(host)
-if response:
-    access_token = response.json()["access_token"]
+
+def key(key):
+    # client_id 为官网获取的AK， client_secret 为官网获取的SK
+    ak = key.split(',')[0]
+    sk = key.split(',')[1]
+    host = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=" + \
+        ak+"&client_secret="+sk
+    response = requests.get(host)
+    if response:
+        global access_token
+        access_token = response.json()["access_token"]
 
 
 def ocr(data):

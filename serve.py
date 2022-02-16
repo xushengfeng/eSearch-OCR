@@ -50,6 +50,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--check", action="store_true")
 parser.add_argument("-p", "--port", type=int)
 parser.add_argument("-s", "--set")
+parser.add_argument("-k", "--key")
 args = parser.parse_args()
 if args.check:
     开启纠错 = True
@@ -59,6 +60,10 @@ if args.port:
 if args.set:
     exec('import '+args.set)
     服务 = args.set
+    try:
+        eval(服务+'.key(args.key)')
+    except:
+        pass
 else:
     import local_ocr
 
@@ -82,7 +87,6 @@ class index:
         # 判断是否处于检测服务状态
         if data == b"":
             return
-        x = ""
         with HiddenPrints():
             ocr_r = eval(服务+'.ocr(data)')
         return json.dumps((ocr_r))
