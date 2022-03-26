@@ -7,4 +7,4 @@ pid.log
 log.log
 paddle_inference
 paddle_inference.tgz
-ocr/ocr/inference
+inference
