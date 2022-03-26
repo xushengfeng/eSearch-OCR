@@ -166,7 +166,6 @@ void DBDetector::Run(cv::Mat &img,
 
   boxes = post_processor_.FilterTagDetRes(boxes, ratio_h, ratio_w, srcimg);
   auto postprocess_end = std::chrono::steady_clock::now();
-  std::cout << "Detected boxes num: " << boxes.size() << endl;
 
   std::chrono::duration<float> preprocess_diff = preprocess_end - preprocess_start;
   times->push_back(double(preprocess_diff.count() * 1000));

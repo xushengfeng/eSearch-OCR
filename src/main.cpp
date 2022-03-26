@@ -54,7 +54,7 @@ DEFINE_double(det_db_thresh, 0.3, "Threshold of det_db_thresh.");
 DEFINE_double(det_db_box_thresh, 0.5, "Threshold of det_db_box_thresh.");
 DEFINE_double(det_db_unclip_ratio, 1.6, "Threshold of det_db_unclip_ratio.");
 DEFINE_bool(use_polygon_score, false, "Whether use polygon score.");
-DEFINE_bool(visualize, true, "Whether show the detection results.");
+DEFINE_bool(visualize, false, "Whether show the detection results.");
 // classification related
 DEFINE_bool(use_angle_cls, false, "Whether use use_angle_cls.");
 DEFINE_string(cls_model_dir, "", "Path of cls inference model.");
@@ -117,7 +117,6 @@ int main_system(std::vector<cv::String> cv_all_img_names) {
         
       det.Run(srcimg, boxes, &det_times);
     
-      std::cout << "result:" << std::endl;
       cv::Mat crop_img;
       for (int j = 0; j < boxes.size(); j++) {
         crop_img = Utility::GetRotateCropImage(srcimg, boxes[j]);
@@ -131,7 +130,6 @@ int main_system(std::vector<cv::String> cv_all_img_names) {
       auto end = std::chrono::system_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-      std::cout << "result end" << std::endl;
     }
       
     return 0;
@@ -170,7 +168,6 @@ int main(int argc, char **argv) {
     
     std::vector<cv::String> cv_all_img_names;
     cv::glob(FLAGS_image_dir, cv_all_img_names);
-    std::cout << "total images num: " << cv_all_img_names.size() << endl;
 
     return main_system(cv_all_img_names);
 }
