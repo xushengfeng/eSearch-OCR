@@ -1,8 +1,10 @@
 __pycache__
-ocr/
 baidu_self.py
 kenlm-master.zip
 kenlm-master
 pyinstaller
 pid.log
 log.log
+paddle_inference
+paddle_inference.tgz
+ocr/ocr/inference
