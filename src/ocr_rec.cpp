@@ -82,14 +82,14 @@ void CRNNRecognizer::Run(cv::Mat &img, std::vector<double> *times) {
   for (int i = 0; i < str_res.size(); i++) {
     std::cout << str_res[i];
   }
-  std::cout << "\tscore: " << score << std::endl;
+  std::cout << std::endl;
 
-  std::chrono::duration<float> preprocess_diff = preprocess_end - preprocess_start;
-  times->push_back(double(preprocess_diff.count() * 1000));
-  std::chrono::duration<float> inference_diff = inference_end - inference_start;
-  times->push_back(double(inference_diff.count() * 1000));
-  std::chrono::duration<float> postprocess_diff = postprocess_end - postprocess_start;
-  times->push_back(double(postprocess_diff.count() * 1000));
+  // std::chrono::duration<float> preprocess_diff = preprocess_end - preprocess_start;
+  // times->push_back(double(preprocess_diff.count() * 1000));
+  // std::chrono::duration<float> inference_diff = inference_end - inference_start;
+  // times->push_back(double(inference_diff.count() * 1000));
+  // std::chrono::duration<float> postprocess_diff = postprocess_end - postprocess_start;
+  // times->push_back(double(postprocess_diff.count() * 1000));
 }
 
 void CRNNRecognizer::LoadModel(const std::string &model_dir) {

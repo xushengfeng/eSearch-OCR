@@ -190,6 +190,7 @@ int main_system(std::vector<cv::String> cv_all_img_names) {
         
       det.Run(srcimg, boxes, &det_times);
     
+      std::cout << "result:" << std::endl;
       cv::Mat crop_img;
       for (int j = 0; j < boxes.size(); j++) {
         crop_img = Utility::GetRotateCropImage(srcimg, boxes[j]);
@@ -203,11 +204,7 @@ int main_system(std::vector<cv::String> cv_all_img_names) {
       auto end = std::chrono::system_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-      std::cout << "Cost  "
-                << double(duration.count()) *
-                       std::chrono::microseconds::period::num /
-                       std::chrono::microseconds::period::den
-                << "s" << std::endl;
+      std::cout << "result end" << std::endl;
     }
       
     return 0;
