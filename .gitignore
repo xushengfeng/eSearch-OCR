@@ -12,3 +12,9 @@ tools
 build
 ocr_vis.png
 a.png
+.vs
+CMakeSettings.json
+WIndows
+Linux
+macOS
+package
