@@ -8,7 +8,6 @@ log.log
 paddle_inference
 paddle_inference.tgz
 inference
-tools
 build
 ocr_vis.png
 a.png
@@ -19,3 +18,4 @@ Linux
 macOS
 package
 ocr
+ppocr
