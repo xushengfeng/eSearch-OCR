@@ -207,10 +207,6 @@ endif()
 
 set(DEPS ${DEPS} ${OpenCV_LIBS})
 
-include(FetchContent)
-include(external-cmake/auto-log.cmake)
-include_directories(${FETCHCONTENT_BASE_DIR}/extern_autolog-src)
-
 AUX_SOURCE_DIRECTORY(./src SRCS)
 add_executable(${DEMO_NAME} ${SRCS})
 target_link_libraries(${DEMO_NAME} ${DEPS})

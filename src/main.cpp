@@ -29,13 +29,11 @@
 
 #include <glog/logging.h>
 #include <include/ocr_det.h>
-#include <include/ocr_cls.h>
 #include <include/ocr_rec.h>
 #include <include/utility.h>
 #include <sys/stat.h>
 
 #include <gflags/gflags.h>
-#include "auto_log/autolog.h"
 
 DEFINE_bool(use_gpu, false, "Infering with GPU or CPU.");
 DEFINE_int32(gpu_id, 0, "Device id of GPU to execute.");
@@ -101,8 +99,6 @@ int main_system(std::vector<cv::String> cv_all_img_names) {
                        FLAGS_enable_mkldnn, FLAGS_char_list_file,
                        FLAGS_use_tensorrt, FLAGS_precision);
 
-    auto start = std::chrono::system_clock::now();
-
     for (int i = 0; i < cv_all_img_names.size(); ++i) {
       LOG(INFO) << "The predict img: " << cv_all_img_names[i];
 
@@ -126,10 +122,6 @@ int main_system(std::vector<cv::String> cv_all_img_names) {
         }
         rec.Run(crop_img, &rec_times);
       }
-        
-      auto end = std::chrono::system_clock::now();
-      auto duration =
-          std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     }
       
     return 0;
