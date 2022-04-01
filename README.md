@@ -60,14 +60,36 @@ docker run --rm -p 8080:8080 xsf0root/e-search-service:latest
 
 ## 卸载
 
+### docker 镜像删除
+
+```
+docker rmi e-search-service:latest
+```
+
 PaddleOCR 的模型数据存在用户目录的隐藏文件夹 paddleocr 下
-配置文件夹里的 service-installed 请手动卸载
 
 ```
 Windows:
-    C:\Users\用户\eSearch\
+    C:\Users\用户\paddleocr
 Linux:
-    ~/.config/eSearch/
+    ~/.paddleocr
 macOS:
-    ~/Library/Application Support/eSearch/
+    ~/。paddleocr
+```
+
+Python 模块请执行用`pip uninstall [包名]`按需卸载
+这个项目用到的包：
+
+```
+web.py
+numpy
+paddleocr
+paddlepaddle
+jieba
+pypinyin
+six
+psutil
+requests
+shapely
+kenlm
 ```
