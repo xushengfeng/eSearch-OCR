@@ -18,4 +18,5 @@ Linux
 macOS
 package
 ocr
-ppocr
+py/env
+.DS_Store
