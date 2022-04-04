@@ -8,3 +8,15 @@ log.log
 paddle_inference
 paddle_inference.tgz
 inference
+build
+ocr_vis.png
+a.png
+.vs
+CMakeSettings.json
+WIndows
+Linux
+macOS
+package
+ocr
+py/env
+.DS_Store
