@@ -67,8 +67,6 @@ class TextSystem(object):
         ori_im = img.copy()
         dt_boxes, elapse = self.text_detector(img)
 
-        logger.debug("dt_boxes num : {}, elapse : {}".format(
-            len(dt_boxes), elapse))
         if dt_boxes is None:
             return None, None
         img_crop_list = []
@@ -82,12 +80,8 @@ class TextSystem(object):
         if self.use_angle_cls and cls:
             img_crop_list, angle_list, elapse = self.text_classifier(
                 img_crop_list)
-            logger.debug("cls num  : {}, elapse : {}".format(
-                len(img_crop_list), elapse))
 
         rec_res, elapse = self.text_recognizer(img_crop_list)
-        logger.debug("rec_res num  : {}, elapse : {}".format(
-            len(rec_res), elapse))
         if self.args.save_crop_res:
             self.draw_crop_rec_res(self.args.crop_res_save_dir, img_crop_list,
                                    rec_res)
@@ -152,35 +146,10 @@ def main(args):
         elapse = time.time() - starttime
         total_time += elapse
 
-        logger.debug(
-            str(idx) + "  Predict time of %s: %.3fs" % (image_file, elapse))
+
         for text, score in rec_res:
-            logger.debug("{}, {:.3f}".format(text, score))
+            print("{}".format(text))
 
-        if is_visualize:
-            image = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            boxes = dt_boxes
-            txts = [rec_res[i][0] for i in range(len(rec_res))]
-            scores = [rec_res[i][1] for i in range(len(rec_res))]
-
-            draw_img = draw_ocr_box_txt(
-                image,
-                boxes,
-                txts,
-                scores,
-                drop_score=drop_score,
-                font_path=font_path)
-            draw_img_save_dir = args.draw_img_save_dir
-            os.makedirs(draw_img_save_dir, exist_ok=True)
-            if flag:
-                image_file = image_file[:-3] + "png"
-            cv2.imwrite(
-                os.path.join(draw_img_save_dir, os.path.basename(image_file)),
-                draw_img[:, :, ::-1])
-            logger.debug("The visualized image saved in {}".format(
-                os.path.join(draw_img_save_dir, os.path.basename(image_file))))
-
-    logger.info("The predict total time is {}".format(time.time() - _st))
     if args.benchmark:
         text_sys.text_detector.autolog.report()
         text_sys.text_recognizer.autolog.report()
