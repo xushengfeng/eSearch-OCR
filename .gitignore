@@ -7,7 +7,6 @@ pid.log
 log.log
 paddle_inference
 paddle_inference.tgz
-inference
 build
 ocr_vis.png
 a.png
