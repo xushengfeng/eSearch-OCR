@@ -10,6 +10,10 @@
 
 [编译文档](https://github.com/PaddlePaddle/PaddleOCR/tree/release/2.3/deploy/cpp_infer/)
 
+目前发行的版本是[2.5.0](https://github.com/xushengfeng/eSearch-OCR/releases/tag/2.5.0) 代码：[2.5.0](https://github.com/xushengfeng/eSearch-OCR/tree/2.5.0)
+
+master 分支下变动较大，可能无法编译，最好切换 tag
+
 ## 旧版本卸载
 
 ### docker 镜像删除
