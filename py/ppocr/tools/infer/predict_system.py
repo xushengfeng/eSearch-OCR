@@ -17,13 +17,14 @@ import subprocess
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(__dir__)
-sys.path.append(os.path.abspath(os.path.join(__dir__, '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '../..')))
 
 os.environ["FLAGS_allocator_strategy"] = 'auto_growth'
 
 import cv2
 import copy
 import numpy as np
+import json
 import time
 import logging
 from PIL import Image
@@ -67,6 +68,8 @@ class TextSystem(object):
         ori_im = img.copy()
         dt_boxes, elapse = self.text_detector(img)
 
+        logger.debug("dt_boxes num : {}, elapse : {}".format(
+            len(dt_boxes), elapse))
         if dt_boxes is None:
             return None, None
         img_crop_list = []
@@ -80,17 +83,21 @@ class TextSystem(object):
         if self.use_angle_cls and cls:
             img_crop_list, angle_list, elapse = self.text_classifier(
                 img_crop_list)
+            logger.debug("cls num  : {}, elapse : {}".format(
+                len(img_crop_list), elapse))
 
         rec_res, elapse = self.text_recognizer(img_crop_list)
+        logger.debug("rec_res num  : {}, elapse : {}".format(
+            len(rec_res), elapse))
         if self.args.save_crop_res:
             self.draw_crop_rec_res(self.args.crop_res_save_dir, img_crop_list,
                                    rec_res)
         filter_boxes, filter_rec_res = [], []
-        for box, rec_reuslt in zip(dt_boxes, rec_res):
-            text, score = rec_reuslt
+        for box, rec_result in zip(dt_boxes, rec_res):
+            text, score = rec_result
             if score >= self.drop_score:
                 filter_boxes.append(box)
-                filter_rec_res.append(rec_reuslt)
+                filter_rec_res.append(rec_result)
         return filter_boxes, filter_rec_res
 
 
@@ -122,6 +129,9 @@ def main(args):
     is_visualize = True
     font_path = args.vis_font_path
     drop_score = args.drop_score
+    draw_img_save_dir = args.draw_img_save_dir
+    os.makedirs(draw_img_save_dir, exist_ok=True)
+    save_results = []
 
     # warm up 10 times
     if args.warmup:
@@ -146,13 +156,47 @@ def main(args):
         elapse = time.time() - starttime
         total_time += elapse
 
-
+        logger.debug(
+            str(idx) + "  Predict time of %s: %.3fs" % (image_file, elapse))
         for text, score in rec_res:
-            print("{}".format(text))
+            logger.debug("{}, {:.3f}".format(text, score))
 
+        res = [{
+            "transcription": rec_res[idx][0],
+            "points": np.array(dt_boxes[idx]).astype(np.int32).tolist(),
+        } for idx in range(len(dt_boxes))]
+        save_pred = os.path.basename(image_file) + "\t" + json.dumps(
+            res, ensure_ascii=False) + "\n"
+        save_results.append(save_pred)
+
+        if is_visualize:
+            image = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            boxes = dt_boxes
+            txts = [rec_res[i][0] for i in range(len(rec_res))]
+            scores = [rec_res[i][1] for i in range(len(rec_res))]
+
+            draw_img = draw_ocr_box_txt(
+                image,
+                boxes,
+                txts,
+                scores,
+                drop_score=drop_score,
+                font_path=font_path)
+            if flag:
+                image_file = image_file[:-3] + "png"
+            cv2.imwrite(
+                os.path.join(draw_img_save_dir, os.path.basename(image_file)),
+                draw_img[:, :, ::-1])
+            logger.debug("The visualized image saved in {}".format(
+                os.path.join(draw_img_save_dir, os.path.basename(image_file))))
+
+    logger.info("The predict total time is {}".format(time.time() - _st))
     if args.benchmark:
         text_sys.text_detector.autolog.report()
         text_sys.text_recognizer.autolog.report()
+
+    with open(os.path.join(draw_img_save_dir, "system_results.txt"), 'w', encoding='utf-8') as f:
+        f.writelines(save_results)
 
 
 if __name__ == "__main__":
