@@ -3,3 +3,5 @@ a.png
 py/env
 .DS_Store
 assets
+node_modules
+js/m

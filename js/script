@@ -1,0 +1,3 @@
+wget https://bj.bcebos.com/paddle2onnx/model_zoo/ch_PP-OCRv2_det_infer.onnx
+wget https://bj.bcebos.com/paddle2onnx/model_zoo/ch_PP-OCRv2_rec_infer.onnx
+wget https://bj.bcebos.com/paddle2onnx/model_zoo/ch_ppocr_mobile_v2.0_cls_infer.onnx
