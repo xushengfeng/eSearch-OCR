@@ -1,6 +1,16 @@
 {
     "configurations": [
         {
+            "name": "Launch Program",
+            "cwd": "${workspaceFolder}/js",
+            "program": "./js.js",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Docker: Python - General",
             "type": "docker",
             "request": "launch",
