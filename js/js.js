@@ -106,49 +106,29 @@ function find_contors() {
 
     for (let i = 0; i < contours.size(); i++) {
         let cnt = contours.get(i);
-        let bbox = cv.minAreaRect(cnt);
-        let opoints = cv.RotatedRect.points(bbox);
-        let points = opoints.sort((a, b) => a.x - b.x);
-        let index_1 = 0,
-            index_2 = 1,
-            index_3 = 2,
-            index_4 = 3;
-        if (points[1].y > points[0].y) {
-            index_1 = 0;
-            index_4 = 0;
-        } else {
-            index_1 = 1;
-            index_4 = 0;
-        }
-        if (points[3].y > points[2].y) {
-            index_2 = 2;
-            index_3 = 3;
-        } else {
-            index_2 = 3;
-            index_3 = 2;
-        }
+        let bbox = cv.boundingRect(cnt);
+        // TODO minAreaRect
 
-        let box = [points[index_1], points[index_2], points[index_3], points[index_4]];
+        let box = [
+            [bbox.x, bbox.y],
+            [bbox.x + bbox.width, bbox.y],
+            [bbox.x + bbox.width, bbox.y + bbox.height],
+            [bbox.x, bbox.y + bbox.height],
+        ];
 
         let min_size = 3;
-        if (Math.min(bbox.size.width, bbox.size.height) >= min_size) {
+        if (Math.min(bbox.width, bbox.height) >= min_size) {
             let c = document.createElement("canvas");
-            let dx = 10,
-                dy = bbox.size.height;
-            c.width = bbox.size.width + dx * 2;
-            c.height = bbox.size.height + dy * 2;
+            let dx = bbox.width * 0.2,
+                dy = bbox.height;
+            c.width = bbox.width + dx * 2;
+            c.height = bbox.height + dy * 2;
 
             let ctx = c.getContext("2d");
-            ctx.translate(-opoints[1].x + dx, -opoints[1].y + dy);
-            ctx.rotate((-bbox.angle * Math.PI) / 180);
             let c0 = document.querySelectorAll("canvas")[0];
-            ctx.drawImage(c0, 0, 0);
+            ctx.drawImage(c0, -bbox.x + dx, -bbox.y + dy);
 
             document.body.append(c);
-
-            // dst_img_height, dst_img_width = dst_img.shape[0:2]
-            // if dst_img_height * 1.0 / dst_img_width >= 1.5:
-            //     dst_img = np.rot90(dst_img)
 
             edge_rect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
         }
