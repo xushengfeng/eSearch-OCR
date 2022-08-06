@@ -65,6 +65,65 @@ async function x() {
         myImageData.data[n + 3] = 255;
     }
     console.log(myImageData);
+    canvas.width = results["save_infer_model/scale_0.tmp_1"].dims[3];
+    canvas.height = results["save_infer_model/scale_0.tmp_1"].dims[2];
     canvas.getContext("2d").putImageData(myImageData, 0, 0);
+
+    find_contors();
 }
 x();
+
+function find_contors() {
+    let canvas = document.querySelector("canvas");
+    var cv = require("opencv.js");
+
+    let edge_rect = [];
+
+    let src = cv.imread(canvas);
+
+    let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
+    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+    cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
+    let contours = new cv.MatVector();
+    let hierarchy = new cv.Mat();
+
+    cv.findContours(src, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+    for (let i = 0; i < contours.size(); i++) {
+        let cnt = contours.get(i);
+        let bounding_box = cv.minAreaRect(cnt);
+        let points = cv.RotatedRect.points(bounding_box);
+        points = points.sort((a, b) => a.x - b.x);
+        let index_1 = 0,
+            index_2 = 1,
+            index_3 = 2,
+            index_4 = 3;
+        if (points[1].y > points[0].y) {
+            index_1 = 0;
+            index_4 = 0;
+        } else {
+            index_1 = 1;
+            index_4 = 0;
+        }
+        if (points[3].y > points[2].y) {
+            index_2 = 2;
+            index_3 = 3;
+        } else {
+            index_2 = 3;
+            index_3 = 2;
+        }
+
+        box = [points[index_1], points[index_2], points[index_3], points[index_4]];
+
+        let min_size = 3;
+        if (Math.min(bounding_box.size.width, bounding_box.size.height) >= min_size) edge_rect.push(box);
+    }
+
+    console.log(edge_rect);
+
+    src.delete();
+    contours.delete();
+    hierarchy.delete();
+
+    src = dst = contours = hierarchy = null;
+}

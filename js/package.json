@@ -2,7 +2,8 @@
   "main": "main.js",
   "dependencies": {
     "jimp": "^0.16.1",
-    "onnxruntime-node": "^1.12.0"
+    "onnxruntime-node": "^1.12.0",
+    "opencv.js": "^1.2.1"
   },
   "devDependencies": {
     "electron": "^20.0.1"
