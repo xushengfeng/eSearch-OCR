@@ -87,6 +87,130 @@ async function x() {
     let box = find_contors();
 
     const rec = await ort.InferenceSession.create("./m/ch_PP-OCRv2_rec_infer.onnx");
+
+    let imgC = 3,
+        imgH = 32,
+        imgW = 320;
+    /**
+     *
+     * @param {ImageData} img
+     */
+    function resize_norm_img(img) {
+        imgW = Math.floor(32 * max_wh_ratio);
+        let h = img.height,
+            w = img.width;
+        let ratio = w / h;
+        let resized_w;
+        if (Math.ceil(imgH * ratio) > imgW) {
+            resized_w = imgW;
+        } else {
+            resized_w = Math.floor(Math.ceil(imgH * ratio));
+        }
+        let c = document.createElement("canvas");
+        c.width = resized_w;
+        c.height = imgH;
+        c.getContext("2d").scale(resize_w / img.width, resize_w / img.width);
+        c.getContext("2d").putImageData(img, 0, 0);
+        var imageBufferData = c.getContext("2d").getImageData(0, 0, c.width, c.height);
+        for (let i = 0; i < imageBufferData.data.length; i++) {
+            imageBufferData.data[i] = imageBufferData.data[i];
+        }
+        let cc = document.createElement("canvas");
+        cc.width = imgW;
+        cc.height = imgH;
+        cc.getContext("2d").putImageData(imageBufferData, 0, 0);
+        return cc.getContext("2d").getImageData(0, 0, imgW, imgH);
+    }
+
+    let max_wh_ratio = 0;
+    for (let r of box) {
+        max_wh_ratio = Math.max(r.img.width / r.img.height, max_wh_ratio);
+    }
+    let b = [];
+    for (let r of box) {
+        let imageBufferData = resize_norm_img(r.img).data;
+        const [redArray, greenArray, blueArray] = new Array(new Array(), new Array(), new Array());
+
+        let x = 0,
+            y = 0;
+        for (let i = 0; i < imageBufferData.length; i += 4) {
+            if (!blueArray[y]) blueArray[y] = [];
+            if (!greenArray[y]) greenArray[y] = [];
+            if (!redArray[y]) redArray[y] = [];
+            redArray[y][x] = (imageBufferData[i] / 255 - 0.5) / 0.5;
+            greenArray[y][x] = (imageBufferData[i + 1] / 255 - 0.5) / 0.5;
+            blueArray[y][x] = (imageBufferData[i + 2] / 255 - 0.5) / 0.5;
+            x++;
+            if (x == imgW) {
+                x = 0;
+                y++;
+            }
+        }
+        b.push([blueArray, greenArray, redArray]);
+    }
+    console.log(b);
+    const float32Data1 = Float32Array.from(b.flat(Infinity));
+
+    const inputTensor1 = new ort.Tensor("float32", float32Data1, [b.length, 3, imgH, imgW]);
+
+    const results1 = await rec.run({ x: inputTensor1 });
+    let data = results1["save_infer_model/scale_0.tmp_1"];
+    console.log();
+
+    const fs = require("fs");
+    let character = fs.readFileSync("../assets/ppocr_keys_v1.txt").toString().split("\n");
+    console.log(character);
+    const pred_len = data.dims[2];
+
+    let line = [];
+    let ml = data.dims[0] - 1;
+    for (let l = 0; l < data.data.length; l += pred_len * data.dims[1]) {
+        const preds_idx = [];
+        const preds_prob = [];
+
+        for (let i = l; i < l + pred_len * data.dims[1]; i += pred_len) {
+            const tmpArr = data.data.slice(i, i + pred_len - 1);
+            const tmpMax = Math.max(...tmpArr);
+            const tmpIdx = tmpArr.indexOf(tmpMax);
+            preds_prob.push(tmpMax);
+            preds_idx.push(tmpIdx);
+        }
+        line[ml] = decode(preds_idx, preds_prob, true);
+        ml--;
+    }
+    function decode(text_index, text_prob, is_remove_duplicate) {
+        const ignored_tokens = [0];
+        const char_list = [];
+        const conf_list = [];
+        for (let idx = 0; idx < text_index.length; idx++) {
+            if (text_index[idx] in ignored_tokens) {
+                continue;
+            }
+            if (is_remove_duplicate) {
+                if (idx > 0 && text_index[idx - 1] === text_index[idx]) {
+                    continue;
+                }
+            }
+            char_list.push(character[text_index[idx] - 1]);
+            if (text_prob) {
+                conf_list.push(text_prob[idx]);
+            } else {
+                conf_list.push(1);
+            }
+        }
+        let text = "";
+        let mean = 0;
+        if (char_list.length) {
+            text = char_list.join("");
+            let sum = 0;
+            conf_list.forEach((item) => {
+                sum += item;
+            });
+            mean = sum / conf_list.length;
+        }
+        return { text, mean };
+    }
+    console.log(line);
 }
 x();
 
