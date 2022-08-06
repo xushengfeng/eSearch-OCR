@@ -53,7 +53,18 @@ async function x() {
 
     const results = await session.run({ x: inputTensor });
 
-    const dataC = results.data;
-    console.log(dataC);
+    const dataC = results["save_infer_model/scale_0.tmp_1"].data;
+    console.log(results);
+
+    let canvas = document.querySelector("canvas");
+
+    var myImageData = new ImageData(resize_w, resize_h);
+    for (let i in dataC) {
+        let n = i * 4;
+        myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = dataC[i] * 255;
+        myImageData.data[n + 3] = 255;
+    }
+    console.log(myImageData);
+    canvas.getContext("2d").putImageData(myImageData, 0, 0);
 }
 x();

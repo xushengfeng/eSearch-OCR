@@ -11,19 +11,15 @@
             "type": "node"
         },
         {
-            "name": "Docker: Python - General",
-            "type": "docker",
+            "name": "Debug Main Process",
+            "type": "node",
             "request": "launch",
-            "preLaunchTask": "docker-run: debug",
-            "python": {
-                "pathMappings": [
-                    {
-                        "localRoot": "${workspaceFolder}",
-                        "remoteRoot": "/app"
-                    }
-                ],
-                "projectType": "general"
-            }
+            "cwd": "${workspaceFolder}/js",
+            "runtimeExecutable": "${workspaceFolder}/js/node_modules/.bin/electron",
+            "windows": {
+                "runtimeExecutable": "${workspaceFolder}/js/node_modules/.bin/electron.cmd"
+            },
+            "args": ["."]
         }
     ]
 }
