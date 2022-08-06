@@ -1,5 +1,7 @@
 const ort = require("onnxruntime-node");
 const jimp = require("jimp");
+var cv = require("opencv.js");
+var src0;
 async function x() {
     const session = await ort.InferenceSession.create("./m/ch_PP-OCRv2_det_infer.onnx");
 
@@ -21,6 +23,20 @@ async function x() {
     resize_h = Math.max(Math.round(resize_h / 32) * 32, 32);
     resize_w = Math.max(Math.round(resize_w / 32) * 32, 32);
     image = image.resize(resize_w, resize_h);
+    let img = document.createElement("img");
+    img.src = await image.getBase64Async("image/png");
+    document.querySelectorAll("canvas")[0].width = resize_w;
+    document.querySelectorAll("canvas")[0].height = resize_h;
+    function loadimg() {
+        return new Promise(function (resolve, reject) {
+            img.onload = resolve;
+        });
+    }
+    await loadimg();
+    document.querySelectorAll("canvas")[0].getContext("2d").drawImage(img, 0, 0);
+
+    src0 = cv.imread(document.querySelectorAll("canvas")[0]);
+
     var imageBufferData = image.bitmap.data;
     const [redArray, greenArray, blueArray] = new Array(new Array(), new Array(), new Array());
 
@@ -56,7 +72,7 @@ async function x() {
     const dataC = results["save_infer_model/scale_0.tmp_1"].data;
     console.log(results);
 
-    let canvas = document.querySelector("canvas");
+    let canvas = document.querySelectorAll("canvas")[1];
 
     var myImageData = new ImageData(resize_w, resize_h);
     for (let i in dataC) {
@@ -64,24 +80,23 @@ async function x() {
         myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = dataC[i] * 255;
         myImageData.data[n + 3] = 255;
     }
-    console.log(myImageData);
     canvas.width = results["save_infer_model/scale_0.tmp_1"].dims[3];
     canvas.height = results["save_infer_model/scale_0.tmp_1"].dims[2];
     canvas.getContext("2d").putImageData(myImageData, 0, 0);
 
-    find_contors();
+    let box = find_contors();
+
+    const rec = await ort.InferenceSession.create("./m/ch_PP-OCRv2_rec_infer.onnx");
 }
 x();
 
 function find_contors() {
-    let canvas = document.querySelector("canvas");
-    var cv = require("opencv.js");
+    let canvas = document.querySelectorAll("canvas")[1];
 
     let edge_rect = [];
 
     let src = cv.imread(canvas);
 
-    let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
     cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
     let contours = new cv.MatVector();
@@ -91,9 +106,9 @@ function find_contors() {
 
     for (let i = 0; i < contours.size(); i++) {
         let cnt = contours.get(i);
-        let bounding_box = cv.minAreaRect(cnt);
-        let points = cv.RotatedRect.points(bounding_box);
-        points = points.sort((a, b) => a.x - b.x);
+        let bbox = cv.minAreaRect(cnt);
+        let opoints = cv.RotatedRect.points(bbox);
+        let points = opoints.sort((a, b) => a.x - b.x);
         let index_1 = 0,
             index_2 = 1,
             index_3 = 2,
@@ -113,10 +128,30 @@ function find_contors() {
             index_3 = 2;
         }
 
-        box = [points[index_1], points[index_2], points[index_3], points[index_4]];
+        let box = [points[index_1], points[index_2], points[index_3], points[index_4]];
 
         let min_size = 3;
-        if (Math.min(bounding_box.size.width, bounding_box.size.height) >= min_size) edge_rect.push(box);
+        if (Math.min(bbox.size.width, bbox.size.height) >= min_size) {
+            let c = document.createElement("canvas");
+            let dx = 10,
+                dy = bbox.size.height;
+            c.width = bbox.size.width + dx * 2;
+            c.height = bbox.size.height + dy * 2;
+
+            let ctx = c.getContext("2d");
+            ctx.translate(-opoints[1].x + dx, -opoints[1].y + dy);
+            ctx.rotate((-bbox.angle * Math.PI) / 180);
+            let c0 = document.querySelectorAll("canvas")[0];
+            ctx.drawImage(c0, 0, 0);
+
+            document.body.append(c);
+
+            // dst_img_height, dst_img_width = dst_img.shape[0:2]
+            // if dst_img_height * 1.0 / dst_img_width >= 1.5:
+            //     dst_img = np.rot90(dst_img)
+
+            edge_rect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
+        }
     }
 
     console.log(edge_rect);
@@ -126,4 +161,6 @@ function find_contors() {
     hierarchy.delete();
 
     src = dst = contours = hierarchy = null;
+
+    return edge_rect;
 }
