@@ -1,8 +1,9 @@
 var cv = require("opencv.js");
 const ort = require("onnxruntime-node");
-var src0;
 
 module.exports = x;
+
+var dev = true;
 
 /**
  *
@@ -17,7 +18,7 @@ async function x(img, det, rec, dic) {
     let transposedData;
     let resize_w;
     let image;
-    ({ transposedData, resize_w, image } = 检测前处理(h, w, img));
+    ({ transposedData, resize_w, image, canvas } = 检测前处理(h, w, img));
     const det_data = Float32Array.from(transposedData.flat(Infinity));
 
     const det_tensor = new ort.Tensor("float32", det_data, [1, 3, image.height, image.width]);
@@ -29,7 +30,8 @@ async function x(img, det, rec, dic) {
     let box = 检测后处理(
         det_results[det.outputNames[0]].data,
         det_results[det.outputNames[0]].dims[3],
-        det_results[det.outputNames[0]].dims[2]
+        det_results[det.outputNames[0]].dims[2],
+        canvas
     );
 
     let { b, imgH, imgW } = 识别前处理(resize_w, box);
@@ -47,6 +49,7 @@ async function x(img, det, rec, dic) {
 
     let line = 识别后处理(data, pred_len, character);
     console.log(line);
+    return line;
 }
 
 /**
@@ -80,20 +83,24 @@ function 检测前处理(h, w, image) {
     resize_h = Math.max(Math.round(resize_h / 32) * 32, 32);
     resize_w = Math.max(Math.round(resize_w / 32) * 32, 32);
     image = resize_img(image, resize_w, resize_h);
-    document.querySelectorAll("canvas")[0].width = resize_w;
-    document.querySelectorAll("canvas")[0].height = resize_h;
+    let src_canvas = document.createElement("canvas");
+    src_canvas.width = resize_w;
+    src_canvas.height = resize_h;
     let id = new ImageData(image.width, image.height);
     for (let i in id.data) id.data[i] = image.data[i];
-    document.querySelectorAll("canvas")[0].getContext("2d").putImageData(id, 0, 0);
+    src_canvas.getContext("2d").putImageData(id, 0, 0);
 
-    src0 = cv.imread(document.querySelectorAll("canvas")[0]);
+    src0 = cv.imread(src_canvas);
 
     const transposedData = to_paddle_input(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
     console.log(image);
-    return { transposedData, resize_w, image };
+    if (dev) {
+        document.body.append(src_canvas);
+    }
+    return { transposedData, resize_w, image, canvas: src_canvas };
 }
 
-function 检测后处理(data, w, h) {
+function 检测后处理(data, w, h, src_canvas) {
     let canvas = document.createElement("canvas");
 
     var myImageData = new ImageData(w, h);
@@ -138,10 +145,9 @@ function 检测后处理(data, w, h) {
             c.height = bbox.height + dy * 2;
 
             let ctx = c.getContext("2d");
-            let c0 = document.querySelectorAll("canvas")[0];
+            let c0 = src_canvas;
             ctx.drawImage(c0, -bbox.x + dx, -bbox.y + dy);
-
-            document.body.append(c);
+            if (dev) document.body.append(c);
 
             edge_rect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
         }
