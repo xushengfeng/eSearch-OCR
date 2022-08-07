@@ -1,5 +1,4 @@
 const ort = require("onnxruntime-node");
-const jimp = require("jimp");
 var cv = require("opencv.js");
 const fs = require("fs");
 var src0;
@@ -29,15 +28,15 @@ async function start() {
  * @param {Array} dic 字典
  */
 async function x(img, det, rec, dic) {
-    let image = await jimp.read("../a.png");
-    let h = image.bitmap.height,
-        w = image.bitmap.width;
+    let h = img.height,
+        w = img.width;
     let transposedData;
     let resize_w;
-    ({ transposedData, resize_w, image } = 检测前处理(h, w, image));
+    let image;
+    ({ transposedData, resize_w, image } = 检测前处理(h, w, img));
     const det_data = Float32Array.from(transposedData.flat(Infinity));
 
-    const det_tensor = new ort.Tensor("float32", det_data, [1, 3, image.bitmap.height, image.bitmap.width]);
+    const det_tensor = new ort.Tensor("float32", det_data, [1, 3, image.height, image.width]);
     let det_feed = {};
     det_feed[det.inputNames[0]] = det_tensor;
 
@@ -66,6 +65,21 @@ async function x(img, det, rec, dic) {
     console.log(line);
 }
 
+/**
+ *
+ * @param {ImageData} data 原图
+ * @param {number} w 输出宽
+ * @param {number} h 输出高
+ */
+function resize_img(data, w, h) {
+    let src = document.createElement("canvas");
+    src.width = w;
+    src.height = h;
+    src.getContext("2d").scale(w / data.width, h / data.height);
+    src.getContext("2d").putImageData(data, 0, 0);
+    return src.getContext("2d").getImageData(0, 0, w, h);
+}
+
 function 检测前处理(h, w, image) {
     let limit_side_len = 960;
     let ratio = 1;
@@ -81,16 +95,17 @@ function 检测前处理(h, w, image) {
 
     resize_h = Math.max(Math.round(resize_h / 32) * 32, 32);
     resize_w = Math.max(Math.round(resize_w / 32) * 32, 32);
-    image = image.resize(resize_w, resize_h);
+    image = resize_img(image, resize_w, resize_h);
     document.querySelectorAll("canvas")[0].width = resize_w;
     document.querySelectorAll("canvas")[0].height = resize_h;
-    let id = new ImageData(image.bitmap.width, image.bitmap.height);
-    for (let i in id.data) id.data[i] = image.bitmap.data[i];
+    let id = new ImageData(image.width, image.height);
+    for (let i in id.data) id.data[i] = image.data[i];
     document.querySelectorAll("canvas")[0].getContext("2d").putImageData(id, 0, 0);
 
     src0 = cv.imread(document.querySelectorAll("canvas")[0]);
 
-    const transposedData = to_paddle_input(image.bitmap, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
+    const transposedData = to_paddle_input(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
+    console.log(image);
     return { transposedData, resize_w, image };
 }
 
@@ -200,19 +215,11 @@ function 识别前处理(resize_w, box) {
         } else {
             resized_w = Math.floor(Math.ceil(imgH * ratio));
         }
-        let c = document.createElement("canvas");
-        c.width = resized_w;
-        c.height = imgH;
-        c.getContext("2d").scale(resize_w / img.width, resize_w / img.width);
-        c.getContext("2d").putImageData(img, 0, 0);
-        var imageBufferData = c.getContext("2d").getImageData(0, 0, c.width, c.height);
-        for (let i = 0; i < imageBufferData.data.length; i++) {
-            imageBufferData.data[i] = imageBufferData.data[i];
-        }
+        let d = resize_img(img, resized_w, imgH);
         let cc = document.createElement("canvas");
         cc.width = imgW;
         cc.height = imgH;
-        cc.getContext("2d").putImageData(imageBufferData, 0, 0);
+        cc.getContext("2d").putImageData(d, 0, 0);
         return cc.getContext("2d").getImageData(0, 0, imgW, imgH);
     }
 

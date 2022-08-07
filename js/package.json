@@ -1,7 +1,6 @@
 {
   "main": "main.js",
   "dependencies": {
-    "jimp": "^0.16.1",
     "onnxruntime-node": "^1.12.0",
     "opencv.js": "^1.2.1"
   },
