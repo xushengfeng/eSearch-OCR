@@ -5,3 +5,4 @@ py/env
 assets
 node_modules
 js/m
+*.png
