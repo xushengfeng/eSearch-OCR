@@ -1,18 +1,34 @@
 var cv = require("opencv.js");
 const ort = require("onnxruntime-node");
+const fs = require("fs");
 
-module.exports = x;
+module.exports = { ocr: x, init };
 
 var dev = true;
 
+var det, rec, dic;
+
 /**
- *
+ * 初始化
+ * @param {{det_path:string,rec_path:string,dic_path:string,dev:boolean}} x
+ * @returns
+ */
+async function init(x) {
+    dev = x.dev;
+    det = await ort.InferenceSession.create(x.det_path);
+    rec = await ort.InferenceSession.create(x.rec_path);
+    dic = fs.readFileSync(x.dic_path).toString().split("\n");
+    return new Promise((rs) => rs());
+}
+
+/**
+ * 主要操作
  * @param {ImageData} img 图片
  * @param {ort.InferenceSession} det 检测器
  * @param {ort.InferenceSession} rec 识别器
  * @param {Array} dic 字典
  */
-async function x(img, det, rec, dic) {
+async function x(img) {
     let h = img.height,
         w = img.width;
     let transposedData;
