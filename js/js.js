@@ -19,6 +19,18 @@ async function x(img, det, rec, dic) {
     let resize_w;
     let image;
     ({ transposedData, resize_w, image, canvas } = 检测前处理(h, w, img));
+    const det_results = await 检测(transposedData, image, det);
+
+    let box = 检测后处理(det_results.data, det_results.dims[3], det_results.dims[2], canvas);
+
+    let { b, imgH, imgW } = 识别前处理(resize_w, box);
+    const rec_results = await 识别(b, imgH, imgW, rec);
+    let line = 识别后处理(rec_results, dic);
+    console.log(line);
+    return line;
+}
+
+async function 检测(transposedData, image, det) {
     const det_data = Float32Array.from(transposedData.flat(Infinity));
 
     const det_tensor = new ort.Tensor("float32", det_data, [1, 3, image.height, image.width]);
@@ -26,15 +38,10 @@ async function x(img, det, rec, dic) {
     det_feed[det.inputNames[0]] = det_tensor;
 
     const det_results = await det.run(det_feed);
+    return det_results[det.outputNames[0]];
+}
 
-    let box = 检测后处理(
-        det_results[det.outputNames[0]].data,
-        det_results[det.outputNames[0]].dims[3],
-        det_results[det.outputNames[0]].dims[2],
-        canvas
-    );
-
-    let { b, imgH, imgW } = 识别前处理(resize_w, box);
+async function 识别(b, imgH, imgW, rec) {
     const rec_data = Float32Array.from(b.flat(Infinity));
 
     const rec_tensor = new ort.Tensor("float32", rec_data, [b.length, 3, imgH, imgW]);
@@ -42,14 +49,7 @@ async function x(img, det, rec, dic) {
     rec_feed[rec.inputNames[0]] = rec_tensor;
 
     const rec_results = await rec.run(rec_feed);
-    let data = rec_results[rec.outputNames[0]];
-
-    let character = dic;
-    const pred_len = data.dims[2];
-
-    let line = 识别后处理(data, pred_len, character);
-    console.log(line);
-    return line;
+    return rec_results[rec.outputNames[0]];
 }
 
 /**
@@ -225,7 +225,8 @@ function 识别前处理(resize_w, box) {
     return { b, imgH, imgW };
 }
 
-function 识别后处理(data, pred_len, character) {
+function 识别后处理(data, character) {
+    let pred_len = data.dims[2];
     let line = [];
     let ml = data.dims[0] - 1;
     for (let l = 0; l < data.data.length; l += pred_len * data.dims[1]) {
