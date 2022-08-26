@@ -75,11 +75,15 @@ async function 识别(b, imgH, imgW, rec) {
  * @param {number} h 输出高
  */
 function resize_img(data, w, h) {
+    let x = document.createElement("canvas");
+    x.width = data.width;
+    x.height = data.height;
+    x.getContext("2d").putImageData(data, 0, 0);
     let src = document.createElement("canvas");
     src.width = w;
     src.height = h;
     src.getContext("2d").scale(w / data.width, h / data.height);
-    src.getContext("2d").putImageData(data, 0, 0);
+    src.getContext("2d").drawImage(x, 0, 0);
     return src.getContext("2d").getImageData(0, 0, w, h);
 }
 
