@@ -1,6 +1,6 @@
 __pycache__
 a.png
-py/env
+to_onnx/env
 .DS_Store
 assets
 node_modules

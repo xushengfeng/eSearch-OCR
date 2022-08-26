@@ -155,8 +155,8 @@ function 检测后处理(data, w, h, src_canvas) {
         let min_size = 3;
         if (Math.min(bbox.width, bbox.height) >= min_size) {
             let c = document.createElement("canvas");
-            let dx = bbox.width * 0.2,
-                dy = bbox.height;
+            let dx = bbox.width * 0.1,
+                dy = bbox.height * 1.2;
             c.width = bbox.width + dx * 2;
             c.height = bbox.height + dy * 2;
 
@@ -204,14 +204,14 @@ function to_paddle_input(image, mean, std) {
 
 function 识别前处理(resize_w, box) {
     let imgC = 3,
-        imgH = 32,
+        imgH = 48,
         imgW = 320;
     /**
      *
      * @param {ImageData} img
      */
     function resize_norm_img(img) {
-        imgW = Math.floor(32 * max_wh_ratio);
+        imgW = Math.floor(48 * max_wh_ratio);
         let h = img.height,
             w = img.width;
         let ratio = w / h;
@@ -226,6 +226,7 @@ function 识别前处理(resize_w, box) {
         cc.width = imgW;
         cc.height = imgH;
         cc.getContext("2d").putImageData(d, 0, 0);
+        if (dev) document.body.append(cc);
         return cc.getContext("2d").getImageData(0, 0, imgW, imgH);
     }
 
