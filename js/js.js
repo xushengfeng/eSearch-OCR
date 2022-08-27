@@ -7,10 +7,14 @@ module.exports = { ocr: x, init };
 var dev = true;
 
 var det, rec, dic;
+var limit_side_len = 960,
+    imgH = 48,
+    imgW = 320;
 
 /**
  * 初始化
- * @param {{det_path:string,rec_path:string,dic_path:string,dev:boolean}} x
+ * @param {{det_path:string,rec_path:string,dic_path:string,
+ * max_side:number,imgh:number;imgw:numberdev:boolean}} x
  * @returns
  */
 async function init(x) {
@@ -18,6 +22,9 @@ async function init(x) {
     det = await ort.InferenceSession.create(x.det_path);
     rec = await ort.InferenceSession.create(x.rec_path);
     dic = fs.readFileSync(x.dic_path).toString().split("\n");
+    if (x.max_side) limit_side_len = x.max_side;
+    if (x.imgh) imgH = x.imgh;
+    if (x.imgw) imgW = x.imgw;
     return new Promise((rs) => rs());
 }
 
@@ -88,7 +95,6 @@ function resize_img(data, w, h) {
 }
 
 function 检测前处理(h, w, image) {
-    let limit_side_len = 960;
     let ratio = 1;
     if (Math.max(h, w) > limit_side_len) {
         if (h > w) {
@@ -207,15 +213,12 @@ function to_paddle_input(image, mean, std) {
 }
 
 function 识别前处理(resize_w, box) {
-    let imgC = 3,
-        imgH = 48,
-        imgW = 320;
     /**
      *
      * @param {ImageData} img
      */
     function resize_norm_img(img) {
-        imgW = Math.floor(48 * max_wh_ratio);
+        imgW = Math.floor(imgH * max_wh_ratio);
         let h = img.height,
             w = img.width;
         let ratio = w / h;
