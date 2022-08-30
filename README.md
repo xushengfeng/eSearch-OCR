@@ -2,50 +2,14 @@
 
 本仓库是 [eSearch](https://github.com/xushengfeng/eSearch)的 OCR 服务依赖
 
-目前支持本地 OCR（基于 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)）
+支持本地 OCR（基于 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)）
 
 [PaddleOCR License](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.4/LICENSE)
 
 [paddle 预测库](https://paddle-inference.readthedocs.io/en/latest/user_guides/download_lib.html)
 
-[编译文档](https://github.com/PaddlePaddle/PaddleOCR/tree/release/2.3/deploy/cpp_infer/)
+基于[onnxruntime](https://github.com/microsoft/onnxruntime)的 web runtime，使用 wasm 运行，未来可能使用 webgl 甚至是 webgpu。
 
-目前发行的版本是[2.5.0](https://github.com/xushengfeng/eSearch-OCR/releases/tag/2.5.0) 代码：[2.5.0](https://github.com/xushengfeng/eSearch-OCR/tree/2.5.0)
+模型需要转换为 onnx 才能使用：[Paddle2ONNX]https://github.com/PaddlePaddle/Paddle2ONNX
 
-master 分支下变动较大，可能无法编译，最好切换 tag
-
-## 旧版本卸载
-
-### docker 镜像删除
-
-```
-docker rmi e-search-service:latest
-```
-
-PaddleOCR 的模型数据存在用户目录的隐藏文件夹 paddleocr 下
-
-```
-Windows:
-    C:\Users\用户\paddleocr
-Linux:
-    ~/.paddleocr
-macOS:
-    ~/。paddleocr
-```
-
-Python 模块请执行用`pip uninstall [包名]`按需卸载
-这个项目用到的包：
-
-```
-web.py
-numpy
-paddleocr
-paddlepaddle
-jieba
-pypinyin
-six
-psutil
-requests
-shapely
-kenlm
-```
+在 js 文件下使用 electron 进行调试（主要是 require 几个模块和 fs 读取字典，若想纯网页实现，可以自行修改）
