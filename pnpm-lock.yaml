@@ -1,0 +1,13 @@
+lockfileVersion: 5.4
+
+specifiers:
+  wordsninja: ^1.0.0
+
+dependencies:
+  wordsninja: 1.0.0
+
+packages:
+
+  /wordsninja/1.0.0:
+    resolution: {integrity: sha512-f9aKDZ01xCjBEVxqQ4+fbSw+Jksi0OlvWV4QeqFzX78FjwREk/7ARgk0PuKlOkxGPg1ylkTYMTcKpReMVi2z4A==}
+    dev: false
