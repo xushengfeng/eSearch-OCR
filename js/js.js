@@ -2,6 +2,7 @@ var cv = require("opencv.js");
 const ort = require("onnxruntime-node");
 const fs = require("fs");
 const WordsNinjaPack = require("wordsninja");
+const { join } = require("path");
 const WordsNinja = new WordsNinjaPack();
 
 module.exports = { ocr: x, init };
@@ -300,7 +301,7 @@ function 识别后处理(data, character) {
                 sum += item;
             });
             mean = sum / conf_list.length;
-            text = WordsNinja.splitSentence(text);
+            text = text.replace(/[a-zA-Z ]*/g, (v) => WordsNinja.splitSentence(v).join(" "));
         }
         return { text, mean };
     }
