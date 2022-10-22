@@ -2,7 +2,6 @@ var cv = require("opencv.js");
 const ort = require("onnxruntime-node");
 const fs = require("fs");
 const WordsNinjaPack = require("wordsninja");
-const { join } = require("path");
 const WordsNinja = new WordsNinjaPack();
 
 module.exports = { ocr: x, init };
@@ -17,7 +16,7 @@ var limit_side_len = 960,
 /**
  * 初始化
  * @param {{det_path:string,rec_path:string,dic_path:string,
- * max_side:number,imgh:number;imgw:numberdev:boolean}} x
+ * max_side:number,imgh:number;imgw:number;dev:boolean}} x
  * @returns
  */
 async function init(x) {
@@ -40,11 +39,13 @@ async function init(x) {
  * @param {Array} dic 字典
  */
 async function x(img) {
+    console.time()
     let h = img.height,
         w = img.width;
     let transposedData;
     let resize_w;
     let image;
+    let canvas;
     ({ transposedData, resize_w, image, canvas } = 检测前处理(h, w, img));
     const det_results = await 检测(transposedData, image, det);
 
@@ -54,6 +55,7 @@ async function x(img) {
     const rec_results = await 识别(b, imgH, imgW, rec);
     let line = 识别后处理(rec_results, dic);
     console.log(line);
+    console.timeEnd()
     return line;
 }
 
@@ -120,7 +122,7 @@ function 检测前处理(h, w, image) {
     for (let i in id.data) id.data[i] = image.data[i];
     src_canvas.getContext("2d").putImageData(id, 0, 0);
 
-    src0 = cv.imread(src_canvas);
+    // src0 = cv.imread(src_canvas);
 
     const transposedData = to_paddle_input(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
     console.log(image);
@@ -189,7 +191,7 @@ function 检测后处理(data, w, h, src_canvas) {
     contours.delete();
     hierarchy.delete();
 
-    src = dst = contours = hierarchy = null;
+    src = contours = hierarchy = null;
 
     return edge_rect;
 }
@@ -294,7 +296,6 @@ function 识别后处理(data, character) {
         let text = "";
         let mean = 0;
         if (char_list.length) {
-            console.log(char_list);
             text = char_list.join("");
             let sum = 0;
             conf_list.forEach((item) => {
