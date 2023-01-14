@@ -179,18 +179,19 @@ function 检测后处理(data, w, h, src_canvas) {
         let bbox = cv.boundingRect(cnt);
         // TODO minAreaRect
 
+        let dx = 8,
+            dy = 8;
+
         let box = [
-            [bbox.x, bbox.y],
-            [bbox.x + bbox.width, bbox.y],
-            [bbox.x + bbox.width, bbox.y + bbox.height],
-            [bbox.x, bbox.y + bbox.height],
+            [bbox.x - dx, bbox.y - dy],
+            [bbox.x + bbox.width + dx * 2, bbox.y - dy],
+            [bbox.x + bbox.width + dx * 2, bbox.y + bbox.height + dy * 2],
+            [bbox.x - dx, bbox.y + bbox.height + dy * 2],
         ];
 
         let min_size = 3;
         if (Math.min(bbox.width, bbox.height) >= min_size) {
             let c = document.createElement("canvas");
-            let dx = bbox.width * 0.1,
-                dy = bbox.height * 1.2;
             c.width = bbox.width + dx * 2;
             c.height = bbox.height + dy * 2;
 
