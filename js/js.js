@@ -156,7 +156,8 @@ function 检测后处理(data, w, h, src_canvas) {
     var myImageData = new ImageData(w, h);
     for (let i in data) {
         let n = i * 4;
-        myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = data[i] * 255;
+        const v = data[i] > 0.3 ? 255 : 0;
+        myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = v;
         myImageData.data[n + 3] = 255;
     }
     canvas.width = w;
@@ -168,7 +169,6 @@ function 检测后处理(data, w, h, src_canvas) {
     let src = cv.imread(canvas);
 
     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-    cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
     let contours = new cv.MatVector();
     let hierarchy = new cv.Mat();
 
