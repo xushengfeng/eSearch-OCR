@@ -1,6 +1,5 @@
 var cv = require("opencv.js");
 var ort;
-const fs = require("fs");
 const WordsNinjaPack = require("wordsninja");
 const WordsNinja = new WordsNinjaPack();
 
@@ -28,7 +27,7 @@ async function init(x) {
     dev = x.dev;
     det = await ort.InferenceSession.create(x.det_path);
     rec = await ort.InferenceSession.create(x.rec_path);
-    dic = fs.readFileSync(x.dic_path).toString().split("\n");
+    dic = x.dic.split("\n");
     if (x.max_side) limit_side_len = x.max_side;
     if (x.imgh) imgH = x.imgh;
     if (x.imgw) imgW = x.imgw;
