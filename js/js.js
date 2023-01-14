@@ -16,7 +16,7 @@ var limit_side_len = 960,
 /**
  * 初始化
  * @param {{det_path:string,rec_path:string,dic_path:string,
- * max_side:number,imgh:number;imgw:number;dev:boolean;node:boolean}} x
+ * max_side:number,imgh:number;imgw:number;dev:boolean;node:boolean;dic:string}} x
  * @returns
  */
 async function init(x) {
@@ -62,6 +62,16 @@ async function x(img) {
         const rec_results = await 识别(b, imgH, imgW, rec);
         let line = 识别后处理(rec_results, dic);
         main_line = line.concat(main_line);
+    }
+    for (let i in main_line) {
+        let rx = w / image.width,
+            ry = h / image.height;
+        let b = box[main_line.length - Number(i) - 1].box;
+        for (let p of b) {
+            p[0] = p[0] * rx;
+            p[1] = p[1] * ry;
+        }
+        main_line[i]["box"] = b;
     }
     console.log(main_line);
     console.timeEnd();
