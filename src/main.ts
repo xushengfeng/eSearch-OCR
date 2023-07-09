@@ -1,24 +1,28 @@
 var cv = require("opencv.js");
-var ort;
+var ort: typeof import("onnxruntime-web");
 const WordsNinjaPack = require("wordsninja");
 const WordsNinja = new WordsNinjaPack();
 
-module.exports = { ocr: x, init };
+export { x as ocr, init };
 
 var dev = true;
-
-var det, rec, dic;
+type AsyncType<T> = T extends Promise<infer U> ? U : never;
+type SessionType = AsyncType<ReturnType<typeof import("onnxruntime-web").InferenceSession.create>>;
+var det: SessionType, rec: SessionType, dic: string[];
 var limitSideLen = 960,
     imgH = 48,
     imgW = 320;
 
-/**
- * 初始化
- * @param {{detPath:string,recPath:string,dicPath:string,
- * maxSide:number,imgh:number;imgw:number;dev:boolean;node:boolean;dic:string}} x
- * @returns
- */
-async function init(x) {
+async function init(x: {
+    detPath: string;
+    recPath: string;
+    dic: string;
+    node?: boolean;
+    dev?: boolean;
+    maxSide?: number;
+    imgh?: number;
+    imgw?: number;
+}) {
     if (x.node) {
         ort = require("onnxruntime-node");
     } else {
@@ -35,27 +39,17 @@ async function init(x) {
     return new Promise((rs) => rs(true));
 }
 
-/**
- * 主要操作
- * @param {ImageData} img 图片
- * @param {ort.InferenceSession} det 检测器
- * @param {ort.InferenceSession} rec 识别器
- * @param {Array} dic 字典
- */
-async function x(img) {
+/** 主要操作 */
+async function x(img: ImageData) {
     console.time();
     let h = img.height,
         w = img.width;
-    let transposedData;
-    let resizeW;
-    let image;
-    let canvas;
-    ({ transposedData, resizeW: resizeW, image, canvas } = 检测前处理(h, w, img));
+    let { transposedData, resizeW: resizeW, image, canvas } = 检测前处理(h, w, img);
     const detResults = await 检测(transposedData, image, det);
 
     let box = 检测后处理(detResults.data, detResults.dims[3], detResults.dims[2], canvas);
 
-    let mainLine = [];
+    let mainLine: { text: string; mean: number; box?: number[][] }[] = [];
     for (let i of 识别前处理(resizeW, box)) {
         let { b, imgH, imgW } = i;
         const recResults = await 识别(b, imgH, imgW, rec);
@@ -77,8 +71,9 @@ async function x(img) {
     return mainLine;
 }
 
-async function 检测(transposedData, image, det) {
-    const detData = Float32Array.from(transposedData.flat(Infinity));
+async function 检测(transposedData: number[][][], image: ImageData, det: SessionType) {
+    let x = transposedData.flat(Infinity) as number[];
+    const detData = Float32Array.from(x);
 
     const detTensor = new ort.Tensor("float32", detData, [1, 3, image.height, image.width]);
     let detFeed = {};
@@ -88,8 +83,8 @@ async function 检测(transposedData, image, det) {
     return detResults[det.outputNames[0]];
 }
 
-async function 识别(b, imgH, imgW, rec) {
-    const recData = Float32Array.from(b.flat(Infinity));
+async function 识别(b: number[][][], imgH: number, imgW: number, rec: SessionType) {
+    const recData = Float32Array.from(b.flat(Infinity) as number[]);
 
     const recTensor = new ort.Tensor("float32", recData, [b.length, 3, imgH, imgW]);
     let recFeed = {};
@@ -105,7 +100,7 @@ async function 识别(b, imgH, imgW, rec) {
  * @param {number} w 输出宽
  * @param {number} h 输出高
  */
-function resizeImg(data, w, h) {
+function resizeImg(data: ImageData, w: number, h: number) {
     let x = document.createElement("canvas");
     x.width = data.width;
     x.height = data.height;
@@ -118,7 +113,7 @@ function resizeImg(data, w, h) {
     return src.getContext("2d").getImageData(0, 0, w, h);
 }
 
-function 检测前处理(h, w, image) {
+function 检测前处理(h: number, w: number, image: ImageData) {
     let ratio = 1;
     if (Math.max(h, w) > limitSideLen) {
         if (h > w) {
@@ -150,13 +145,18 @@ function 检测前处理(h, w, image) {
     return { transposedData, resizeW: resizeW, image, canvas: srcCanvas };
 }
 
-function 检测后处理(data, w, h, srcCanvas) {
+function 检测后处理(
+    data: AsyncType<ReturnType<typeof 检测>>["data"],
+    w: number,
+    h: number,
+    srcCanvas: HTMLCanvasElement
+) {
     let canvas = document.createElement("canvas");
 
     var myImageData = new ImageData(w, h);
     for (let i in data) {
         let n = Number(i) * 4;
-        const v = data[i] > 0.3 ? 255 : 0;
+        const v = (data[i] as number) > 0.3 ? 255 : 0;
         myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = v;
         myImageData.data[n + 3] = 255;
     }
@@ -164,7 +164,7 @@ function 检测后处理(data, w, h, srcCanvas) {
     canvas.height = h;
     canvas.getContext("2d").putImageData(myImageData, 0, 0);
 
-    let edgeRect = [];
+    let edgeRect: { box: number[][]; img: ImageData }[] = [];
 
     let src = cv.imread(canvas);
 
@@ -176,7 +176,7 @@ function 检测后处理(data, w, h, srcCanvas) {
 
     for (let i = 0; i < contours.size(); i++) {
         let cnt = contours.get(i);
-        let bbox = cv.boundingRect(cnt);
+        let bbox = cv.boundingRect(cnt) as { x: number; y: number; width: number; height: number };
         // TODO minAreaRect
 
         let dx = 8,
@@ -215,9 +215,11 @@ function 检测后处理(data, w, h, srcCanvas) {
     return edgeRect;
 }
 
-function toPaddleInput(image, mean, std) {
+function toPaddleInput(image: ImageData, mean: number[], std: number[]) {
     const imagedata = image.data;
-    const [redArray, greenArray, blueArray] = new Array(new Array(), new Array(), new Array());
+    const redArray: number[][] = [];
+    const greenArray: number[][] = [];
+    const blueArray: number[][] = [];
     let x = 0,
         y = 0;
     for (let i = 0; i < imagedata.length; i += 4) {
@@ -237,18 +239,14 @@ function toPaddleInput(image, mean, std) {
     return [blueArray, greenArray, redArray];
 }
 
-function 识别前处理(resize_w, box) {
-    let l = [];
-    /**
-     *
-     * @param {ImageData} img
-     */
-    function resizeNormImg(img) {
+function 识别前处理(resize_w: any, box: { box: number[][]; img: ImageData }[]) {
+    let l: { b: number[][][]; imgH: number; imgW: number }[] = [];
+    function resizeNormImg(img: ImageData) {
         imgW = Math.floor(imgH * maxWhRatio);
         let h = img.height,
             w = img.width;
         let ratio = w / h;
-        let resizedW;
+        let resizedW: number;
         if (Math.ceil(imgH * ratio) > imgW) {
             resizedW = imgW;
         } else {
@@ -290,16 +288,16 @@ function 识别前处理(resize_w, box) {
     return l;
 }
 
-function 识别后处理(data, character) {
+function 识别后处理(data: AsyncType<ReturnType<typeof 识别>>, character: string[]) {
     let predLen = data.dims[2];
-    let line = [];
+    let line: { text: string; mean: number }[] = [];
     let ml = data.dims[0] - 1;
     for (let l = 0; l < data.data.length; l += predLen * data.dims[1]) {
-        const predsIdx = [];
-        const predsProb = [];
+        const predsIdx: number[] = [];
+        const predsProb: number[] = [];
 
         for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
-            const tmpArr = data.data.slice(i, i + predLen - 1);
+            const tmpArr = data.data.slice(i, i + predLen - 1) as Float32Array;
             const tmpMax = Math.max(...tmpArr);
             const tmpIdx = tmpArr.indexOf(tmpMax);
             predsProb.push(tmpMax);
@@ -308,7 +306,7 @@ function 识别后处理(data, character) {
         line[ml] = decode(predsIdx, predsProb, true);
         ml--;
     }
-    function decode(textIndex, textProb, isRemoveDuplicate) {
+    function decode(textIndex: number[], textProb: any[], isRemoveDuplicate: boolean) {
         const ignoredTokens = [0];
         const charList = [];
         const confList = [];
