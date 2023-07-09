@@ -1,4 +1,4 @@
-const x = require("./js");
+const x = require("../dist/esearch-ocr.umd.cjs");
 const fs = require("fs");
 
 start();

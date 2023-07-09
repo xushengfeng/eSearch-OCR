@@ -4,6 +4,7 @@ to_onnx/env
 .DS_Store
 assets
 node_modules
-js/m
+test/m
 *.png
 PaddleOCR
+dist

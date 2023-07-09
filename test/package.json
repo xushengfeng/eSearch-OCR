@@ -1,0 +1,13 @@
+{
+    "main": "main.js",
+    "dependencies": {
+      "onnxruntime-node": "^1.12.1",
+      "onnxruntime-web": "^1.12.1",
+      "opencv.js": "^1.2.1",
+      "wordsninja": "^1.0.0"
+    },
+    "devDependencies": {
+      "electron": "^20.0.1"
+    }
+  }
+  
