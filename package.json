@@ -3,10 +3,10 @@
     "version": "4.0.0",
     "description": "",
     "main": "./dist/esearch-ocr.umd.cjs",
-    "module": "./dist/esearch-ocr.es.js",
+    "module": "./dist/esearch-ocr.js",
     "exports": {
         ".": {
-            "import": "./dist/esearch-ocr.es.js",
+            "import": "./dist/esearch-ocr.js",
             "require": "./dist/esearch-ocr.umd.cjs"
         }
     },
