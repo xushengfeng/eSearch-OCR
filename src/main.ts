@@ -1,7 +1,5 @@
 var cv = require("opencv.js");
 var ort: typeof import("onnxruntime-web");
-const WordsNinjaPack = require("wordsninja");
-const WordsNinja = new WordsNinjaPack();
 
 export { x as ocr, init };
 
@@ -35,7 +33,6 @@ async function init(x: {
     if (x.maxSide) limitSideLen = x.maxSide;
     if (x.imgh) imgH = x.imgh;
     if (x.imgw) imgW = x.imgw;
-    await WordsNinja.loadDictionary();
     return new Promise((rs) => rs(true));
 }
 
@@ -53,6 +50,7 @@ async function x(img: ImageData) {
     for (let i of 识别前处理(resizeW, box)) {
         let { b, imgH, imgW } = i;
         const recResults = await 识别(b, imgH, imgW, rec);
+        dic.push(" ");
         let line = 识别后处理(recResults, dic);
         mainLine = line.concat(mainLine);
     }
@@ -297,7 +295,7 @@ function 识别后处理(data: AsyncType<ReturnType<typeof 识别>>, character: 
         const predsProb: number[] = [];
 
         for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
-            const tmpArr = data.data.slice(i, i + predLen - 1) as Float32Array;
+            const tmpArr = data.data.slice(i, i + predLen) as Float32Array;
             const tmpMax = Math.max(...tmpArr);
             const tmpIdx = tmpArr.indexOf(tmpMax);
             predsProb.push(tmpMax);
@@ -306,7 +304,7 @@ function 识别后处理(data: AsyncType<ReturnType<typeof 识别>>, character: 
         line[ml] = decode(predsIdx, predsProb, true);
         ml--;
     }
-    function decode(textIndex: number[], textProb: any[], isRemoveDuplicate: boolean) {
+    function decode(textIndex: number[], textProb: number[], isRemoveDuplicate: boolean) {
         const ignoredTokens = [0];
         const charList = [];
         const confList = [];
@@ -335,7 +333,6 @@ function 识别后处理(data: AsyncType<ReturnType<typeof 识别>>, character: 
                 sum += item;
             });
             mean = sum / confList.length;
-            text = text.replace(/[a-zA-Z ]*/g, (v) => WordsNinja.splitSentence(v).join(" "));
         }
         return { text, mean };
     }
