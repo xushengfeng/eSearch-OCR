@@ -8,14 +8,14 @@ module.exports = { ocr: x, init };
 var dev = true;
 
 var det, rec, dic;
-var limit_side_len = 960,
+var limitSideLen = 960,
     imgH = 48,
     imgW = 320;
 
 /**
  * 初始化
- * @param {{det_path:string,rec_path:string,dic_path:string,
- * max_side:number,imgh:number;imgw:number;dev:boolean;node:boolean;dic:string}} x
+ * @param {{detPath:string,recPath:string,dicPath:string,
+ * maxSide:number,imgh:number;imgw:number;dev:boolean;node:boolean;dic:string}} x
  * @returns
  */
 async function init(x) {
@@ -25,10 +25,10 @@ async function init(x) {
         ort = require("onnxruntime-web");
     }
     dev = x.dev;
-    det = await ort.InferenceSession.create(x.det_path);
-    rec = await ort.InferenceSession.create(x.rec_path);
+    det = await ort.InferenceSession.create(x.detPath);
+    rec = await ort.InferenceSession.create(x.recPath);
     dic = x.dic.split(/\r\n|\r|\n/);
-    if (x.max_side) limit_side_len = x.max_side;
+    if (x.maxSide) limitSideLen = x.maxSide;
     if (x.imgh) imgH = x.imgh;
     if (x.imgw) imgW = x.imgw;
     await WordsNinja.loadDictionary();
@@ -47,56 +47,56 @@ async function x(img) {
     let h = img.height,
         w = img.width;
     let transposedData;
-    let resize_w;
+    let resizeW;
     let image;
     let canvas;
-    ({ transposedData, resize_w, image, canvas } = 检测前处理(h, w, img));
-    const det_results = await 检测(transposedData, image, det);
+    ({ transposedData, resizeW: resizeW, image, canvas } = 检测前处理(h, w, img));
+    const detResults = await 检测(transposedData, image, det);
 
-    let box = 检测后处理(det_results.data, det_results.dims[3], det_results.dims[2], canvas);
+    let box = 检测后处理(detResults.data, detResults.dims[3], detResults.dims[2], canvas);
 
-    let main_line = [];
-    for (let i of 识别前处理(resize_w, box)) {
+    let mainLine = [];
+    for (let i of 识别前处理(resizeW, box)) {
         let { b, imgH, imgW } = i;
-        const rec_results = await 识别(b, imgH, imgW, rec);
-        let line = 识别后处理(rec_results, dic);
-        main_line = line.concat(main_line);
+        const recResults = await 识别(b, imgH, imgW, rec);
+        let line = 识别后处理(recResults, dic);
+        mainLine = line.concat(mainLine);
     }
-    for (let i in main_line) {
+    for (let i in mainLine) {
         let rx = w / image.width,
             ry = h / image.height;
-        let b = box[main_line.length - Number(i) - 1].box;
+        let b = box[mainLine.length - Number(i) - 1].box;
         for (let p of b) {
             p[0] = p[0] * rx;
             p[1] = p[1] * ry;
         }
-        main_line[i]["box"] = b;
+        mainLine[i]["box"] = b;
     }
-    console.log(main_line);
+    console.log(mainLine);
     console.timeEnd();
-    return main_line;
+    return mainLine;
 }
 
 async function 检测(transposedData, image, det) {
-    const det_data = Float32Array.from(transposedData.flat(Infinity));
+    const detData = Float32Array.from(transposedData.flat(Infinity));
 
-    const det_tensor = new ort.Tensor("float32", det_data, [1, 3, image.height, image.width]);
-    let det_feed = {};
-    det_feed[det.inputNames[0]] = det_tensor;
+    const detTensor = new ort.Tensor("float32", detData, [1, 3, image.height, image.width]);
+    let detFeed = {};
+    detFeed[det.inputNames[0]] = detTensor;
 
-    const det_results = await det.run(det_feed);
-    return det_results[det.outputNames[0]];
+    const detResults = await det.run(detFeed);
+    return detResults[det.outputNames[0]];
 }
 
 async function 识别(b, imgH, imgW, rec) {
-    const rec_data = Float32Array.from(b.flat(Infinity));
+    const recData = Float32Array.from(b.flat(Infinity));
 
-    const rec_tensor = new ort.Tensor("float32", rec_data, [b.length, 3, imgH, imgW]);
-    let rec_feed = {};
-    rec_feed[rec.inputNames[0]] = rec_tensor;
+    const recTensor = new ort.Tensor("float32", recData, [b.length, 3, imgH, imgW]);
+    let recFeed = {};
+    recFeed[rec.inputNames[0]] = recTensor;
 
-    const rec_results = await rec.run(rec_feed);
-    return rec_results[rec.outputNames[0]];
+    const recResults = await rec.run(recFeed);
+    return recResults[rec.outputNames[0]];
 }
 
 /**
@@ -105,7 +105,7 @@ async function 识别(b, imgH, imgW, rec) {
  * @param {number} w 输出宽
  * @param {number} h 输出高
  */
-function resize_img(data, w, h) {
+function resizeImg(data, w, h) {
     let x = document.createElement("canvas");
     x.width = data.width;
     x.height = data.height;
@@ -120,37 +120,37 @@ function resize_img(data, w, h) {
 
 function 检测前处理(h, w, image) {
     let ratio = 1;
-    if (Math.max(h, w) > limit_side_len) {
+    if (Math.max(h, w) > limitSideLen) {
         if (h > w) {
-            ratio = limit_side_len / h;
+            ratio = limitSideLen / h;
         } else {
-            ratio = limit_side_len / w;
+            ratio = limitSideLen / w;
         }
     }
-    let resize_h = h * ratio;
-    let resize_w = w * ratio;
+    let resizeH = h * ratio;
+    let resizeW = w * ratio;
 
-    resize_h = Math.max(Math.round(resize_h / 32) * 32, 32);
-    resize_w = Math.max(Math.round(resize_w / 32) * 32, 32);
-    image = resize_img(image, resize_w, resize_h);
-    let src_canvas = document.createElement("canvas");
-    src_canvas.width = resize_w;
-    src_canvas.height = resize_h;
+    resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
+    resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
+    image = resizeImg(image, resizeW, resizeH);
+    let srcCanvas = document.createElement("canvas");
+    srcCanvas.width = resizeW;
+    srcCanvas.height = resizeH;
     let id = new ImageData(image.width, image.height);
     for (let i in id.data) id.data[i] = image.data[i];
-    src_canvas.getContext("2d").putImageData(id, 0, 0);
+    srcCanvas.getContext("2d").putImageData(id, 0, 0);
 
     // src0 = cv.imread(src_canvas);
 
-    const transposedData = to_paddle_input(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
+    const transposedData = toPaddleInput(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
     console.log(image);
     if (dev) {
-        document.body.append(src_canvas);
+        document.body.append(srcCanvas);
     }
-    return { transposedData, resize_w, image, canvas: src_canvas };
+    return { transposedData, resizeW: resizeW, image, canvas: srcCanvas };
 }
 
-function 检测后处理(data, w, h, src_canvas) {
+function 检测后处理(data, w, h, srcCanvas) {
     let canvas = document.createElement("canvas");
 
     var myImageData = new ImageData(w, h);
@@ -164,7 +164,7 @@ function 检测后处理(data, w, h, src_canvas) {
     canvas.height = h;
     canvas.getContext("2d").putImageData(myImageData, 0, 0);
 
-    let edge_rect = [];
+    let edgeRect = [];
 
     let src = cv.imread(canvas);
 
@@ -189,22 +189,22 @@ function 检测后处理(data, w, h, src_canvas) {
             [bbox.x - dx, bbox.y + bbox.height + dy * 2],
         ];
 
-        let min_size = 3;
-        if (Math.min(bbox.width, bbox.height) >= min_size) {
+        let minSize = 3;
+        if (Math.min(bbox.width, bbox.height) >= minSize) {
             let c = document.createElement("canvas");
             c.width = bbox.width + dx * 2;
             c.height = bbox.height + dy * 2;
 
             let ctx = c.getContext("2d");
-            let c0 = src_canvas;
+            let c0 = srcCanvas;
             ctx.drawImage(c0, -bbox.x + dx, -bbox.y + dy);
             if (dev) document.body.append(c);
 
-            edge_rect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
+            edgeRect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
         }
     }
 
-    console.log(edge_rect);
+    console.log(edgeRect);
 
     src.delete();
     contours.delete();
@@ -212,10 +212,10 @@ function 检测后处理(data, w, h, src_canvas) {
 
     src = contours = hierarchy = null;
 
-    return edge_rect;
+    return edgeRect;
 }
 
-function to_paddle_input(image, mean, std) {
+function toPaddleInput(image, mean, std) {
     const imagedata = image.data;
     const [redArray, greenArray, blueArray] = new Array(new Array(), new Array(), new Array());
     let x = 0,
@@ -243,18 +243,18 @@ function 识别前处理(resize_w, box) {
      *
      * @param {ImageData} img
      */
-    function resize_norm_img(img) {
-        imgW = Math.floor(imgH * max_wh_ratio);
+    function resizeNormImg(img) {
+        imgW = Math.floor(imgH * maxWhRatio);
         let h = img.height,
             w = img.width;
         let ratio = w / h;
-        let resized_w;
+        let resizedW;
         if (Math.ceil(imgH * ratio) > imgW) {
-            resized_w = imgW;
+            resizedW = imgW;
         } else {
-            resized_w = Math.floor(Math.ceil(imgH * ratio));
+            resizedW = Math.floor(Math.ceil(imgH * ratio));
         }
-        let d = resize_img(img, resized_w, imgH);
+        let d = resizeImg(img, resizedW, imgH);
         let cc = document.createElement("canvas");
         cc.width = imgW;
         cc.height = imgH;
@@ -264,25 +264,25 @@ function 识别前处理(resize_w, box) {
     }
 
     let boxes = [];
-    let now_width = 0;
+    let nowWidth = 0;
     for (let i of box) {
-        if (Math.abs(i.img.width - now_width) > 32) {
-            now_width = i.img.width;
+        if (Math.abs(i.img.width - nowWidth) > 32) {
+            nowWidth = i.img.width;
             boxes.push([i]);
         } else {
             if (!boxes[boxes.length - 1]) boxes.push([]);
             boxes[boxes.length - 1].push(i);
         }
     }
-    let max_wh_ratio = 0;
+    let maxWhRatio = 0;
     for (let box of boxes) {
-        max_wh_ratio = 0;
+        maxWhRatio = 0;
         for (let r of box) {
-            max_wh_ratio = Math.max(r.img.width / r.img.height, max_wh_ratio);
+            maxWhRatio = Math.max(r.img.width / r.img.height, maxWhRatio);
         }
         let b = [];
         for (let r of box) {
-            b.push(to_paddle_input(resize_norm_img(r.img), [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]));
+            b.push(toPaddleInput(resizeNormImg(r.img), [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]));
         }
         l.push({ b, imgH, imgW });
     }
@@ -291,52 +291,52 @@ function 识别前处理(resize_w, box) {
 }
 
 function 识别后处理(data, character) {
-    let pred_len = data.dims[2];
+    let predLen = data.dims[2];
     let line = [];
     let ml = data.dims[0] - 1;
-    for (let l = 0; l < data.data.length; l += pred_len * data.dims[1]) {
-        const preds_idx = [];
-        const preds_prob = [];
+    for (let l = 0; l < data.data.length; l += predLen * data.dims[1]) {
+        const predsIdx = [];
+        const predsProb = [];
 
-        for (let i = l; i < l + pred_len * data.dims[1]; i += pred_len) {
-            const tmpArr = data.data.slice(i, i + pred_len - 1);
+        for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
+            const tmpArr = data.data.slice(i, i + predLen - 1);
             const tmpMax = Math.max(...tmpArr);
             const tmpIdx = tmpArr.indexOf(tmpMax);
-            preds_prob.push(tmpMax);
-            preds_idx.push(tmpIdx);
+            predsProb.push(tmpMax);
+            predsIdx.push(tmpIdx);
         }
-        line[ml] = decode(preds_idx, preds_prob, true);
+        line[ml] = decode(predsIdx, predsProb, true);
         ml--;
     }
-    function decode(text_index, text_prob, is_remove_duplicate) {
-        const ignored_tokens = [0];
-        const char_list = [];
-        const conf_list = [];
-        for (let idx = 0; idx < text_index.length; idx++) {
-            if (text_index[idx] in ignored_tokens) {
+    function decode(textIndex, textProb, isRemoveDuplicate) {
+        const ignoredTokens = [0];
+        const charList = [];
+        const confList = [];
+        for (let idx = 0; idx < textIndex.length; idx++) {
+            if (textIndex[idx] in ignoredTokens) {
                 continue;
             }
-            if (is_remove_duplicate) {
-                if (idx > 0 && text_index[idx - 1] === text_index[idx]) {
+            if (isRemoveDuplicate) {
+                if (idx > 0 && textIndex[idx - 1] === textIndex[idx]) {
                     continue;
                 }
             }
-            char_list.push(character[text_index[idx] - 1]);
-            if (text_prob) {
-                conf_list.push(text_prob[idx]);
+            charList.push(character[textIndex[idx] - 1]);
+            if (textProb) {
+                confList.push(textProb[idx]);
             } else {
-                conf_list.push(1);
+                confList.push(1);
             }
         }
         let text = "";
         let mean = 0;
-        if (char_list.length) {
-            text = char_list.join("");
+        if (charList.length) {
+            text = charList.join("");
             let sum = 0;
-            conf_list.forEach((item) => {
+            confList.forEach((item) => {
                 sum += item;
             });
-            mean = sum / conf_list.length;
+            mean = sum / confList.length;
             text = text.replace(/[a-zA-Z ]*/g, (v) => WordsNinja.splitSentence(v).join(" "));
         }
         return { text, mean };

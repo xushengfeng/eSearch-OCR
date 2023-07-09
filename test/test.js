@@ -5,8 +5,8 @@ start();
 
 async function start() {
     await x.init({
-        det_path: "./m/ch_PP-OCRv3_det_infer.onnx",
-        rec_path: "./m/ch_PP-OCRv3_rec_infer.onnx",
+        detPath: "./m/ch_PP-OCRv3_det_infer.onnx",
+        recPath: "./m/ch_PP-OCRv3_rec_infer.onnx",
         dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
         dev: true,
         node: true,
