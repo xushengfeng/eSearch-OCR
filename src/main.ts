@@ -20,11 +20,16 @@ async function init(x: {
     maxSide?: number;
     imgh?: number;
     imgw?: number;
+    ort?: typeof import("onnxruntime-web");
 }) {
-    if (x.node) {
-        ort = require("onnxruntime-node");
+    if (x.ort) {
+        ort = x.ort;
     } else {
-        ort = require("onnxruntime-web");
+        if (x.node) {
+            ort = require("onnxruntime-node");
+        } else {
+            ort = require("onnxruntime-web");
+        }
     }
     dev = x.dev;
     det = await ort.InferenceSession.create(x.detPath);
