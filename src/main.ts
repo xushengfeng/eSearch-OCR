@@ -49,13 +49,13 @@ async function x(img: ImageData) {
     console.time();
     let h = img.height,
         w = img.width;
-    let { transposedData, resizeH, resizeW, image, canvas } = beforeDet(img, detShape[0], detShape[1]);
+    let { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
     const detResults = await runDet(transposedData, image, det);
 
     let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
 
     let mainLine: { text: string; mean: number; box?: number[][] }[] = [];
-    for (let i of beforeRec(resizeW, box)) {
+    for (let i of beforeRec(box)) {
         let { b, imgH, imgW } = i;
         const recResults = await runRec(b, imgH, imgW, rec);
         if (dic.at(-1) == "") {
@@ -146,16 +146,14 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
     resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
     resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
     image = resizeImg(image, resizeW, resizeH);
-    let srcCanvas = data2canvas(image);
-
-    // src0 = cv.imread(src_canvas);
 
     const transposedData = toPaddleInput(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
     console.log(image);
     if (dev) {
+        let srcCanvas = data2canvas(image);
         document.body.append(srcCanvas);
     }
-    return { transposedData, resizeH, resizeW, image, canvas: srcCanvas };
+    return { transposedData, image };
 }
 
 function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number, h: number, srcData: ImageData) {
@@ -454,7 +452,7 @@ function toPaddleInput(image: ImageData, mean: number[], std: number[]) {
     return [blueArray, greenArray, redArray];
 }
 
-function beforeRec(resize_w: any, box: { box: BoxType; img: ImageData }[]) {
+function beforeRec(box: { box: BoxType; img: ImageData }[]) {
     let l: { b: number[][][]; imgH: number; imgW: number }[] = [];
     function resizeNormImg(img: ImageData) {
         imgW = Math.floor(imgH * maxWhRatio);
