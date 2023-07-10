@@ -10,6 +10,7 @@ var det: SessionType, rec: SessionType, dic: string[];
 var limitSideLen = 960,
     imgH = 48,
     imgW = 320;
+var detShape = [NaN, NaN];
 
 async function init(x: {
     detPath: string;
@@ -21,6 +22,7 @@ async function init(x: {
     imgh?: number;
     imgw?: number;
     ort?: typeof import("onnxruntime-web");
+    detShape?: [number, number];
 }) {
     if (x.ort) {
         ort = x.ort;
@@ -38,6 +40,7 @@ async function init(x: {
     if (x.maxSide) limitSideLen = x.maxSide;
     if (x.imgh) imgH = x.imgh;
     if (x.imgw) imgW = x.imgw;
+    if (x.detShape) detShape = x.detShape;
     return new Promise((rs) => rs(true));
 }
 
@@ -46,10 +49,10 @@ async function x(img: ImageData) {
     console.time();
     let h = img.height,
         w = img.width;
-    let { transposedData, resizeW: resizeW, image, canvas } = beforeDet(img);
+    let { transposedData, resizeH, resizeW, image, canvas } = beforeDet(img, detShape[0], detShape[1]);
     const detResults = await runDet(transposedData, image, det);
 
-    let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], canvas);
+    let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
 
     let mainLine: { text: string; mean: number; box?: number[][] }[] = [];
     for (let i of beforeRec(resizeW, box)) {
@@ -121,7 +124,7 @@ function resizeImg(data: ImageData, w: number, h: number) {
     return src.getContext("2d").getImageData(0, 0, w, h);
 }
 
-function beforeDet(image: ImageData) {
+function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
     let ratio = 1;
     let h = image.height,
         w = image.width;
@@ -132,8 +135,8 @@ function beforeDet(image: ImageData) {
             ratio = limitSideLen / w;
         }
     }
-    let resizeH = h * ratio;
-    let resizeW = w * ratio;
+    let resizeH = shapeH ?? h * ratio;
+    let resizeW = shapeW ?? w * ratio;
 
     resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
     resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
@@ -152,15 +155,10 @@ function beforeDet(image: ImageData) {
     if (dev) {
         document.body.append(srcCanvas);
     }
-    return { transposedData, resizeW: resizeW, image, canvas: srcCanvas };
+    return { transposedData, resizeH, resizeW, image, canvas: srcCanvas };
 }
 
-function afterDet(
-    data: AsyncType<ReturnType<typeof runDet>>["data"],
-    w: number,
-    h: number,
-    srcCanvas: HTMLCanvasElement
-) {
+function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number, h: number, srcData: ImageData) {
     let canvas = document.createElement("canvas");
 
     var myImageData = new ImageData(w, h);
@@ -199,6 +197,21 @@ function afterDet(
             [bbox.x - dx, bbox.y + bbox.height + dy * 2],
         ];
 
+        let rx = srcData.width / w;
+        let ry = srcData.height / h;
+
+        for (let i = 0; i < box.length; i++) {
+            box[i][0] *= rx;
+            box[i][1] *= ry;
+        }
+
+        bbox.x *= rx;
+        bbox.width *= rx;
+        bbox.y *= ry;
+        bbox.height *= ry;
+        dx *= rx;
+        dy *= ry;
+
         let minSize = 3;
         if (Math.min(bbox.width, bbox.height) >= minSize) {
             let c = document.createElement("canvas");
@@ -206,7 +219,10 @@ function afterDet(
             c.height = bbox.height + dy * 2;
 
             let ctx = c.getContext("2d");
-            let c0 = srcCanvas;
+            let c0 = document.createElement("canvas");
+            c0.width = srcData.width;
+            c0.height = srcData.height;
+            c0.getContext("2d").putImageData(srcData, 0, 0);
             ctx.drawImage(c0, -bbox.x + dx, -bbox.y + dy);
             if (dev) document.body.append(c);
 
