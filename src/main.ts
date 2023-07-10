@@ -77,6 +77,7 @@ async function x(img: ImageData) {
         }
         mainLine[i]["box"] = b;
     }
+    mainLine = mainLine.filter((x) => x.mean >= 0.5);
     mainLine = afAfRec(mainLine);
     console.log(mainLine);
     console.timeEnd();
@@ -578,6 +579,8 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 // TODO 使用板式识别代替
 /** 组成行 */
 function afAfRec(l: resultType) {
+    console.log(l);
+
     let line: resultType = [];
     let ind: Map<BoxType, number> = new Map();
     for (let i in l) {
