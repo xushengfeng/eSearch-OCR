@@ -105,6 +105,14 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
     return recResults[rec.outputNames[0]];
 }
 
+function data2canvas(data: ImageData, w?: number, h?: number) {
+    let x = document.createElement("canvas");
+    x.width = w || data.width;
+    x.height = h || data.height;
+    x.getContext("2d").putImageData(data, 0, 0);
+    return x;
+}
+
 /**
  *
  * @param {ImageData} data 原图
@@ -112,10 +120,7 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
  * @param {number} h 输出高
  */
 function resizeImg(data: ImageData, w: number, h: number) {
-    let x = document.createElement("canvas");
-    x.width = data.width;
-    x.height = data.height;
-    x.getContext("2d").putImageData(data, 0, 0);
+    let x = data2canvas(data);
     let src = document.createElement("canvas");
     src.width = w;
     src.height = h;
@@ -141,12 +146,7 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
     resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
     resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
     image = resizeImg(image, resizeW, resizeH);
-    let srcCanvas = document.createElement("canvas");
-    srcCanvas.width = resizeW;
-    srcCanvas.height = resizeH;
-    let id = new ImageData(image.width, image.height);
-    for (let i in id.data) id.data[i] = image.data[i];
-    srcCanvas.getContext("2d").putImageData(id, 0, 0);
+    let srcCanvas = data2canvas(image);
 
     // src0 = cv.imread(src_canvas);
 
@@ -159,8 +159,6 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
 }
 
 function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number, h: number, srcData: ImageData) {
-    let canvas = document.createElement("canvas");
-
     var myImageData = new ImageData(w, h);
     for (let i in data) {
         let n = Number(i) * 4;
@@ -168,9 +166,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = v;
         myImageData.data[n + 3] = 255;
     }
-    canvas.width = w;
-    canvas.height = h;
-    canvas.getContext("2d").putImageData(myImageData, 0, 0);
+    let canvas = data2canvas(myImageData);
 
     let edgeRect: { box: number[][]; img: ImageData }[] = [];
 
@@ -219,10 +215,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
             points[i][1] *= ry;
         }
         //
-        let c0 = document.createElement("canvas");
-        c0.width = srcData.width;
-        c0.height = srcData.height;
-        c0.getContext("2d").putImageData(srcData, 0, 0);
+        let c0 = data2canvas(srcData);
         console.log(points);
 
         let c = getRotateCropImage(c0, points);
@@ -481,10 +474,7 @@ function beforeRec(resize_w: any, box: { box: number[][]; img: ImageData }[]) {
             resizedW = Math.floor(Math.ceil(imgH * ratio));
         }
         let d = resizeImg(img, resizedW, imgH);
-        let cc = document.createElement("canvas");
-        cc.width = imgW;
-        cc.height = imgH;
-        cc.getContext("2d").putImageData(d, 0, 0);
+        let cc = data2canvas(d, imgW, imgH);
         if (dev) document.body.append(cc);
         return cc.getContext("2d").getImageData(0, 0, imgW, imgH);
     }
