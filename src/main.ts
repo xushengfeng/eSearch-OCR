@@ -183,19 +183,29 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     cv.findContours(src, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
     for (let i = 0; i < contours.size(); i++) {
+        let minSize = 3;
         let cnt = contours.get(i);
-        let bbox = cv.boundingRect(cnt) as { x: number; y: number; width: number; height: number };
-        // TODO minAreaRect
+        let { points, sside } = getMiniBoxes(cnt);
+        if (sside < minSize) continue;
+        // TODO sort fast
 
-        let dx = 8,
-            dy = 8;
+        let box = unclip(points);
 
-        let box = [
-            [bbox.x - dx, bbox.y - dy],
-            [bbox.x + bbox.width + dx * 2, bbox.y - dy],
-            [bbox.x + bbox.width + dx * 2, bbox.y + bbox.height + dy * 2],
-            [bbox.x - dx, bbox.y + bbox.height + dy * 2],
-        ];
+        const boxMap = new cv.matFromArray(box.length / 2, 1, cv.CV_32SC2, box);
+
+        const resultObj = getMiniBoxes(boxMap);
+        box = resultObj.points;
+        sside = resultObj.sside;
+        if (sside < minSize + 2) {
+            continue;
+        }
+        function clip(n: number, min: number, max: number) {
+            return Math.max(min, Math.min(n, max));
+        }
+        box.forEach((item) => {
+            item[0] = clip(Math.round(item[0]), 0, w);
+            item[1] = clip(Math.round(item[1]), 0, h);
+        });
 
         let rx = srcData.width / w;
         let ry = srcData.height / h;
@@ -204,30 +214,20 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
             box[i][0] *= rx;
             box[i][1] *= ry;
         }
-
-        bbox.x *= rx;
-        bbox.width *= rx;
-        bbox.y *= ry;
-        bbox.height *= ry;
-        dx *= rx;
-        dy *= ry;
-
-        let minSize = 3;
-        if (Math.min(bbox.width, bbox.height) >= minSize) {
-            let c = document.createElement("canvas");
-            c.width = bbox.width + dx * 2;
-            c.height = bbox.height + dy * 2;
-
-            let ctx = c.getContext("2d");
-            let c0 = document.createElement("canvas");
-            c0.width = srcData.width;
-            c0.height = srcData.height;
-            c0.getContext("2d").putImageData(srcData, 0, 0);
-            ctx.drawImage(c0, -bbox.x + dx, -bbox.y + dy);
-            if (dev) document.body.append(c);
-
-            edgeRect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
+        for (let i = 0; i < points.length; i++) {
+            points[i][0] *= rx;
+            points[i][1] *= ry;
         }
+        //
+        let c0 = document.createElement("canvas");
+        c0.width = srcData.width;
+        c0.height = srcData.height;
+        c0.getContext("2d").putImageData(srcData, 0, 0);
+        console.log(points);
+
+        let c = getRotateCropImage(c0, points);
+
+        edgeRect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
     }
 
     console.log(edgeRect);
@@ -239,6 +239,208 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     src = contours = hierarchy = null;
 
     return edgeRect;
+}
+const clipper = require("js-clipper");
+function polygonPolygonArea(polygon) {
+    console.log(polygon);
+
+    let i = -1,
+        n = polygon.length,
+        a,
+        b = polygon[n - 1],
+        area = 0;
+
+    while (++i < n) {
+        a = b;
+        b = polygon[i];
+        area += a[1] * b[0] - a[0] * b[1];
+    }
+
+    return area / 2;
+}
+function polygonPolygonLength(polygon) {
+    let i = -1,
+        n = polygon.length,
+        b = polygon[n - 1],
+        xa,
+        ya,
+        xb = b[0],
+        yb = b[1],
+        perimeter = 0;
+
+    while (++i < n) {
+        xa = xb;
+        ya = yb;
+        b = polygon[i];
+        xb = b[0];
+        yb = b[1];
+        xa -= xb;
+        ya -= yb;
+        perimeter += Math.hypot(xa, ya);
+    }
+
+    return perimeter;
+}
+function unclip(box: number[]) {
+    const unclip_ratio = 2;
+    const area = Math.abs(polygonPolygonArea(box));
+    const length = polygonPolygonLength(box);
+    const distance = (area * unclip_ratio) / length;
+    const tmpArr = [];
+    box.forEach((item) => {
+        const obj = {
+            X: 0,
+            Y: 0,
+        };
+        obj.X = item[0];
+        obj.Y = item[1];
+        tmpArr.push(obj);
+    });
+    const offset = new clipper.ClipperOffset();
+    offset.AddPath(tmpArr, clipper.JoinType.jtRound, clipper.EndType.etClosedPolygon);
+    const expanded = [];
+    offset.Execute(expanded, distance);
+    let expandedArr = [];
+    expanded[0] &&
+        expanded[0].forEach((item) => {
+            expandedArr.push([item.X, item.Y]);
+        });
+    expandedArr = [].concat(...expandedArr);
+
+    return expandedArr;
+}
+
+function boxPoints(center, size, angle: number) {
+    const width = size.width;
+    const height = size.height;
+
+    const theta = (angle * Math.PI) / 180.0;
+    const cosTheta = Math.cos(theta);
+    const sinTheta = Math.sin(theta);
+
+    const cx = center.x;
+    const cy = center.y;
+
+    const dx = width * 0.5;
+    const dy = height * 0.5;
+
+    const rotatedPoints: any[] = [];
+
+    // Top-Left
+    const x1 = cx - dx * cosTheta + dy * sinTheta;
+    const y1 = cy - dx * sinTheta - dy * cosTheta;
+    rotatedPoints.push([x1, y1]);
+
+    // Top-Right
+    const x2 = cx + dx * cosTheta + dy * sinTheta;
+    const y2 = cy + dx * sinTheta - dy * cosTheta;
+    rotatedPoints.push([x2, y2]);
+
+    // Bottom-Right
+    const x3 = cx + dx * cosTheta - dy * sinTheta;
+    const y3 = cy + dx * sinTheta + dy * cosTheta;
+    rotatedPoints.push([x3, y3]);
+
+    // Bottom-Left
+    const x4 = cx - dx * cosTheta - dy * sinTheta;
+    const y4 = cy - dx * sinTheta + dy * cosTheta;
+    rotatedPoints.push([x4, y4]);
+
+    return rotatedPoints;
+}
+
+function getMiniBoxes(contour: any) {
+    const boundingBox = cv.minAreaRect(contour);
+    const points = Array.from(boxPoints(boundingBox.center, boundingBox.size, boundingBox.angle)).sort(
+        (a, b) => a[0] - b[0]
+    ) as number[];
+
+    let index_1 = 0,
+        index_2 = 1,
+        index_3 = 2,
+        index_4 = 3;
+    if (points[1][1] > points[0][1]) {
+        index_1 = 0;
+        index_4 = 1;
+    } else {
+        index_1 = 1;
+        index_4 = 0;
+    }
+    if (points[3][1] > points[2][1]) {
+        index_2 = 2;
+        index_3 = 3;
+    } else {
+        index_2 = 3;
+        index_3 = 2;
+    }
+
+    const box = [points[index_1], points[index_2], points[index_3], points[index_4]];
+    const side = Math.min(boundingBox.size.height, boundingBox.size.width);
+    return { points: box, sside: side };
+}
+
+function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: number[]) {
+    function int(num: number) {
+        return num > 0 ? Math.floor(num) : Math.ceil(num);
+    }
+    function flatten(arr: number[] | number[][]) {
+        return arr
+            .toString()
+            .split(",")
+            .map((item) => +item);
+    }
+    function linalg_norm(x, y) {
+        return Math.sqrt(Math.pow(x[0] - y[0], 2) + Math.pow(x[1] - y[1], 2));
+    }
+    const img_crop_width = int(Math.max(linalg_norm(points[0], points[1]), linalg_norm(points[2], points[3])));
+    const img_crop_height = int(Math.max(linalg_norm(points[0], points[3]), linalg_norm(points[1], points[2])));
+    const pts_std = [
+        [0, 0],
+        [img_crop_width, 0],
+        [img_crop_width, img_crop_height],
+        [0, img_crop_height],
+    ];
+
+    const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, flatten(points));
+    const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, flatten(pts_std));
+
+    // 获取到目标矩阵
+    const M = cv.getPerspectiveTransform(srcTri, dstTri);
+    const src = cv.imread(img);
+    const dst = new cv.Mat();
+    const dsize = new cv.Size(img_crop_width, img_crop_height);
+    // 透视转换
+    cv.warpPerspective(src, dst, M, dsize, cv.INTER_CUBIC, cv.BORDER_REPLICATE, new cv.Scalar());
+    console.log(dst);
+
+    const dst_img_height = dst.matSize[0];
+    const dst_img_width = dst.matSize[1];
+    let dst_rot;
+    // 图像旋转
+    if (dst_img_height / dst_img_width >= 1.5) {
+        dst_rot = new cv.Mat();
+        const dsize_rot = new cv.Size(dst.rows, dst.cols);
+        const center = new cv.Point(dst.cols / 2, dst.cols / 2);
+        const M = cv.getRotationMatrix2D(center, 90, 1);
+        cv.warpAffine(dst, dst_rot, M, dsize_rot, cv.INTER_CUBIC, cv.BORDER_REPLICATE, new cv.Scalar());
+    }
+
+    let c = document.createElement("canvas");
+    if (dst_rot) {
+        c.width = dst_rot.matSize[1];
+        c.height = dst_rot.matSize[0];
+    } else {
+        c.width = dst_img_width;
+        c.height = dst_img_height;
+    }
+    cv.imshow(c, dst_rot || dst);
+    if (dev) document.body.append(c);
+
+    src.delete();
+    dst.delete();
+    srcTri.delete();
+    dstTri.delete();
+    return c;
 }
 
 function toPaddleInput(image: ImageData, mean: number[], std: number[]) {

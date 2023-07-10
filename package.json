@@ -22,6 +22,7 @@
     "keywords": [],
     "author": "",
     "dependencies": {
+        "js-clipper": "^1.0.1",
         "onnxruntime-node": "^1.12.1",
         "onnxruntime-web": "^1.12.1",
         "opencv.js": "^1.2.1"

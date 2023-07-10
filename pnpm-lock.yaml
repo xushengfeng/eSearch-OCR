@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  js-clipper:
+    specifier: ^1.0.1
+    version: 1.0.1
   onnxruntime-node:
     specifier: ^1.12.1
     version: 1.12.1
@@ -14,9 +17,6 @@ dependencies:
   opencv.js:
     specifier: ^1.2.1
     version: 1.2.1
-  wordsninja:
-    specifier: ^1.0.0
-    version: 1.0.0
 
 devDependencies:
   electron:
@@ -637,6 +637,10 @@ packages:
     dev: true
     optional: true
 
+  /js-clipper@1.0.1:
+    resolution: {integrity: sha512-0XYAS0ZoCki5K0fWwj8j8ug4mgxHXReW3ayPbVqr4zXPJuIs2pyvemL1sALadsEiAywZwW5Ify1XfU4bNJvokg==}
+    dev: false
+
   /json-buffer@3.0.0:
     resolution: {integrity: sha512-CuUqjv0FUZIdXkHPI8MezCnFCdaTAacej1TZYulLoAg1h/PhwkdXFN4V/gzY4g+fMBCOV2xF+rp7t2XD2ns/NQ==}
     dev: true
@@ -979,10 +983,6 @@ packages:
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
-
-  /wordsninja@1.0.0:
-    resolution: {integrity: sha512-f9aKDZ01xCjBEVxqQ4+fbSw+Jksi0OlvWV4QeqFzX78FjwREk/7ARgk0PuKlOkxGPg1ylkTYMTcKpReMVi2z4A==}
-    dev: false
 
   /wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
