@@ -55,7 +55,12 @@ async function x(img: ImageData) {
     for (let i of 识别前处理(resizeW, box)) {
         let { b, imgH, imgW } = i;
         const recResults = await 识别(b, imgH, imgW, rec);
-        dic.push(" ");
+        if (dic.at(-1) == "") {
+            // 多出的换行
+            dic[dic.length - 1] = " ";
+        } else {
+            dic.push(" ");
+        }
         let line = 识别后处理(recResults, dic);
         mainLine = line.concat(mainLine);
     }
