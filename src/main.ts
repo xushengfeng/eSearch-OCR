@@ -168,7 +168,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     }
     let canvas = data2canvas(myImageData);
 
-    let edgeRect: { box: number[][]; img: ImageData }[] = [];
+    let edgeRect: { box: BoxType; img: ImageData }[] = [];
 
     let src = cv.imread(canvas);
 
@@ -185,14 +185,13 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         if (sside < minSize) continue;
         // TODO sort fast
 
-        let box = unclip(points);
+        let clipBox = unclip(points);
 
-        const boxMap = new cv.matFromArray(box.length / 2, 1, cv.CV_32SC2, box);
+        const boxMap = new cv.matFromArray(clipBox.length / 2, 1, cv.CV_32SC2, clipBox);
 
         const resultObj = getMiniBoxes(boxMap);
-        box = resultObj.points;
-        sside = resultObj.sside;
-        if (sside < minSize + 2) {
+        let box = resultObj.points;
+        if (resultObj.sside < minSize + 2) {
             continue;
         }
         function clip(n: number, min: number, max: number) {
@@ -227,13 +226,14 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
     return edgeRect;
 }
+type BoxType = [[number, number], [number, number], [number, number], [number, number]];
+type pointType = [number, number];
+type pointsType = pointType[];
 const clipper = require("js-clipper");
-function polygonPolygonArea(polygon) {
-    console.log(polygon);
-
+function polygonPolygonArea(polygon: pointsType) {
     let i = -1,
         n = polygon.length,
-        a,
+        a: pointType,
         b = polygon[n - 1],
         area = 0;
 
@@ -245,12 +245,12 @@ function polygonPolygonArea(polygon) {
 
     return area / 2;
 }
-function polygonPolygonLength(polygon) {
+function polygonPolygonLength(polygon: pointsType) {
     let i = -1,
         n = polygon.length,
         b = polygon[n - 1],
-        xa,
-        ya,
+        xa: number,
+        ya: number,
         xb = b[0],
         yb = b[1],
         perimeter = 0;
@@ -268,8 +268,8 @@ function polygonPolygonLength(polygon) {
 
     return perimeter;
 }
-function unclip(box: number[]) {
-    const unclip_ratio = 2;
+function unclip(box: pointsType) {
+    const unclip_ratio = 1.5;
     const area = Math.abs(polygonPolygonArea(box));
     const length = polygonPolygonLength(box);
     const distance = (area * unclip_ratio) / length;
@@ -285,9 +285,9 @@ function unclip(box: number[]) {
     });
     const offset = new clipper.ClipperOffset();
     offset.AddPath(tmpArr, clipper.JoinType.jtRound, clipper.EndType.etClosedPolygon);
-    const expanded = [];
+    const expanded: { X: number; Y: number }[][] = [];
     offset.Execute(expanded, distance);
-    let expandedArr = [];
+    let expandedArr: pointsType = [];
     expanded[0] &&
         expanded[0].forEach((item) => {
             expandedArr.push([item.X, item.Y]);
@@ -297,7 +297,7 @@ function unclip(box: number[]) {
     return expandedArr;
 }
 
-function boxPoints(center, size, angle: number) {
+function boxPoints(center: { x: number; y: number }, size: { width: number; height: number }, angle: number) {
     const width = size.width;
     const height = size.height;
 
@@ -340,7 +340,7 @@ function getMiniBoxes(contour: any) {
     const boundingBox = cv.minAreaRect(contour);
     const points = Array.from(boxPoints(boundingBox.center, boundingBox.size, boundingBox.angle)).sort(
         (a, b) => a[0] - b[0]
-    ) as number[];
+    ) as pointsType;
 
     let index_1 = 0,
         index_2 = 1,
@@ -361,12 +361,12 @@ function getMiniBoxes(contour: any) {
         index_3 = 2;
     }
 
-    const box = [points[index_1], points[index_2], points[index_3], points[index_4]];
+    const box = [points[index_1], points[index_2], points[index_3], points[index_4]] as BoxType;
     const side = Math.min(boundingBox.size.height, boundingBox.size.width);
     return { points: box, sside: side };
 }
 
-function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: number[]) {
+function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: BoxType) {
     function int(num: number) {
         return num > 0 ? Math.floor(num) : Math.ceil(num);
     }
@@ -454,7 +454,7 @@ function toPaddleInput(image: ImageData, mean: number[], std: number[]) {
     return [blueArray, greenArray, redArray];
 }
 
-function beforeRec(resize_w: any, box: { box: number[][]; img: ImageData }[]) {
+function beforeRec(resize_w: any, box: { box: BoxType; img: ImageData }[]) {
     let l: { b: number[][][]; imgH: number; imgW: number }[] = [];
     function resizeNormImg(img: ImageData) {
         imgW = Math.floor(imgH * maxWhRatio);
