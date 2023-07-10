@@ -46,22 +46,22 @@ async function x(img: ImageData) {
     console.time();
     let h = img.height,
         w = img.width;
-    let { transposedData, resizeW: resizeW, image, canvas } = 检测前处理(h, w, img);
-    const detResults = await 检测(transposedData, image, det);
+    let { transposedData, resizeW: resizeW, image, canvas } = beforeDet(h, w, img);
+    const detResults = await runDet(transposedData, image, det);
 
-    let box = 检测后处理(detResults.data, detResults.dims[3], detResults.dims[2], canvas);
+    let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], canvas);
 
     let mainLine: { text: string; mean: number; box?: number[][] }[] = [];
-    for (let i of 识别前处理(resizeW, box)) {
+    for (let i of beforeRec(resizeW, box)) {
         let { b, imgH, imgW } = i;
-        const recResults = await 识别(b, imgH, imgW, rec);
+        const recResults = await runRec(b, imgH, imgW, rec);
         if (dic.at(-1) == "") {
             // 多出的换行
             dic[dic.length - 1] = " ";
         } else {
             dic.push(" ");
         }
-        let line = 识别后处理(recResults, dic);
+        let line = afterRec(recResults, dic);
         mainLine = line.concat(mainLine);
     }
     for (let i in mainLine) {
@@ -79,7 +79,7 @@ async function x(img: ImageData) {
     return mainLine;
 }
 
-async function 检测(transposedData: number[][][], image: ImageData, det: SessionType) {
+async function runDet(transposedData: number[][][], image: ImageData, det: SessionType) {
     let x = transposedData.flat(Infinity) as number[];
     const detData = Float32Array.from(x);
 
@@ -91,7 +91,7 @@ async function 检测(transposedData: number[][][], image: ImageData, det: Sessi
     return detResults[det.outputNames[0]];
 }
 
-async function 识别(b: number[][][], imgH: number, imgW: number, rec: SessionType) {
+async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionType) {
     const recData = Float32Array.from(b.flat(Infinity) as number[]);
 
     const recTensor = new ort.Tensor("float32", recData, [b.length, 3, imgH, imgW]);
@@ -121,7 +121,7 @@ function resizeImg(data: ImageData, w: number, h: number) {
     return src.getContext("2d").getImageData(0, 0, w, h);
 }
 
-function 检测前处理(h: number, w: number, image: ImageData) {
+function beforeDet(h: number, w: number, image: ImageData) {
     let ratio = 1;
     if (Math.max(h, w) > limitSideLen) {
         if (h > w) {
@@ -153,8 +153,8 @@ function 检测前处理(h: number, w: number, image: ImageData) {
     return { transposedData, resizeW: resizeW, image, canvas: srcCanvas };
 }
 
-function 检测后处理(
-    data: AsyncType<ReturnType<typeof 检测>>["data"],
+function afterDet(
+    data: AsyncType<ReturnType<typeof runDet>>["data"],
     w: number,
     h: number,
     srcCanvas: HTMLCanvasElement
@@ -247,7 +247,7 @@ function toPaddleInput(image: ImageData, mean: number[], std: number[]) {
     return [blueArray, greenArray, redArray];
 }
 
-function 识别前处理(resize_w: any, box: { box: number[][]; img: ImageData }[]) {
+function beforeRec(resize_w: any, box: { box: number[][]; img: ImageData }[]) {
     let l: { b: number[][][]; imgH: number; imgW: number }[] = [];
     function resizeNormImg(img: ImageData) {
         imgW = Math.floor(imgH * maxWhRatio);
@@ -296,7 +296,7 @@ function 识别前处理(resize_w: any, box: { box: number[][]; img: ImageData }
     return l;
 }
 
-function 识别后处理(data: AsyncType<ReturnType<typeof 识别>>, character: string[]) {
+function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[]) {
     let predLen = data.dims[2];
     let line: { text: string; mean: number }[] = [];
     let ml = data.dims[0] - 1;
