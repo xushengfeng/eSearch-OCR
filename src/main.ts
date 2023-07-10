@@ -210,15 +210,9 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
             box[i][0] *= rx;
             box[i][1] *= ry;
         }
-        for (let i = 0; i < points.length; i++) {
-            points[i][0] *= rx;
-            points[i][1] *= ry;
-        }
-        //
         let c0 = data2canvas(srcData);
-        console.log(points);
 
-        let c = getRotateCropImage(c0, points);
+        let c = getRotateCropImage(c0, box);
 
         edgeRect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
     }
