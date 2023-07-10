@@ -195,10 +195,6 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         function clip(n: number, min: number, max: number) {
             return Math.max(min, Math.min(n, max));
         }
-        box.forEach((item) => {
-            item[0] = clip(Math.round(item[0]), 0, w);
-            item[1] = clip(Math.round(item[1]), 0, h);
-        });
 
         let rx = srcData.width / w;
         let ry = srcData.height / h;
@@ -207,6 +203,16 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
             box[i][0] *= rx;
             box[i][1] *= ry;
         }
+
+        let box1 = orderPointsClockwise(box);
+        box1.forEach((item) => {
+            item[0] = clip(Math.round(item[0]), 0, srcData.width);
+            item[1] = clip(Math.round(item[1]), 0, srcData.height);
+        });
+        let rect_width = int(linalgNorm(box1[0], box1[1]));
+        let rect_height = int(linalgNorm(box1[0], box1[3]));
+        if (rect_width <= 3 || rect_height <= 3) continue;
+
         let c0 = data2canvas(srcData);
 
         let c = getRotateCropImage(c0, box);
@@ -224,8 +230,8 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
     return edgeRect;
 }
-type BoxType = [[number, number], [number, number], [number, number], [number, number]];
 type pointType = [number, number];
+type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 const clipper = require("js-clipper");
 function polygonPolygonArea(polygon: pointsType) {
@@ -364,21 +370,37 @@ function getMiniBoxes(contour: any) {
     return { points: box, sside: side };
 }
 
+function int(num: number) {
+    return num > 0 ? Math.floor(num) : Math.ceil(num);
+}
+function flatten(arr: number[] | number[][]) {
+    return arr
+        .toString()
+        .split(",")
+        .map((item) => +item);
+}
+function linalgNorm(p0: pointType, p1: pointType) {
+    return Math.sqrt(Math.pow(p0[0] - p1[0], 2) + Math.pow(p0[1] - p1[1], 2));
+}
+function orderPointsClockwise(pts: BoxType) {
+    const rect: BoxType = [
+        [0, 0],
+        [0, 0],
+        [0, 0],
+        [0, 0],
+    ];
+    const s = pts.map((pt) => pt[0] + pt[1]);
+    rect[0] = pts[s.indexOf(Math.min(...s))];
+    rect[2] = pts[s.indexOf(Math.max(...s))];
+    const tmp = pts.filter((pt) => pt !== rect[0] && pt !== rect[2]);
+    const diff = tmp[1].map((e, i) => e - tmp[0][i]);
+    rect[1] = tmp[diff.indexOf(Math.min(...diff))];
+    rect[3] = tmp[diff.indexOf(Math.max(...diff))];
+    return rect;
+}
 function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: BoxType) {
-    function int(num: number) {
-        return num > 0 ? Math.floor(num) : Math.ceil(num);
-    }
-    function flatten(arr: number[] | number[][]) {
-        return arr
-            .toString()
-            .split(",")
-            .map((item) => +item);
-    }
-    function linalg_norm(x, y) {
-        return Math.sqrt(Math.pow(x[0] - y[0], 2) + Math.pow(x[1] - y[1], 2));
-    }
-    const img_crop_width = int(Math.max(linalg_norm(points[0], points[1]), linalg_norm(points[2], points[3])));
-    const img_crop_height = int(Math.max(linalg_norm(points[0], points[3]), linalg_norm(points[1], points[2])));
+    const img_crop_width = int(Math.max(linalgNorm(points[0], points[1]), linalgNorm(points[2], points[3])));
+    const img_crop_height = int(Math.max(linalgNorm(points[0], points[3]), linalgNorm(points[1], points[2])));
     const pts_std = [
         [0, 0],
         [img_crop_width, 0],
