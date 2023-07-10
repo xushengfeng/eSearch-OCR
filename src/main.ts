@@ -306,7 +306,7 @@ function 识别后处理(data: AsyncType<ReturnType<typeof 识别>>, character: 
 
         for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
             const tmpArr = data.data.slice(i, i + predLen) as Float32Array;
-            const tmpMax = Math.max(...tmpArr);
+            const tmpMax = tmpArr.reduce((a, b) => Math.max(a, b), -Infinity);
             const tmpIdx = tmpArr.indexOf(tmpMax);
             predsProb.push(tmpMax);
             predsIdx.push(tmpIdx);
