@@ -54,7 +54,7 @@ async function x(img: ImageData) {
 
     let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
 
-    let mainLine: { text: string; mean: number; box?: number[][] }[] = [];
+    let mainLine: resultType = [];
     for (let i of beforeRec(box)) {
         let { b, imgH, imgW } = i;
         const recResults = await runRec(b, imgH, imgW, rec);
@@ -77,6 +77,7 @@ async function x(img: ImageData) {
         }
         mainLine[i]["box"] = b;
     }
+    mainLine = afAfRec(mainLine);
     console.log(mainLine);
     console.timeEnd();
     return mainLine;
@@ -233,6 +234,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 type pointType = [number, number];
 type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
+type resultType = { text: string; mean: number; box?: BoxType }[];
 const clipper = require("js-clipper");
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1,
@@ -569,6 +571,71 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
             mean = sum / confList.length;
         }
         return { text, mean };
+    }
+    return line;
+}
+
+// TODO 使用板式识别代替
+/** 组成行 */
+function afAfRec(l: resultType) {
+    let line: resultType = [];
+    let ind: Map<BoxType, number> = new Map();
+    for (let i in l) {
+        ind.set(l[i].box, Number(i));
+    }
+
+    function calculateAverageHeight(boxes: BoxType[]): number {
+        let totalHeight = 0;
+        for (const box of boxes) {
+            const [[, y1], , [, y2]] = box;
+            const height = y2 - y1;
+            totalHeight += height;
+        }
+        return totalHeight / boxes.length;
+    }
+
+    function groupBoxesByMidlineDifference(boxes: BoxType[]): BoxType[][] {
+        const averageHeight = calculateAverageHeight(boxes);
+        const result: BoxType[][] = [];
+        for (const box of boxes) {
+            const [[, y1], , [, y2]] = box;
+            const midline = (y1 + y2) / 2;
+            const group = result.find((b) => {
+                const [[, groupY1], , [, groupY2]] = b[0];
+                const groupMidline = (groupY1 + groupY2) / 2;
+                return Math.abs(groupMidline - midline) < averageHeight / 2;
+            });
+            if (group) {
+                group.push(box);
+            } else {
+                result.push([box]);
+            }
+        }
+
+        for (const group of result) {
+            group.sort((a, b) => {
+                const [ltA] = a;
+                const [ltB] = b;
+                return ltA[0] - ltB[0];
+            });
+        }
+
+        result.sort((a, b) => a[0][0][1] - b[0][0][1]);
+
+        return result;
+    }
+
+    let boxes = groupBoxesByMidlineDifference([...ind.keys()]);
+
+    for (let i of boxes) {
+        let t = [];
+        let m = 0;
+        for (let j of i) {
+            let x = l[ind.get(j)];
+            t.push(x.text);
+            m += x.mean;
+        }
+        line.push({ mean: m / i.length, text: t.join(" "), box: [i.at(0)[0], i.at(-1)[1], i.at(-1)[2], i.at(0)[3]] });
     }
     return line;
 }
