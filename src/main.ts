@@ -46,7 +46,7 @@ async function x(img: ImageData) {
     console.time();
     let h = img.height,
         w = img.width;
-    let { transposedData, resizeW: resizeW, image, canvas } = beforeDet(h, w, img);
+    let { transposedData, resizeW: resizeW, image, canvas } = beforeDet(img);
     const detResults = await runDet(transposedData, image, det);
 
     let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], canvas);
@@ -121,8 +121,10 @@ function resizeImg(data: ImageData, w: number, h: number) {
     return src.getContext("2d").getImageData(0, 0, w, h);
 }
 
-function beforeDet(h: number, w: number, image: ImageData) {
+function beforeDet(image: ImageData) {
     let ratio = 1;
+    let h = image.height,
+        w = image.width;
     if (Math.max(h, w) > limitSideLen) {
         if (h > w) {
             ratio = limitSideLen / h;
