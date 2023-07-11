@@ -142,8 +142,8 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
             ratio = limitSideLen / w;
         }
     }
-    let resizeH = shapeH ?? h * ratio;
-    let resizeW = shapeW ?? w * ratio;
+    let resizeH = shapeH || h * ratio;
+    let resizeW = shapeW || w * ratio;
 
     resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
     resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
