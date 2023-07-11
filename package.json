@@ -1,7 +1,7 @@
 {
     "name": "esearch-ocr",
     "version": "4.0.1",
-    "description": "",
+    "description": "paddleocr models run on onnx",
     "main": "./dist/esearch-ocr.umd.cjs",
     "module": "./dist/esearch-ocr.js",
     "exports": {
@@ -19,8 +19,16 @@
         "build": "tsc && vite build",
         "preview": "vite preview"
     },
-    "keywords": [],
-    "author": "",
+    "keywords": [
+        "ocr",
+        "paddleocr",
+        "onnx"
+    ],
+    "author": {
+        "name": "xsf",
+        "email": "xushengfeng_zg@163.com"
+    },
+    "license": "Apache-2.0",
     "dependencies": {
         "js-clipper": "^1.0.1"
     },
