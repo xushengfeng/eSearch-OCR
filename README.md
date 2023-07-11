@@ -10,7 +10,7 @@
 
 基于[onnxruntime](https://github.com/microsoft/onnxruntime)的 web runtime，使用 wasm 运行，未来可能使用 webgl 甚至是 webgpu。
 
-模型需要转换为 onnx 才能使用：[Paddle2ONNX]https://github.com/PaddlePaddle/Paddle2ONNX
+模型需要转换为 onnx 才能使用：[Paddle2ONNX](https://github.com/PaddlePaddle/Paddle2ONNX) 或[在线转换](https://www.paddlepaddle.org.cn/paddle/visualdl/modelconverter/x2paddle)
 
 在 js 文件下使用 electron 进行调试（主要是 require 几个模块和 fs 读取字典，若想纯网页实现，可以自行修改）
 
