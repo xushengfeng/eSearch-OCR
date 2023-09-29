@@ -68,12 +68,10 @@ async function x(img: ImageData) {
         mainLine = line.concat(mainLine);
     }
     for (let i in mainLine) {
-        let rx = w / image.width,
-            ry = h / image.height;
         let b = box[mainLine.length - Number(i) - 1].box;
         for (let p of b) {
-            p[0] = p[0] * rx;
-            p[1] = p[1] * ry;
+            p[0] = p[0];
+            p[1] = p[1];
         }
         mainLine[i]["box"] = b;
     }
