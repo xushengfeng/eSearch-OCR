@@ -33,10 +33,10 @@ const ocr = require("esearch-ocr");
 ```
 
 ```javascript
-await lo.init({
+await ocr.init({
     detPath: "ocr/det.onnx",
     recPath: "ocr/rec.onnx",
-    dic: "",
+    dic: "abcdefg...",
 });
 
 let img = document.createElement("img");
@@ -58,14 +58,14 @@ init type
 {
     detPath: string;
     recPath: string;
-    dic: string; // raw !string[] && !filePath
+    dic: string; // raw, !string[] && !filePath
     node?: boolean;
     dev?: boolean;
     maxSide?: number;
     imgh?: number;
     imgw?: number;
     ort?: typeof import("onnxruntime-web");
-    detShape?: [number, number];
+    detShape?: [number, number]; // ppocr v3 需要指定为[960, 960]
 }
 ```
 
