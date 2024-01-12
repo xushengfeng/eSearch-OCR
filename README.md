@@ -12,31 +12,38 @@
 
 模型需要转换为 onnx 才能使用：[Paddle2ONNX](https://github.com/PaddlePaddle/Paddle2ONNX) 或[在线转换](https://www.paddlepaddle.org.cn/paddle/visualdl/modelconverter/x2paddle)
 
-在 js 文件下使用 electron 进行调试（主要是 require 几个模块和 fs 读取字典，若想纯网页实现，可以自行修改）
+在 js 文件下可以使用 electron 进行调试
 
 ## 使用
 
 ```shell
-npm i esearch-ocr
+npm i esearch-ocr onnxruntime-web
 ```
 
 web
 
 ```javascript
 import * as ocr from "esearch-ocr";
+import * as ort from "onnxruntime-web";
 ```
 
-nodejs
+electron，nodejs 不支持 canvas
 
 ```javascript
 const ocr = require("esearch-ocr");
+const ort = require("onnxruntime-node");
 ```
+
+> [!IMPORTANT]  
+> 需要手动安装 onnxruntime（onnxruntime-node 或 onnxruntime-web，视平台而定），并在`init`参数中传入`ort`
+> 这样设计是因为 web 和 electron 可以使用不同的 ort，很难协调，不如让开发者自己决定 :(
 
 ```javascript
 await ocr.init({
     detPath: "ocr/det.onnx",
     recPath: "ocr/rec.onnx",
     dic: "abcdefg...",
+    ort,
 });
 
 let img = document.createElement("img");
@@ -56,6 +63,7 @@ init type
 
 ```typescript
 {
+    ort: typeof import("onnxruntime-web");
     detPath: string;
     recPath: string;
     dic: string; // raw, !string[] && !filePath
@@ -64,7 +72,6 @@ init type
     maxSide?: number;
     imgh?: number;
     imgw?: number;
-    ort?: typeof import("onnxruntime-web");
     detShape?: [number, number]; // ppocr v3 需要指定为[960, 960]
 }
 ```
