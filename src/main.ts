@@ -1,11 +1,11 @@
 var cv = require("opencv.js");
-var ort: typeof import("onnxruntime-web");
+var ort: typeof import("onnxruntime-common");
 
 export { x as ocr, init };
 
 var dev = true;
 type AsyncType<T> = T extends Promise<infer U> ? U : never;
-type SessionType = AsyncType<ReturnType<typeof import("onnxruntime-web").InferenceSession.create>>;
+type SessionType = AsyncType<ReturnType<typeof import("onnxruntime-common").InferenceSession.create>>;
 var det: SessionType, rec: SessionType, dic: string[];
 var limitSideLen = 960,
     imgH = 48,
@@ -21,18 +21,10 @@ async function init(x: {
     maxSide?: number;
     imgh?: number;
     imgw?: number;
-    ort?: typeof import("onnxruntime-web");
+    ort: typeof import("onnxruntime-common");
     detShape?: [number, number];
 }) {
-    if (x.ort) {
-        ort = x.ort;
-    } else {
-        if (x.node) {
-            ort = require("onnxruntime-node");
-        } else {
-            ort = require("onnxruntime-web");
-        }
-    }
+    ort = x.ort;
     dev = x.dev;
     det = await ort.InferenceSession.create(x.detPath);
     rec = await ort.InferenceSession.create(x.recPath);
