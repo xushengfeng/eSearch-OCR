@@ -72,7 +72,7 @@ init type
     maxSide?: number;
     imgh?: number;
     imgw?: number;
-    detShape?: [number, number]; // ppocr v3 需要指定为[960, 960]
+    detShape?: [number, number]; // ppocr v3 需要指定为[960, 960], v4 为[640, 640]
 }
 ```
 
