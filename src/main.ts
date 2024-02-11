@@ -1,21 +1,29 @@
 var cv = require("opencv.js");
 var ort: typeof import("onnxruntime-common");
 
+import { runLayout } from "./layout";
+import { toPaddleInput } from "./untils";
+import { SessionType, AsyncType } from "./untils";
+import { data2canvas } from "./untils";
+import { resizeImg } from "./untils";
+import { int } from "./untils";
+
 export { x as ocr, init };
 
 var dev = true;
-type AsyncType<T> = T extends Promise<infer U> ? U : never;
-type SessionType = AsyncType<ReturnType<typeof import("onnxruntime-common").InferenceSession.create>>;
-var det: SessionType, rec: SessionType, dic: string[];
+var det: SessionType, rec: SessionType, layout: SessionType, dic: string[];
 var limitSideLen = 960,
     imgH = 48,
     imgW = 320;
 var detShape = [NaN, NaN];
+var layoutDic: string[];
 
 async function init(x: {
     detPath: string;
     recPath: string;
+    layoutPath?: string;
     dic: string;
+    layoutDic?: string;
     node?: boolean;
     dev?: boolean;
     maxSide?: number;
@@ -28,7 +36,9 @@ async function init(x: {
     dev = x.dev;
     det = await ort.InferenceSession.create(x.detPath);
     rec = await ort.InferenceSession.create(x.recPath);
+    if (x.layoutPath) layout = await ort.InferenceSession.create(x.layoutPath);
     dic = x.dic.split(/\r\n|\r|\n/);
+    layoutDic = x.layoutDic?.split(/\r\n|\r|\n/);
     if (x.maxSide) limitSideLen = x.maxSide;
     if (x.imgh) imgH = x.imgh;
     if (x.imgw) imgW = x.imgw;
@@ -41,6 +51,11 @@ async function x(img: ImageData) {
     console.time();
     let h = img.height,
         w = img.width;
+
+    if (layout) {
+        const sr = await runLayout(img, ort, layout, layoutDic);
+    }
+
     let { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
     const detResults = await runDet(transposedData, image, det);
 
@@ -95,30 +110,6 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
 
     const recResults = await rec.run(recFeed);
     return recResults[rec.outputNames[0]];
-}
-
-function data2canvas(data: ImageData, w?: number, h?: number) {
-    let x = document.createElement("canvas");
-    x.width = w || data.width;
-    x.height = h || data.height;
-    x.getContext("2d").putImageData(data, 0, 0);
-    return x;
-}
-
-/**
- *
- * @param {ImageData} data 原图
- * @param {number} w 输出宽
- * @param {number} h 输出高
- */
-function resizeImg(data: ImageData, w: number, h: number) {
-    let x = data2canvas(data);
-    let src = document.createElement("canvas");
-    src.width = w;
-    src.height = h;
-    src.getContext("2d").scale(w / data.width, h / data.height);
-    src.getContext("2d").drawImage(x, 0, 0);
-    return src.getContext("2d").getImageData(0, 0, w, h);
 }
 
 function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
@@ -222,6 +213,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
     return edgeRect;
 }
+
 type pointType = [number, number];
 type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
@@ -363,9 +355,6 @@ function getMiniBoxes(contour: any) {
     return { points: box, sside: side };
 }
 
-function int(num: number) {
-    return num > 0 ? Math.floor(num) : Math.ceil(num);
-}
 function flatten(arr: number[] | number[][]) {
     return arr
         .toString()
@@ -441,30 +430,6 @@ function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: B
     srcTri.delete();
     dstTri.delete();
     return c;
-}
-
-function toPaddleInput(image: ImageData, mean: number[], std: number[]) {
-    const imagedata = image.data;
-    const redArray: number[][] = [];
-    const greenArray: number[][] = [];
-    const blueArray: number[][] = [];
-    let x = 0,
-        y = 0;
-    for (let i = 0; i < imagedata.length; i += 4) {
-        if (!blueArray[y]) blueArray[y] = [];
-        if (!greenArray[y]) greenArray[y] = [];
-        if (!redArray[y]) redArray[y] = [];
-        redArray[y][x] = (imagedata[i] / 255 - mean[0]) / std[0];
-        greenArray[y][x] = (imagedata[i + 1] / 255 - mean[1]) / std[1];
-        blueArray[y][x] = (imagedata[i + 2] / 255 - mean[2]) / std[2];
-        x++;
-        if (x == image.width) {
-            x = 0;
-            y++;
-        }
-    }
-
-    return [blueArray, greenArray, redArray];
 }
 
 function beforeRec(box: { box: BoxType; img: ImageData }[]) {
