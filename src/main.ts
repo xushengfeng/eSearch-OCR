@@ -56,6 +56,20 @@ async function x(img: ImageData) {
         const sr = await runLayout(img, ort, layout, layoutDic);
     }
 
+    const _r = 0.6;
+    if (h < w * _r) {
+        const _h = Math.floor(w * _r);
+        const newData = new Uint8ClampedArray(w * _h * 4);
+        newData.set(img.data);
+        newData.set(new Uint8ClampedArray(w * (_h - h) * 4), img.data.length);
+        let _img = new ImageData(w, _h);
+        for (let i in newData) {
+            _img.data[i] = newData[i];
+        }
+        img = _img;
+        h = _h;
+    }
+
     let { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
     const detResults = await runDet(transposedData, image, det);
 
