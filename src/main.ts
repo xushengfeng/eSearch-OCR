@@ -2,7 +2,9 @@ var cv = require("opencv.js");
 var ort: typeof import("onnxruntime-common");
 
 import { runLayout } from "./layout";
-import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int } from "./untils";
+import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int, tLog } from "./untils";
+
+const task = new tLog("t");
 
 export { x as ocr, init };
 
@@ -34,6 +36,12 @@ async function init(x: {
     rec = await ort.InferenceSession.create(x.recPath);
     if (x.layoutPath) layout = await ort.InferenceSession.create(x.layoutPath);
     dic = x.dic.split(/\r\n|\r|\n/);
+    if (dic.at(-1) === "") {
+        // 多出的换行
+        dic[dic.length - 1] = " ";
+    } else {
+        dic.push(" ");
+    }
     layoutDic = x.layoutDic?.split(/\r\n|\r|\n/);
     if (x.maxSide) limitSideLen = x.maxSide;
     if (x.imgh) imgH = x.imgh;
@@ -44,7 +52,7 @@ async function init(x: {
 
 /** 主要操作 */
 async function x(img: ImageData) {
-    console.time();
+    task.l("");
     let h = img.height,
         w = img.width;
 
@@ -66,26 +74,24 @@ async function x(img: ImageData) {
         img = ctx.getImageData(0, 0, w, h);
     }
 
+    task.l("pre_det");
     let { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
+    task.l("det");
     const detResults = await runDet(transposedData, image, det);
 
+    task.l("aft_det");
     let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
 
     let mainLine: resultType = [];
-    console.timeLog();
-    for (let i of beforeRec(box)) {
+    task.l("bf_rec");
+    const recL = beforeRec(box);
+    for (let i of recL) {
         let { b, imgH, imgW } = i;
         const recResults = await runRec(b, imgH, imgW, rec);
-        if (dic.at(-1) == "") {
-            // 多出的换行
-            dic[dic.length - 1] = " ";
-        } else {
-            dic.push(" ");
-        }
         let line = afterRec(recResults, dic);
         mainLine = line.concat(mainLine);
     }
-    console.timeLog();
+    task.l("rec end");
     for (let i in mainLine) {
         let b = box[mainLine.length - Number(i) - 1].box;
         for (let p of b) {
@@ -97,7 +103,7 @@ async function x(img: ImageData) {
     mainLine = mainLine.filter((x) => x.mean >= 0.5);
     mainLine = afAfRec(mainLine);
     console.log(mainLine);
-    console.timeEnd();
+    task.l("end");
     return mainLine;
 }
 
@@ -368,10 +374,7 @@ function getMiniBoxes(contour: any) {
 }
 
 function flatten(arr: number[] | number[][]) {
-    return arr
-        .toString()
-        .split(",")
-        .map((item) => +item);
+    return arr.flat();
 }
 function linalgNorm(p0: pointType, p1: pointType) {
     return Math.sqrt(Math.pow(p0[0] - p1[0], 2) + Math.pow(p0[1] - p1[1], 2));
@@ -412,7 +415,6 @@ function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: B
     const dsize = new cv.Size(img_crop_width, img_crop_height);
     // 透视转换
     cv.warpPerspective(src, dst, M, dsize, cv.INTER_CUBIC, cv.BORDER_REPLICATE, new cv.Scalar());
-    console.log(dst);
 
     const dst_img_height = dst.matSize[0];
     const dst_img_width = dst.matSize[1];

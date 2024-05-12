@@ -8,6 +8,5 @@ export default defineConfig({
             entry: resolve(__dirname, "src/main.ts"),
             name: "esearch-ocr",
         },
-        sourcemap: true,
     },
 });
