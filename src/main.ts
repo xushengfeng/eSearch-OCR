@@ -505,13 +505,26 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 
         for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
             const tmpArr = data.data.slice(i, i + predLen) as Float32Array;
-            const l = tmpArr.toSorted((a, b) => b - a);
-            let tmpMax = l.at(0);
-            let tmpIdx = tmpArr.indexOf(tmpMax);
-            const m2 = l.at(1);
-            if (tmpIdx === 0 && getChar(tmpArr.indexOf(m2)) === " " && m2 > 0.001) {
-                tmpMax = m2;
-                tmpIdx = tmpArr.indexOf(m2);
+
+            let tmpMax = -Infinity;
+            let tmpIdx = -1;
+            let tmpSecond = -Infinity;
+            let tmpSecondI = -1;
+
+            for (let j = 0; j < tmpArr.length; j++) {
+                const currentValue = tmpArr[j];
+                if (currentValue > tmpMax) {
+                    tmpSecond = tmpMax;
+                    tmpMax = currentValue;
+                    tmpIdx = j;
+                } else if (currentValue > tmpSecond && currentValue < tmpMax) {
+                    tmpSecond = currentValue;
+                    tmpSecondI = j;
+                }
+            }
+            if (tmpIdx === 0 && getChar(tmpSecondI) === " " && tmpSecond > 0.001) {
+                tmpMax = tmpSecond;
+                tmpIdx = tmpSecondI;
             }
 
             predsProb.push(tmpMax);
