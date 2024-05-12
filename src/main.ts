@@ -72,6 +72,7 @@ async function x(img: ImageData) {
     let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
 
     let mainLine: resultType = [];
+    console.timeLog();
     for (let i of beforeRec(box)) {
         let { b, imgH, imgW } = i;
         const recResults = await runRec(b, imgH, imgW, rec);
@@ -84,6 +85,7 @@ async function x(img: ImageData) {
         let line = afterRec(recResults, dic);
         mainLine = line.concat(mainLine);
     }
+    console.timeLog();
     for (let i in mainLine) {
         let b = box[mainLine.length - Number(i) - 1].box;
         for (let p of b) {
