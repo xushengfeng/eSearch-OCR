@@ -2,11 +2,7 @@ var cv = require("opencv.js");
 var ort: typeof import("onnxruntime-common");
 
 import { runLayout } from "./layout";
-import { toPaddleInput } from "./untils";
-import { SessionType, AsyncType } from "./untils";
-import { data2canvas } from "./untils";
-import { resizeImg } from "./untils";
-import { int } from "./untils";
+import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int } from "./untils";
 
 export { x as ocr, init };
 
