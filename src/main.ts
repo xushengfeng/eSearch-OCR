@@ -492,44 +492,52 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
     let predLen = data.dims[2];
     let line: { text: string; mean: number }[] = [];
     let ml = data.dims[0] - 1;
+
+    function getChar(i: number) {
+        return character.at(i - 1);
+    }
+
     for (let l = 0; l < data.data.length; l += predLen * data.dims[1]) {
         const predsIdx: number[] = [];
         const predsProb: number[] = [];
 
         for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
             const tmpArr = data.data.slice(i, i + predLen) as Float32Array;
-            const tmpMax = tmpArr.reduce((a, b) => Math.max(a, b), -Infinity);
-            const tmpIdx = tmpArr.indexOf(tmpMax);
+            const l = tmpArr.toSorted((a, b) => b - a);
+            let tmpMax = l.at(0);
+            let tmpIdx = tmpArr.indexOf(tmpMax);
+            const m2 = l.at(1);
+            if (tmpIdx === 0 && getChar(tmpArr.indexOf(m2)) === " " && m2 > 0.001) {
+                tmpMax = m2;
+                tmpIdx = tmpArr.indexOf(m2);
+            }
+
             predsProb.push(tmpMax);
             predsIdx.push(tmpIdx);
         }
-        line[ml] = decode(predsIdx, predsProb, true);
+        line[ml] = decode(predsIdx, predsProb);
         ml--;
     }
-    function decode(textIndex: number[], textProb: number[], isRemoveDuplicate: boolean) {
-        const ignoredTokens = [0];
+    function decode(textIndex: number[], textProb: number[]) {
         const charList = [];
         const confList = [];
+        const isRemoveDuplicate = true;
         for (let idx = 0; idx < textIndex.length; idx++) {
-            if (textIndex[idx] in ignoredTokens) {
-                continue;
-            }
+            if (textIndex[idx] === 0) continue;
             if (isRemoveDuplicate) {
                 if (idx > 0 && textIndex[idx - 1] === textIndex[idx]) {
                     continue;
                 }
             }
-            charList.push(character[textIndex[idx] - 1]);
-            if (textProb) {
-                confList.push(textProb[idx]);
-            } else {
-                confList.push(1);
-            }
+            let char = getChar(textIndex[idx]);
+            let prob = textProb[idx];
+            charList.push(char);
+            confList.push(prob);
         }
         let text = "";
         let mean = 0;
         if (charList.length) {
-            text = charList.join("");
+            text = charList.join("").trim();
             let sum = 0;
             confList.forEach((item) => {
                 sum += item;
