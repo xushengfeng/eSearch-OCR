@@ -2,10 +2,25 @@ var cv = require("opencv.js");
 var ort: typeof import("onnxruntime-common");
 
 import { runLayout } from "./layout";
-import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int, tLog, clip } from "./untils";
+import {
+    newCanvas,
+    setCanvas,
+    toPaddleInput,
+    SessionType,
+    AsyncType,
+    data2canvas,
+    resizeImg,
+    int,
+    tLog,
+    clip,
+} from "./untils";
 
 const task = new tLog("t");
 const task2 = new tLog("af_det");
+
+function putImgDom(img: HTMLElement) {
+    document?.body?.append(img);
+}
 
 export { init, x as ocr, Det as det, Rec as rec };
 
@@ -29,6 +44,8 @@ async function init(x: {
     imgw?: number;
     ort: typeof import("onnxruntime-common");
     detShape?: [number, number];
+
+    canvas: any;
 }) {
     ort = x.ort;
     dev = x.dev;
@@ -51,6 +68,7 @@ async function init(x: {
     if (x.imgh) imgH = x.imgh;
     if (x.imgw) imgW = x.imgw;
     if (x.detShape) detShape = x.detShape;
+    if (x.canvas) setCanvas(x.canvas);
     return new Promise((rs) => rs(true));
 }
 
@@ -80,7 +98,7 @@ async function Det(img: ImageData) {
     if (_h < _w * _r || _w < _h * _r) {
         if (_h < _w * _r) h = Math.floor(_w * _r);
         if (_w < _h * _r) w = Math.floor(_h * _r);
-        const c = document.createElement("canvas");
+        const c = newCanvas();
         const ctx = c.getContext("2d");
         c.width = w;
         c.height = h;
@@ -166,7 +184,7 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
     console.log(image);
     if (dev) {
         let srcCanvas = data2canvas(image);
-        document.body.append(srcCanvas);
+        putImgDom(srcCanvas);
     }
     return { transposedData, image };
 }
@@ -485,7 +503,7 @@ function beforeRec(box: { box: BoxType; img: ImageData }[]) {
     function resizeNormImg(img: ImageData) {
         const w = Math.floor(imgH * (img.width / img.height));
         const d = resizeImg(img, w, imgH);
-        if (dev) document.body.append(data2canvas(d, w, imgH));
+        if (dev) putImgDom(data2canvas(d, w, imgH));
         return { data: d, w, h: imgH };
     }
 

@@ -1,3 +1,13 @@
+let canvas = () => document.createElement("canvas");
+
+export function newCanvas() {
+    return canvas();
+}
+
+export function setCanvas(x: any) {
+    canvas = x;
+}
+
 export function int(num: number) {
     return num > 0 ? Math.floor(num) : Math.ceil(num);
 }
@@ -12,7 +22,7 @@ export function clip(n: number, min: number, max: number) {
  */
 export function resizeImg(data: ImageData, w: number, h: number) {
     let x = data2canvas(data);
-    let src = document.createElement("canvas");
+    let src = newCanvas();
     src.width = w;
     src.height = h;
     src.getContext("2d").scale(w / data.width, h / data.height);
@@ -20,7 +30,7 @@ export function resizeImg(data: ImageData, w: number, h: number) {
     return src.getContext("2d").getImageData(0, 0, w, h);
 }
 export function data2canvas(data: ImageData, w?: number, h?: number) {
-    let x = document.createElement("canvas");
+    let x = newCanvas();
     x.width = w || data.width;
     x.height = h || data.height;
     x.getContext("2d").putImageData(data, 0, 0);
