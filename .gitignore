@@ -1,10 +1,11 @@
 __pycache__
-a.png
 to_onnx/env
 .DS_Store
 assets
 node_modules
 test/m
 *.png
+*.jpg
+*.svg
 PaddleOCR
 dist
