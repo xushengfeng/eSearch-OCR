@@ -27,16 +27,16 @@ import * as ocr from "esearch-ocr";
 import * as ort from "onnxruntime-web";
 ```
 
-electron，nodejs 不支持 canvas
-
 ```javascript
 const ocr = require("esearch-ocr");
 const ort = require("onnxruntime-node");
 ```
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > 需要手动安装 onnxruntime（onnxruntime-node 或 onnxruntime-web，视平台而定），并在`init`参数中传入`ort`
-> 这样设计是因为 web 和 electron 可以使用不同的 ort，很难协调，不如让开发者自己决定 :(
+> 这样设计是因为 web 和 electron 可以使用不同的 ort，很难协调，不如让开发者自己决定
+
+浏览器或 Electron 实例
 
 ```javascript
 await ocr.init({
@@ -59,6 +59,8 @@ img.onload = async () => {
 };
 ```
 
+[node.js 实例](./test/test_node.js)，需要安装`canvas`
+
 init type
 
 ```typescript
@@ -66,13 +68,15 @@ init type
     ort: typeof import("onnxruntime-web");
     detPath: string;
     recPath: string;
-    dic: string; // raw, !string[] && !filePath
-    node?: boolean;
+    dic: string; // 文件内容，不是路径
     dev?: boolean;
     maxSide?: number;
     imgh?: number;
     imgw?: number;
     detShape?: [number, number]; // ppocr v3 需要指定为[960, 960], v4 为[640, 640]
+    canvas?: (w: number, h: number) => any; // 用于node
+    imageData?: any; // 用于node
+    cv?: any;
 }
 ```
 
@@ -83,6 +87,8 @@ type PointType = [number, number]
 ocr(img: ImageData): Promise<{
     text: string;
     mean: number;
-    box: [PointType, PointType, PointType, PointType]; // lt rt rb lb
+    box: [PointType, PointType, PointType, PointType]; // ↖ ↗ ↘ ↙
 }[]>
 ```
+
+除了 ocr 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看编辑器提示
