@@ -5,6 +5,12 @@ import { runLayout } from "./layout";
 import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int, tLog } from "./untils";
 
 const task = new tLog("t");
+const task2 = new tLog("af_det");
+
+if (!dev) {
+    task.l = () => {};
+    task2.l = () => {};
+}
 
 export { x as ocr, init };
 
@@ -87,11 +93,13 @@ async function x(img: ImageData) {
     const recL = beforeRec(box);
     for (let i of recL) {
         let { b, imgH, imgW } = i;
+        task.l("rec");
         const recResults = await runRec(b, imgH, imgW, rec);
+        task.l("af_rec");
         let line = afterRec(recResults, dic);
         mainLine = line.concat(mainLine);
     }
-    task.l("rec end");
+    task.l("rec_end");
     for (let i in mainLine) {
         let b = box[mainLine.length - Number(i) - 1].box;
         for (let p of b) {
@@ -158,7 +166,8 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
 }
 
 function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number, h: number, srcData: ImageData) {
-    var myImageData = new ImageData(w, h);
+    task2.l("");
+    const myImageData = new ImageData(w, h);
     for (let i in data) {
         let n = Number(i) * 4;
         const v = (data[i] as number) > 0.3 ? 255 : 0;
@@ -166,6 +175,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         myImageData.data[n + 3] = 255;
     }
     let canvas = data2canvas(myImageData);
+    task2.l("edge");
 
     let edgeRect: { box: BoxType; img: ImageData }[] = [];
 
@@ -204,6 +214,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
             box[i][0] *= rx;
             box[i][1] *= ry;
         }
+        task2.l("order");
 
         let box1 = orderPointsClockwise(box);
         box1.forEach((item) => {
@@ -214,12 +225,15 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         let rect_height = int(linalgNorm(box1[0], box1[3]));
         if (rect_width <= 3 || rect_height <= 3) continue;
 
+        task2.l("order_e");
         let c0 = data2canvas(srcData);
+        task2.l("crop");
 
         let c = getRotateCropImage(c0, box);
 
         edgeRect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
     }
+    task2.l("e");
 
     console.log(edgeRect);
 
@@ -447,27 +461,27 @@ function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: B
 }
 
 function beforeRec(box: { box: BoxType; img: ImageData }[]) {
-    let l: { b: number[][][]; imgH: number; imgW: number }[] = [];
+    const l: { b: number[][][]; imgH: number; imgW: number }[] = [];
     function resizeNormImg(img: ImageData) {
         imgW = Math.floor(imgH * maxWhRatio);
-        let h = img.height,
+        const h = img.height,
             w = img.width;
-        let ratio = w / h;
+        const ratio = w / h;
         let resizedW: number;
         if (Math.ceil(imgH * ratio) > imgW) {
             resizedW = imgW;
         } else {
             resizedW = Math.floor(Math.ceil(imgH * ratio));
         }
-        let d = resizeImg(img, resizedW, imgH);
-        let cc = data2canvas(d, imgW, imgH);
+        const d = resizeImg(img, resizedW, imgH);
+        const cc = data2canvas(d, imgW, imgH);
         if (dev) document.body.append(cc);
         return cc.getContext("2d").getImageData(0, 0, imgW, imgH);
     }
 
-    let boxes = [];
+    const boxes = [];
     let nowWidth = 0;
-    for (let i of box) {
+    for (const i of box) {
         if (Math.abs(i.img.width - nowWidth) > 32) {
             nowWidth = i.img.width;
             boxes.push([i]);
@@ -477,24 +491,24 @@ function beforeRec(box: { box: BoxType; img: ImageData }[]) {
         }
     }
     let maxWhRatio = 0;
-    for (let box of boxes) {
+    for (const box of boxes) {
         maxWhRatio = 0;
-        for (let r of box) {
+        for (const r of box) {
             maxWhRatio = Math.max(r.img.width / r.img.height, maxWhRatio);
         }
-        let b = [];
+        const b = [];
         for (let r of box) {
             b.push(toPaddleInput(resizeNormImg(r.img), [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]));
         }
         l.push({ b, imgH, imgW });
     }
-    console.log(l);
+    if (dev) console.log(l);
     return l;
 }
 
 function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[]) {
-    let predLen = data.dims[2];
-    let line: { text: string; mean: number }[] = [];
+    const predLen = data.dims[2];
+    const line: { text: string; mean: number }[] = [];
     let ml = data.dims[0] - 1;
 
     function getChar(i: number) {
@@ -546,10 +560,8 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
                     continue;
                 }
             }
-            let char = getChar(textIndex[idx]);
-            let prob = textProb[idx];
-            charList.push(char);
-            confList.push(prob);
+            charList.push(getChar(textIndex[idx]));
+            confList.push(textProb[idx]);
         }
         let text = "";
         let mean = 0;
@@ -569,7 +581,7 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 // TODO 使用板式识别代替
 /** 组成行 */
 function afAfRec(l: resultType) {
-    console.log(l);
+    if (dev) console.log(l);
 
     let line: resultType = [];
     let ind: Map<BoxType, number> = new Map();
