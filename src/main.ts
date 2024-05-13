@@ -108,7 +108,7 @@ async function Rec(box: { box: BoxType; img: ImageData }[]) {
         return afterRec(recResults, dic);
     });
     const l = await Promise.all(recPromises);
-    mainLine = l.flat().toReversed();
+    mainLine = l.flat().reverse();
     task.l("rec_end");
     for (let i in mainLine) {
         let b = box[mainLine.length - Number(i) - 1].box;
