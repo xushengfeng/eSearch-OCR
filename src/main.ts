@@ -51,9 +51,9 @@ async function init(x: {
     ort: typeof import("onnxruntime-common");
     detShape?: [number, number];
 
-    canvas: any;
-    imageData: any;
-    cv: any;
+    canvas?: (w: number, h: number) => any;
+    imageData?: any;
+    cv?: any;
 }) {
     ort = x.ort;
     dev = x.dev;
