@@ -1,6 +1,9 @@
 export function int(num: number) {
     return num > 0 ? Math.floor(num) : Math.ceil(num);
 }
+export function clip(n: number, min: number, max: number) {
+    return Math.max(min, Math.min(n, max));
+}
 /**
  *
  * @param {ImageData} data 原图

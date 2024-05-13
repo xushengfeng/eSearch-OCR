@@ -2,7 +2,7 @@ var cv = require("opencv.js");
 var ort: typeof import("onnxruntime-common");
 
 import { runLayout } from "./layout";
-import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int, tLog } from "./untils";
+import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int, tLog, clip } from "./untils";
 
 const task = new tLog("t");
 const task2 = new tLog("af_det");
@@ -124,8 +124,7 @@ async function Rec(box: { box: BoxType; img: ImageData }[]) {
 }
 
 async function runDet(transposedData: number[][][], image: ImageData, det: SessionType) {
-    let x = transposedData.flat(Infinity) as number[];
-    const detData = Float32Array.from(x);
+    const detData = Float32Array.from(transposedData.flat(3));
 
     const detTensor = new ort.Tensor("float32", detData, [1, 3, image.height, image.width]);
     let detFeed = {};
@@ -136,7 +135,7 @@ async function runDet(transposedData: number[][][], image: ImageData, det: Sessi
 }
 
 async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionType) {
-    const recData = Float32Array.from(b.flat(Infinity) as number[]);
+    const recData = Float32Array.from(b.flat(3));
 
     const recTensor = new ort.Tensor("float32", recData, [b.length, 3, imgH, imgW]);
     let recFeed = {};
@@ -176,18 +175,17 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
 function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number, h: number, srcData: ImageData) {
     task2.l("");
     const myImageData = new ImageData(w, h);
-    for (let i in data) {
-        let n = Number(i) * 4;
+    for (let i = 0; i < data.length; i++) {
+        const n = i * 4;
         const v = (data[i] as number) > 0.3 ? 255 : 0;
         myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = v;
         myImageData.data[n + 3] = 255;
     }
-    let canvas = data2canvas(myImageData);
     task2.l("edge");
 
     let edgeRect: { box: BoxType; img: ImageData }[] = [];
 
-    let src = cv.imread(canvas);
+    let src = cvImRead(myImageData);
 
     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
     let contours = new cv.MatVector();
@@ -196,6 +194,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     cv.findContours(src, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
     for (let i = 0; i < contours.size(); i++) {
+        task2.l("get_box");
         let minSize = 3;
         let cnt = contours.get(i);
         let { points, sside } = getMiniBoxes(cnt);
@@ -210,9 +209,6 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         let box = resultObj.points;
         if (resultObj.sside < minSize + 2) {
             continue;
-        }
-        function clip(n: number, min: number, max: number) {
-            return Math.max(min, Math.min(n, max));
         }
 
         let rx = srcData.width / w;
@@ -233,13 +229,11 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         let rect_height = int(linalgNorm(box1[0], box1[3]));
         if (rect_width <= 3 || rect_height <= 3) continue;
 
-        task2.l("order_e");
-        let c0 = data2canvas(srcData);
         task2.l("crop");
 
-        let c = getRotateCropImage(c0, box);
+        let c = getRotateCropImage(srcData, box);
 
-        edgeRect.push({ box, img: c.getContext("2d").getImageData(0, 0, c.width, c.height) });
+        edgeRect.push({ box, img: c });
     }
     task2.l("e");
 
@@ -417,7 +411,7 @@ function orderPointsClockwise(pts: BoxType) {
     rect[3] = tmp[diff.indexOf(Math.max(...diff))];
     return rect;
 }
-function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: BoxType) {
+function getRotateCropImage(img: ImageData, points: BoxType) {
     const img_crop_width = int(Math.max(linalgNorm(points[0], points[1]), linalgNorm(points[2], points[3])));
     const img_crop_height = int(Math.max(linalgNorm(points[0], points[3]), linalgNorm(points[1], points[2])));
     const pts_std = [
@@ -432,7 +426,7 @@ function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: B
 
     // 获取到目标矩阵
     const M = cv.getPerspectiveTransform(srcTri, dstTri);
-    const src = cv.imread(img);
+    const src = cvImRead(img);
     const dst = new cv.Mat();
     const dsize = new cv.Size(img_crop_width, img_crop_height);
     // 透视转换
@@ -450,22 +444,41 @@ function getRotateCropImage(img: HTMLCanvasElement | HTMLImageElement, points: B
         cv.warpAffine(dst, dst_rot, M, dsize_rot, cv.INTER_CUBIC, cv.BORDER_REPLICATE, new cv.Scalar());
     }
 
-    let c = document.createElement("canvas");
-    if (dst_rot) {
-        c.width = dst_rot.matSize[1];
-        c.height = dst_rot.matSize[0];
-    } else {
-        c.width = dst_img_width;
-        c.height = dst_img_height;
-    }
-    cv.imshow(c, dst_rot || dst);
-    if (dev) document.body.append(c);
+    const d = cvImShow(dst_rot || dst);
 
     src.delete();
     dst.delete();
     srcTri.delete();
     dstTri.delete();
-    return c;
+    return d;
+}
+
+function cvImRead(img: ImageData) {
+    return cv.matFromImageData(img);
+}
+
+function cvImShow(mat) {
+    const img = new cv.Mat();
+    const depth = mat.type() % 8;
+    const scale = depth <= cv.CV_8S ? 1 : depth <= cv.CV_32S ? 1 / 256 : 255;
+    const shift = depth === cv.CV_8S || depth === cv.CV_16S ? 128 : 0;
+    mat.convertTo(img, cv.CV_8U, scale, shift);
+    switch (img.type()) {
+        case cv.CV_8UC1:
+            cv.cvtColor(img, img, cv.COLOR_GRAY2RGBA);
+            break;
+        case cv.CV_8UC3:
+            cv.cvtColor(img, img, cv.COLOR_RGB2RGBA);
+            break;
+        case cv.CV_8UC4:
+            break;
+        default:
+            throw new Error("Bad number of channels (Source image must have 1, 3 or 4 channels)");
+            return;
+    }
+    const imgData = new ImageData(new Uint8ClampedArray(img.data), img.cols, img.rows);
+    img.delete();
+    return imgData;
 }
 
 function beforeRec(box: { box: BoxType; img: ImageData }[]) {
