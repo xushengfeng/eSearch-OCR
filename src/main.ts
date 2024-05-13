@@ -7,12 +7,7 @@ import { toPaddleInput, SessionType, AsyncType, data2canvas, resizeImg, int, tLo
 const task = new tLog("t");
 const task2 = new tLog("af_det");
 
-if (!dev) {
-    task.l = () => {};
-    task2.l = () => {};
-}
-
-export { x as ocr, init };
+export { init, x as ocr, Det as det, Rec as rec };
 
 var dev = true;
 var det: SessionType, rec: SessionType, layout: SessionType, dic: string[];
@@ -23,12 +18,11 @@ var detShape = [NaN, NaN];
 var layoutDic: string[];
 
 async function init(x: {
-    detPath: string;
-    recPath: string;
+    detPath?: string;
+    recPath?: string;
     layoutPath?: string;
-    dic: string;
+    dic?: string;
     layoutDic?: string;
-    node?: boolean;
     dev?: boolean;
     maxSide?: number;
     imgh?: number;
@@ -38,8 +32,12 @@ async function init(x: {
 }) {
     ort = x.ort;
     dev = x.dev;
-    det = await ort.InferenceSession.create(x.detPath);
-    rec = await ort.InferenceSession.create(x.recPath);
+    if (!dev) {
+        task.l = () => {};
+        task2.l = () => {};
+    }
+    if (x.detPath) det = await ort.InferenceSession.create(x.detPath);
+    if (x.recPath) rec = await ort.InferenceSession.create(x.recPath);
     if (x.layoutPath) layout = await ort.InferenceSession.create(x.layoutPath);
     dic = x.dic.split(/\r\n|\r|\n/);
     if (dic.at(-1) === "") {
@@ -59,13 +57,23 @@ async function init(x: {
 /** 主要操作 */
 async function x(img: ImageData) {
     task.l("");
-    let h = img.height,
-        w = img.width;
 
     if (layout) {
         const sr = await runLayout(img, ort, layout, layoutDic);
     }
 
+    const box = await Det(img);
+
+    let mainLine = await Rec(box);
+    mainLine = afAfRec(mainLine);
+    console.log(mainLine);
+    task.l("end");
+    return mainLine;
+}
+
+async function Det(img: ImageData) {
+    let h = img.height,
+        w = img.width;
     const _r = 0.6;
     const _h = h,
         _w = w;
@@ -87,7 +95,10 @@ async function x(img: ImageData) {
 
     task.l("aft_det");
     let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
+    return box;
+}
 
+async function Rec(box: { box: BoxType; img: ImageData }[]) {
     let mainLine: resultType = [];
     task.l("bf_rec");
     const recL = beforeRec(box);
@@ -109,9 +120,6 @@ async function x(img: ImageData) {
         mainLine[i]["box"] = b;
     }
     mainLine = mainLine.filter((x) => x.mean >= 0.5);
-    mainLine = afAfRec(mainLine);
-    console.log(mainLine);
-    task.l("end");
     return mainLine;
 }
 
