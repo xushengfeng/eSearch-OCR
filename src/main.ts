@@ -1,4 +1,4 @@
-var cv = require("opencv.js");
+var cv;
 var ort: typeof import("onnxruntime-common");
 
 import { runLayout } from "./layout";
@@ -19,8 +19,14 @@ const task = new tLog("t");
 const task2 = new tLog("af_det");
 
 function putImgDom(img: HTMLElement) {
-    document?.body?.append(img);
+    try {
+        document?.body?.append(img);
+    } catch (error) {}
 }
+
+let createImageData = (data: Uint8ClampedArray, w: number, h: number) => {
+    return new ImageData(data, w, h);
+};
 
 export { init, x as ocr, Det as det, Rec as rec };
 
@@ -46,6 +52,8 @@ async function init(x: {
     detShape?: [number, number];
 
     canvas: any;
+    imageData: any;
+    cv: any;
 }) {
     ort = x.ort;
     dev = x.dev;
@@ -69,6 +77,9 @@ async function init(x: {
     if (x.imgw) imgW = x.imgw;
     if (x.detShape) detShape = x.detShape;
     if (x.canvas) setCanvas(x.canvas);
+    if (x.imageData) createImageData = x.imageData;
+    if (x.cv) cv = x.cv;
+    else if (require) cv = require("opencv.js");
     return new Promise((rs) => rs(true));
 }
 
@@ -98,10 +109,8 @@ async function Det(img: ImageData) {
     if (_h < _w * _r || _w < _h * _r) {
         if (_h < _w * _r) h = Math.floor(_w * _r);
         if (_w < _h * _r) w = Math.floor(_h * _r);
-        const c = newCanvas();
+        const c = newCanvas(w, h);
         const ctx = c.getContext("2d");
-        c.width = w;
-        c.height = h;
         ctx.putImageData(img, 0, 0);
         img = ctx.getImageData(0, 0, w, h);
     }
@@ -191,18 +200,18 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
 
 function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number, h: number, srcData: ImageData) {
     task2.l("");
-    const myImageData = new ImageData(w, h);
+    const myImageData = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i++) {
         const n = i * 4;
         const v = (data[i] as number) > 0.3 ? 255 : 0;
-        myImageData.data[n] = myImageData.data[n + 1] = myImageData.data[n + 2] = v;
-        myImageData.data[n + 3] = 255;
+        myImageData[n] = myImageData[n + 1] = myImageData[n + 2] = v;
+        myImageData[n + 3] = 255;
     }
     task2.l("edge");
 
     let edgeRect: { box: BoxType; img: ImageData }[] = [];
 
-    let src = cvImRead(myImageData);
+    let src = cvImRead(createImageData(myImageData, w, h));
 
     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
     let contours = new cv.MatVector();
@@ -493,7 +502,7 @@ function cvImShow(mat) {
             throw new Error("Bad number of channels (Source image must have 1, 3 or 4 channels)");
             return;
     }
-    const imgData = new ImageData(new Uint8ClampedArray(img.data), img.cols, img.rows);
+    const imgData = createImageData(new Uint8ClampedArray(img.data), img.cols, img.rows);
     img.delete();
     return imgData;
 }
