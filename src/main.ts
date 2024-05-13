@@ -102,14 +102,13 @@ async function Rec(box: { box: BoxType; img: ImageData }[]) {
     let mainLine: resultType = [];
     task.l("bf_rec");
     const recL = beforeRec(box);
-    for (let i of recL) {
-        let { b, imgH, imgW } = i;
-        task.l("rec");
+    const recPromises = recL.map(async (item) => {
+        const { b, imgH, imgW } = item;
         const recResults = await runRec(b, imgH, imgW, rec);
-        task.l("af_rec");
-        let line = afterRec(recResults, dic);
-        mainLine = line.concat(mainLine);
-    }
+        return afterRec(recResults, dic);
+    });
+    const l = await Promise.all(recPromises);
+    mainLine = l.flat().toReversed();
     task.l("rec_end");
     for (let i in mainLine) {
         let b = box[mainLine.length - Number(i) - 1].box;
@@ -137,7 +136,7 @@ async function runDet(transposedData: number[][][], image: ImageData, det: Sessi
 async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionType) {
     const recData = Float32Array.from(b.flat(3));
 
-    const recTensor = new ort.Tensor("float32", recData, [b.length, 3, imgH, imgW]);
+    const recTensor = new ort.Tensor("float32", recData, [1, 3, imgH, imgW]);
     let recFeed = {};
     recFeed[rec.inputNames[0]] = recTensor;
 
@@ -484,44 +483,15 @@ function cvImShow(mat) {
 function beforeRec(box: { box: BoxType; img: ImageData }[]) {
     const l: { b: number[][][]; imgH: number; imgW: number }[] = [];
     function resizeNormImg(img: ImageData) {
-        imgW = Math.floor(imgH * maxWhRatio);
-        const h = img.height,
-            w = img.width;
-        const ratio = w / h;
-        let resizedW: number;
-        if (Math.ceil(imgH * ratio) > imgW) {
-            resizedW = imgW;
-        } else {
-            resizedW = Math.floor(Math.ceil(imgH * ratio));
-        }
-        const d = resizeImg(img, resizedW, imgH);
-        const cc = data2canvas(d, imgW, imgH);
-        if (dev) document.body.append(cc);
-        return cc.getContext("2d").getImageData(0, 0, imgW, imgH);
+        const w = Math.floor(imgH * (img.width / img.height));
+        const d = resizeImg(img, w, imgH);
+        if (dev) document.body.append(data2canvas(d, w, imgH));
+        return { data: d, w, h: imgH };
     }
 
-    const boxes = [];
-    let nowWidth = 0;
-    for (const i of box) {
-        if (Math.abs(i.img.width - nowWidth) > 32) {
-            nowWidth = i.img.width;
-            boxes.push([i]);
-        } else {
-            if (!boxes[boxes.length - 1]) boxes.push([]);
-            boxes[boxes.length - 1].push(i);
-        }
-    }
-    let maxWhRatio = 0;
-    for (const box of boxes) {
-        maxWhRatio = 0;
-        for (const r of box) {
-            maxWhRatio = Math.max(r.img.width / r.img.height, maxWhRatio);
-        }
-        const b = [];
-        for (let r of box) {
-            b.push(toPaddleInput(resizeNormImg(r.img), [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]));
-        }
-        l.push({ b, imgH, imgW });
+    for (const r of box) {
+        const reImg = resizeNormImg(r.img);
+        l.push({ b: toPaddleInput(reImg.data, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]), imgH: reImg.h, imgW: reImg.w });
     }
     if (dev) console.log(l);
     return l;
