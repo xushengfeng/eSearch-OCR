@@ -74,6 +74,6 @@ export class tLog {
             x.push(`${t} ${i.d}`);
         }
         x.push(this.tl.at(-1).t);
-        console.log(`${this.name}: `, x.join(" "));
+        console.log(`${this.name} ${l.map((i) => i.d).reduce((p, c) => p + c, 0)}ms: `, x.join(" "));
     }
 }
