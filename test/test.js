@@ -1,15 +1,18 @@
 const x = require("../");
 const fs = require("fs");
+const ort = require("onnxruntime-node");
 
 start();
 
 async function start() {
     await x.init({
-        detPath: "./m/ch_PP-OCRv3_det_infer.onnx",
-        recPath: "./m/ch_PP-OCRv3_rec_infer.onnx",
+        detPath: "./m/v4/ppocr_det.onnx",
+        recPath: "./m/v4/ppocr_rec.onnx",
         dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
+        layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
         dev: true,
-        node: true,
+        detShape: [640, 640],
+        ort,
     });
     let img = document.createElement("img");
     img.src = "../a.png";
