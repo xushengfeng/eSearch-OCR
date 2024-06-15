@@ -79,6 +79,7 @@ async function init(x: {
     if (x.canvas) setCanvas(x.canvas);
     if (x.imageData) createImageData = x.imageData;
     if (x.cv) cv = x.cv;
+    // @ts-ignore
     else if (require) cv = require("opencv.js");
     return new Promise((rs) => rs(true));
 }
@@ -278,7 +279,7 @@ type pointType = [number, number];
 type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 type resultType = { text: string; mean: number; box?: BoxType }[];
-const clipper = require("js-clipper");
+import clipper from "js-clipper";
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1,
         n = polygon.length,

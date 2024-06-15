@@ -8,6 +8,9 @@ dependencies:
   js-clipper:
     specifier: ^1.0.1
     version: 1.0.1
+  onnxruntime-common:
+    specifier: ^1.16.3
+    version: 1.16.3
   opencv.js:
     specifier: ^1.2.1
     version: 1.2.1
@@ -16,9 +19,6 @@ devDependencies:
   electron:
     specifier: ^20.0.1
     version: 20.3.3
-  onnxruntime-common:
-    specifier: ^1.16.3
-    version: 1.16.3
   onnxruntime-node:
     specifier: ^1.17.0
     version: 1.17.0
@@ -853,7 +853,7 @@ packages:
 
   /onnxruntime-common@1.16.3:
     resolution: {integrity: sha512-ZZfFzEqBf6YIGwB9PtBLESHI53jMXA+/hn+ACVUbEfPuK2xI5vMGpLPn+idpwCmHsKJNRzRwqV12K+6TQj6tug==}
-    dev: true
+    dev: false
 
   /onnxruntime-common@1.17.0:
     resolution: {integrity: sha512-Vq1remJbCPITjDMJ04DA7AklUTnbYUp4vbnm6iL7ukSt+7VErH0NGYfekRSTjxxurEtX7w41PFfnQlE6msjPJw==}
