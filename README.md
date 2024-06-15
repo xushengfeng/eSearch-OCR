@@ -12,6 +12,8 @@
 
 模型需要转换为 onnx 才能使用：[Paddle2ONNX](https://github.com/PaddlePaddle/Paddle2ONNX) 或[在线转换](https://www.paddlepaddle.org.cn/paddle/visualdl/modelconverter/x2paddle)
 
+部分模型已打包：[Releases](https://github.com/xushengfeng/eSearch-OCR/releases/tag/4.0.0)
+
 在 js 文件下可以使用 electron 进行调试
 
 ## 使用
@@ -36,7 +38,7 @@ const ort = require("onnxruntime-node");
 > 需要手动安装 onnxruntime（onnxruntime-node 或 onnxruntime-web，视平台而定），并在`init`参数中传入`ort`
 > 这样设计是因为 web 和 electron 可以使用不同的 ort，很难协调，不如让开发者自己决定
 
-浏览器或 Electron 实例
+浏览器或 Electron 示例
 
 ```javascript
 await ocr.init({
@@ -59,7 +61,9 @@ img.onload = async () => {
 };
 ```
 
-[node.js 实例](./test/test_node.js)，需要安装`canvas`
+[node.js 示例](./test/test_node.js)，需要安装`canvas`
+
+[演示项目](https://github.com/xushengfeng/webocr)
 
 init type
 
