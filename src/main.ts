@@ -29,6 +29,7 @@ let createImageData = (data: Uint8ClampedArray, w: number, h: number) => {
 };
 
 export { init, x as ocr, Det as det, Rec as rec };
+export type initType = AsyncType<ReturnType<typeof init>>;
 
 var dev = true;
 var det: SessionType, rec: SessionType, layout: SessionType, dic: string[];
@@ -81,7 +82,7 @@ async function init(op: {
     if (op.cv) cv = op.cv;
     // @ts-ignore
     else if (require) cv = require("opencv.js");
-    return { ocr: x };
+    return { ocr: x, det: Det, rec: Rec };
 }
 
 /** 主要操作 */
