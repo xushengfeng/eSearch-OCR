@@ -31,15 +31,13 @@
     "license": "Apache-2.0",
     "dependencies": {
         "js-clipper": "^1.0.1",
-        "onnxruntime-common": "^1.16.3"
+        "onnxruntime-common": "^1.18.0"
     },
     "peerDependencies": {
         "opencv.js": "^1.2.1"
     },
     "devDependencies": {
-        "electron": "^20.0.1",
-        "onnxruntime-common": "^1.16.3",
-        "onnxruntime-node": "^1.17.0",
+        "onnxruntime-node": "^1.18.0",
         "typescript": "^5.4.5",
         "vite": "^5.2.11"
     }

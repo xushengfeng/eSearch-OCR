@@ -51,6 +51,7 @@ async function init(op: {
     imgw?: number;
     ort: typeof import("onnxruntime-common");
     detShape?: [number, number];
+    ortOption: import("onnxruntime-common").InferenceSession.SessionOptions;
 
     canvas?: (w: number, h: number) => any;
     imageData?: any;
@@ -62,9 +63,9 @@ async function init(op: {
         task.l = () => {};
         task2.l = () => {};
     }
-    if (op.detPath) det = await ort.InferenceSession.create(op.detPath);
-    if (op.recPath) rec = await ort.InferenceSession.create(op.recPath);
-    if (op.layoutPath) layout = await ort.InferenceSession.create(op.layoutPath);
+    if (op.detPath) det = await ort.InferenceSession.create(op.detPath, op.ortOption);
+    if (op.recPath) rec = await ort.InferenceSession.create(op.recPath, op.ortOption);
+    if (op.layoutPath) layout = await ort.InferenceSession.create(op.layoutPath, op.ortOption);
     dic = op.dic.split(/\r\n|\r|\n/);
     if (dic.at(-1) === "") {
         // 多出的换行
