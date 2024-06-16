@@ -61,6 +61,21 @@ img.onload = async () => {
 };
 ```
 
+或者
+
+```javascript
+const localOCR = await ocr.init({
+    detPath: "ocr/det.onnx",
+    recPath: "ocr/rec.onnx",
+    dic: "abcdefg...",
+    ort,
+});
+
+localOCR.ocr(/*像上面ocr.ocr一样调用*/);
+```
+
+这在需要多次运行 ocr 时非常有用
+
 [node.js 示例](./test/test_node.js)，需要安装`canvas`
 
 [演示项目](https://github.com/xushengfeng/webocr)

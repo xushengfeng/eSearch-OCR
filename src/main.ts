@@ -38,7 +38,7 @@ var limitSideLen = 960,
 var detShape = [NaN, NaN];
 var layoutDic: string[];
 
-async function init(x: {
+async function init(op: {
     detPath?: string;
     recPath?: string;
     layoutPath?: string;
@@ -55,33 +55,33 @@ async function init(x: {
     imageData?: any;
     cv?: any;
 }) {
-    ort = x.ort;
-    dev = x.dev;
+    ort = op.ort;
+    dev = op.dev;
     if (!dev) {
         task.l = () => {};
         task2.l = () => {};
     }
-    if (x.detPath) det = await ort.InferenceSession.create(x.detPath);
-    if (x.recPath) rec = await ort.InferenceSession.create(x.recPath);
-    if (x.layoutPath) layout = await ort.InferenceSession.create(x.layoutPath);
-    dic = x.dic.split(/\r\n|\r|\n/);
+    if (op.detPath) det = await ort.InferenceSession.create(op.detPath);
+    if (op.recPath) rec = await ort.InferenceSession.create(op.recPath);
+    if (op.layoutPath) layout = await ort.InferenceSession.create(op.layoutPath);
+    dic = op.dic.split(/\r\n|\r|\n/);
     if (dic.at(-1) === "") {
         // 多出的换行
         dic[dic.length - 1] = " ";
     } else {
         dic.push(" ");
     }
-    layoutDic = x.layoutDic?.split(/\r\n|\r|\n/);
-    if (x.maxSide) limitSideLen = x.maxSide;
-    if (x.imgh) imgH = x.imgh;
-    if (x.imgw) imgW = x.imgw;
-    if (x.detShape) detShape = x.detShape;
-    if (x.canvas) setCanvas(x.canvas);
-    if (x.imageData) createImageData = x.imageData;
-    if (x.cv) cv = x.cv;
+    layoutDic = op.layoutDic?.split(/\r\n|\r|\n/);
+    if (op.maxSide) limitSideLen = op.maxSide;
+    if (op.imgh) imgH = op.imgh;
+    if (op.imgw) imgW = op.imgw;
+    if (op.detShape) detShape = op.detShape;
+    if (op.canvas) setCanvas(op.canvas);
+    if (op.imageData) createImageData = op.imageData;
+    if (op.cv) cv = op.cv;
     // @ts-ignore
     else if (require) cv = require("opencv.js");
-    return new Promise((rs) => rs(true));
+    return { ocr: x };
 }
 
 /** 主要操作 */
