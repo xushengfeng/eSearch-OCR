@@ -9,8 +9,8 @@ dependencies:
     specifier: ^1.0.1
     version: 1.0.1
   onnxruntime-common:
-    specifier: ^1.16.3
-    version: 1.16.3
+    specifier: ^1.18.0
+    version: 1.18.0
   opencv.js:
     specifier: ^1.2.1
     version: 1.2.1
@@ -589,13 +589,8 @@ packages:
     hasBin: true
     dev: true
 
-  /onnxruntime-common@1.16.3:
-    resolution: {integrity: sha512-ZZfFzEqBf6YIGwB9PtBLESHI53jMXA+/hn+ACVUbEfPuK2xI5vMGpLPn+idpwCmHsKJNRzRwqV12K+6TQj6tug==}
-    dev: false
-
   /onnxruntime-common@1.18.0:
     resolution: {integrity: sha512-lufrSzX6QdKrktAELG5x5VkBpapbCeS3dQwrXbN0eD9rHvU0yAWl7Ztju9FvgAKWvwd/teEKJNj3OwM6eTZh3Q==}
-    dev: true
 
   /onnxruntime-node@1.18.0:
     resolution: {integrity: sha512-iTnFcxKpmywCatx8ov4GTbECe3tJk2Bp1OA2mWRJde78q+7tpPYBhKMnwhlaoKy9oKQcy4UoEuuhoy2PSD13ww==}
