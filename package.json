@@ -19,6 +19,12 @@
         "build": "tsc && vite build",
         "preview": "vite preview"
     },
+    "files": [
+        "src/",
+        "dist/",
+        "package.json",
+        "README.md"
+    ],
     "keywords": [
         "ocr",
         "paddleocr",
