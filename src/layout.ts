@@ -1,11 +1,11 @@
 import { int, resizeImg, data2canvas, toPaddleInput } from "./untils";
-import { SessionType, AsyncType } from "./untils";
+import type { SessionType, AsyncType } from "./untils";
 type ortType = typeof import("onnxruntime-common");
 
 async function layout(img: ImageData, ort: ortType, session: SessionType, dic: string[]) {
-    let h = img.height,
-        w = img.width;
-    let x = beforeS(img, 800, 608);
+    const h = img.height;
+    const w = img.width;
+    const x = beforeS(img, 800, 608);
     const rResults = await runS(x.transposedData, x.image, ort, session);
     console.log(rResults);
     const sr = afterS(rResults, w, h, dic);
@@ -13,11 +13,11 @@ async function layout(img: ImageData, ort: ortType, session: SessionType, dic: s
 }
 
 async function runS(transposedData: number[][][], image: ImageData, ort: ortType, layout: SessionType) {
-    let x = transposedData.flat(Infinity) as number[];
+    const x = transposedData.flat(Number.POSITIVE_INFINITY) as number[];
     const detData = Float32Array.from(x);
 
     const detTensor = new ort.Tensor("float32", detData, [1, 3, image.height, image.width]);
-    let detFeed = {};
+    const detFeed = {};
     detFeed[layout.inputNames[0]] = detTensor;
 
     const detResults = await layout.run(detFeed);
@@ -26,14 +26,16 @@ async function runS(transposedData: number[][][], image: ImageData, ort: ortType
 }
 
 function beforeS(image: ImageData, shapeH: number, shapeW: number) {
-    let ratio = 1;
-    let h = image.height,
-        w = image.width;
+    const ratio = 1;
+    const h = image.height;
+    const w = image.width;
     let resizeH = shapeH;
     let resizeW = shapeW;
 
     resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
     resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
+
+    // biome-ignore lint: 规范化
     image = resizeImg(image, resizeW, resizeH);
 
     const transposedData = toPaddleInput(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
@@ -41,11 +43,11 @@ function beforeS(image: ImageData, shapeH: number, shapeW: number) {
 }
 
 function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, layoutDic: string[]) {
-    const strides = [8, 16, 32, 64],
-        score_threshold = 0.4,
-        nms_threshold = 0.5,
-        nms_top_k = 1000,
-        keep_top_k = 100;
+    const strides = [8, 16, 32, 64];
+    const score_threshold = 0.4;
+    const nms_threshold = 0.5;
+    const nms_top_k = 1000;
+    const keep_top_k = 100;
     const scores: AsyncType<ReturnType<typeof runS>> = [];
     const boxes: AsyncType<ReturnType<typeof runS>> = [];
     const n = data.length / 2;
@@ -55,7 +57,7 @@ function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, 
     }
     const reg_max = int(boxes[0].dims.at(-1) / 4 - 1);
     let out_boxes_num: number[] = [];
-    let out_boxes_list: number[][][] = [];
+    const out_boxes_list: number[][][] = [];
     const results: { bbox: number[]; label: string }[] = [];
     const ori_shape = [800, 608];
     const scale_factor = [800 / h, 608 / w];
@@ -79,7 +81,7 @@ function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, 
         const ct_col: number[] = ww.flat().map((val) => (val + 0.5) * stride);
 
         const center: number[][] = [];
-        for (let i in ct_row) {
+        for (const i in ct_row) {
             center.push([ct_col[i], ct_row[i], ct_col[i], ct_row[i]]);
         }
 
@@ -89,7 +91,7 @@ function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, 
 
         const box_distance_softmax: number[][] = []; // shape:shape0, reg_max1
         for (let i = 0; i < shape0; i++) {
-            let reshape0 = box_distribute.data.slice(i * reg_max1, (i + 1) * reg_max1); // reshape，这是size/regmax1
+            const reshape0 = box_distribute.data.slice(i * reg_max1, (i + 1) * reg_max1); // reshape，这是size/regmax1
             const box_distance_axis_softmax = softmax(Array.from(reshape0 as Float32Array)); // softmax
             for (let j = 0; j < reg_max1; j++) {
                 box_distance_axis_softmax[j] *= j;
@@ -128,7 +130,7 @@ function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, 
         for (let i = 0; i < Math.min(scoreShape0, nms_top_k); i++) {
             const slice = score.data.slice(
                 topKMap[i][0] * scoreShape1,
-                (topKMap[i][0] + 1) * scoreShape1
+                (topKMap[i][0] + 1) * scoreShape1,
             ) as Float32Array;
             clipScore[i] = Array.from(slice);
         }
@@ -140,7 +142,7 @@ function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, 
         // decode box
         const decode_box: number[][] = [];
         const boxM = [-1, -1, 1, 1];
-        for (let i in clipCenter) {
+        for (const i in clipCenter) {
             const tL: number[] = [];
             for (let n = 0; n < 4; n++) {
                 tL.push(clipCenter[i][n] + boxM[n] * clipBoxDistance[i][n]);
@@ -177,7 +179,7 @@ function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, 
         const nmsBoxProbs: number[][] = hard_nms(
             boxProbs,
             nms_threshold, // NMS的IoU阈值
-            keep_top_k // 每个类别保留的最大目标框数
+            keep_top_k, // 每个类别保留的最大目标框数
         );
 
         picked_box_probs.push(nmsBoxProbs); // 将经过NMS筛选后的边界框添加到列表中
@@ -259,7 +261,7 @@ function warp_boxes(boxes: number[][], oriShape: number[]): number[][] {
         }
 
         const xy1: number[][] = [];
-        for (let i in xmin) {
+        for (const i in xmin) {
             xy1.push([
                 clip(xmin[i], 0, width),
                 clip(ymin[i], 0, height),
@@ -269,17 +271,11 @@ function warp_boxes(boxes: number[][], oriShape: number[]): number[][] {
         }
 
         return xy1;
-    } else {
-        return boxes;
     }
+    return boxes;
 }
 
-function hard_nms(
-    box_scores: number[][],
-    iou_threshold: number,
-    top_k: number = -1,
-    candidate_size: number = 200
-): number[][] {
+function hard_nms(box_scores: number[][], iou_threshold: number, top_k = -1, candidate_size = 200): number[][] {
     const scores: number[] = box_scores.map((box) => box[4]);
     const boxes: number[][] = box_scores.map((box) => box.slice(0, 4));
     const picked: number[] = [];
@@ -304,14 +300,14 @@ function hard_nms(
     return picked.map((index) => box_scores[index]);
 }
 
-function iou_of(boxes0: number[][], boxes1: number[][], eps: number = 1e-5): number[] {
+function iou_of(boxes0: number[][], boxes1: number[][], eps = 1e-5): number[] {
     const overlap_left_top: number[][] = boxes0.map((box0, i) => [
-        Math.max(box0[0], boxes1[i]?.[0] ?? -Infinity),
-        Math.max(box0[1], boxes1[i]?.[1] ?? -Infinity),
+        Math.max(box0[0], boxes1[i]?.[0] ?? Number.NEGATIVE_INFINITY),
+        Math.max(box0[1], boxes1[i]?.[1] ?? Number.NEGATIVE_INFINITY),
     ]);
     const overlap_right_bottom: number[][] = boxes0.map((box0, i) => [
-        Math.min(box0[2], boxes1[i]?.[2] ?? -Infinity),
-        Math.min(box0[3], boxes1[i]?.[3] ?? -Infinity),
+        Math.min(box0[2], boxes1[i]?.[2] ?? Number.NEGATIVE_INFINITY),
+        Math.min(box0[3], boxes1[i]?.[3] ?? Number.NEGATIVE_INFINITY),
     ]);
     const overlap_area: number[] = area_of(overlap_left_top, overlap_right_bottom);
     const area0: number[] = boxes0.map((box) => (box[2] - box[0]) * (box[3] - box[1]));
@@ -338,13 +334,13 @@ function softmax(input: number[]): number[] {
 function meshgrid(...args: number[][]): number[][][] {
     const results: number[][][] = [[], [], []];
 
-    for (let y in args[1]) {
+    for (const y in args[1]) {
         results[0].push(args[0]);
     }
 
-    for (let y in args[1]) {
-        let row = [];
-        for (let x in args[0]) {
+    for (const y in args[1]) {
+        const row = [];
+        for (const x in args[0]) {
             row.push(args[1][y]);
         }
         results[1].push(row);

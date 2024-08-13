@@ -1,13 +1,14 @@
-var cv;
-var ort: typeof import("onnxruntime-common");
+// biome-ignore lint/suspicious/noImplicitAnyLet: 可自定义cv
+let cv;
+let ort: typeof import("onnxruntime-common");
 
 import { runLayout } from "./layout";
 import {
     newCanvas,
     setCanvas,
     toPaddleInput,
-    SessionType,
-    AsyncType,
+    type SessionType,
+    type AsyncType,
     data2canvas,
     resizeImg,
     int,
@@ -31,13 +32,16 @@ let createImageData = (data: Uint8ClampedArray, w: number, h: number) => {
 export { init, x as ocr, Det as det, Rec as rec };
 export type initType = AsyncType<ReturnType<typeof init>>;
 
-var dev = true;
-var det: SessionType, rec: SessionType, layout: SessionType, dic: string[];
-var limitSideLen = 960,
-    imgH = 48,
-    imgW = 320;
-var detShape = [NaN, NaN];
-var layoutDic: string[];
+let dev = true;
+let det: SessionType;
+let rec: SessionType;
+let layout: SessionType;
+let dic: string[];
+let limitSideLen = 960;
+let imgH = 48;
+let imgW = 320;
+let detShape = [Number.NaN, Number.NaN];
+let layoutDic: string[];
 
 async function init(op: {
     detPath?: string;
@@ -53,9 +57,10 @@ async function init(op: {
     detShape?: [number, number];
     ortOption: import("onnxruntime-common").InferenceSession.SessionOptions;
 
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     canvas?: (w: number, h: number) => any;
-    imageData?: any;
-    cv?: any;
+    imageData?;
+    cv?;
 }) {
     ort = op.ort;
     dev = op.dev;
@@ -104,27 +109,28 @@ async function x(img: ImageData) {
 }
 
 async function Det(img: ImageData) {
-    let h = img.height,
-        w = img.width;
+    let h = img.height;
+    let w = img.width;
     const _r = 0.6;
-    const _h = h,
-        _w = w;
+    const _h = h;
+    const _w = w;
     if (_h < _w * _r || _w < _h * _r) {
         if (_h < _w * _r) h = Math.floor(_w * _r);
         if (_w < _h * _r) w = Math.floor(_h * _r);
         const c = newCanvas(w, h);
         const ctx = c.getContext("2d");
         ctx.putImageData(img, 0, 0);
+        // biome-ignore lint: 规范化
         img = ctx.getImageData(0, 0, w, h);
     }
 
     task.l("pre_det");
-    let { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
+    const { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
     task.l("det");
     const detResults = await runDet(transposedData, image, det);
 
     task.l("aft_det");
-    let box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
+    const box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
     return box;
 }
 
@@ -140,13 +146,9 @@ async function Rec(box: { box: BoxType; img: ImageData }[]) {
     const l = await Promise.all(recPromises);
     mainLine = l.flat().reverse();
     task.l("rec_end");
-    for (let i in mainLine) {
-        let b = box[mainLine.length - Number(i) - 1].box;
-        for (let p of b) {
-            p[0] = p[0];
-            p[1] = p[1];
-        }
-        mainLine[i]["box"] = b;
+    for (const i in mainLine) {
+        const b = box[mainLine.length - Number(i) - 1].box;
+        mainLine[i].box = b;
     }
     mainLine = mainLine.filter((x) => x.mean >= 0.5);
     return mainLine;
@@ -156,7 +158,7 @@ async function runDet(transposedData: number[][][], image: ImageData, det: Sessi
     const detData = Float32Array.from(transposedData.flat(3));
 
     const detTensor = new ort.Tensor("float32", detData, [1, 3, image.height, image.width]);
-    let detFeed = {};
+    const detFeed = {};
     detFeed[det.inputNames[0]] = detTensor;
 
     const detResults = await det.run(detFeed);
@@ -167,7 +169,7 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
     const recData = Float32Array.from(b.flat(3));
 
     const recTensor = new ort.Tensor("float32", recData, [1, 3, imgH, imgW]);
-    let recFeed = {};
+    const recFeed = {};
     recFeed[rec.inputNames[0]] = recTensor;
 
     const recResults = await rec.run(recFeed);
@@ -176,8 +178,8 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
 
 function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
     let ratio = 1;
-    let h = image.height,
-        w = image.width;
+    const h = image.height;
+    const w = image.width;
     if (Math.max(h, w) > limitSideLen) {
         if (h > w) {
             ratio = limitSideLen / h;
@@ -190,12 +192,13 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
 
     resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
     resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
+    // biome-ignore lint: 规范化
     image = resizeImg(image, resizeW, resizeH);
 
     const transposedData = toPaddleInput(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
     console.log(image);
     if (dev) {
-        let srcCanvas = data2canvas(image);
+        const srcCanvas = data2canvas(image);
         putImgDom(srcCanvas);
     }
     return { transposedData, image };
@@ -212,7 +215,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     }
     task2.l("edge");
 
-    let edgeRect: { box: BoxType; img: ImageData }[] = [];
+    const edgeRect: { box: BoxType; img: ImageData }[] = [];
 
     let src = cvImRead(createImageData(myImageData, w, h));
 
@@ -224,24 +227,24 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
     for (let i = 0; i < contours.size(); i++) {
         task2.l("get_box");
-        let minSize = 3;
-        let cnt = contours.get(i);
-        let { points, sside } = getMiniBoxes(cnt);
+        const minSize = 3;
+        const cnt = contours.get(i);
+        const { points, sside } = getMiniBoxes(cnt);
         if (sside < minSize) continue;
         // TODO sort fast
 
-        let clipBox = unclip(points);
+        const clipBox = unclip(points);
 
         const boxMap = new cv.matFromArray(clipBox.length / 2, 1, cv.CV_32SC2, clipBox);
 
         const resultObj = getMiniBoxes(boxMap);
-        let box = resultObj.points;
+        const box = resultObj.points;
         if (resultObj.sside < minSize + 2) {
             continue;
         }
 
-        let rx = srcData.width / w;
-        let ry = srcData.height / h;
+        const rx = srcData.width / w;
+        const ry = srcData.height / h;
 
         for (let i = 0; i < box.length; i++) {
             box[i][0] *= rx;
@@ -249,18 +252,18 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
         }
         task2.l("order");
 
-        let box1 = orderPointsClockwise(box);
-        box1.forEach((item) => {
+        const box1 = orderPointsClockwise(box);
+        for (const item of box1) {
             item[0] = clip(Math.round(item[0]), 0, srcData.width);
             item[1] = clip(Math.round(item[1]), 0, srcData.height);
-        });
-        let rect_width = int(linalgNorm(box1[0], box1[1]));
-        let rect_height = int(linalgNorm(box1[0], box1[3]));
+        }
+        const rect_width = int(linalgNorm(box1[0], box1[1]));
+        const rect_height = int(linalgNorm(box1[0], box1[3]));
         if (rect_width <= 3 || rect_height <= 3) continue;
 
         task2.l("crop");
 
-        let c = getRotateCropImage(srcData, box);
+        const c = getRotateCropImage(srcData, box);
 
         edgeRect.push({ box, img: c });
     }
@@ -283,11 +286,11 @@ type pointsType = pointType[];
 type resultType = { text: string; mean: number; box?: BoxType }[];
 import clipper from "js-clipper";
 function polygonPolygonArea(polygon: pointsType) {
-    let i = -1,
-        n = polygon.length,
-        a: pointType,
-        b = polygon[n - 1],
-        area = 0;
+    let i = -1;
+    const n = polygon.length;
+    let a: pointType;
+    let b = polygon[n - 1];
+    let area = 0;
 
     while (++i < n) {
         a = b;
@@ -298,14 +301,14 @@ function polygonPolygonArea(polygon: pointsType) {
     return area / 2;
 }
 function polygonPolygonLength(polygon: pointsType) {
-    let i = -1,
-        n = polygon.length,
-        b = polygon[n - 1],
-        xa: number,
-        ya: number,
-        xb = b[0],
-        yb = b[1],
-        perimeter = 0;
+    let i = -1;
+    const n = polygon.length;
+    let b = polygon[n - 1];
+    let xa: number;
+    let ya: number;
+    let xb = b[0];
+    let yb = b[1];
+    let perimeter = 0;
 
     while (++i < n) {
         xa = xb;
@@ -326,7 +329,7 @@ function unclip(box: pointsType) {
     const length = polygonPolygonLength(box);
     const distance = (area * unclip_ratio) / length;
     const tmpArr = [];
-    box.forEach((item) => {
+    for (const item of box) {
         const obj = {
             X: 0,
             Y: 0,
@@ -334,16 +337,15 @@ function unclip(box: pointsType) {
         obj.X = item[0];
         obj.Y = item[1];
         tmpArr.push(obj);
-    });
+    }
     const offset = new clipper.ClipperOffset();
     offset.AddPath(tmpArr, clipper.JoinType.jtRound, clipper.EndType.etClosedPolygon);
     const expanded: { X: number; Y: number }[][] = [];
     offset.Execute(expanded, distance);
     let expandedArr: pointsType = [];
-    expanded[0] &&
-        expanded[0].forEach((item) => {
-            expandedArr.push([item.X, item.Y]);
-        });
+    for (const item of expanded[0] || []) {
+        expandedArr.push([item.X, item.Y]);
+    }
     expandedArr = [].concat(...expandedArr);
 
     return expandedArr;
@@ -363,7 +365,7 @@ function boxPoints(center: { x: number; y: number }, size: { width: number; heig
     const dx = width * 0.5;
     const dy = height * 0.5;
 
-    const rotatedPoints: any[] = [];
+    const rotatedPoints: [number, number][] = [];
 
     // Top-Left
     const x1 = cx - dx * cosTheta + dy * sinTheta;
@@ -391,13 +393,13 @@ function boxPoints(center: { x: number; y: number }, size: { width: number; heig
 function getMiniBoxes(contour: any) {
     const boundingBox = cv.minAreaRect(contour);
     const points = Array.from(boxPoints(boundingBox.center, boundingBox.size, boundingBox.angle)).sort(
-        (a, b) => a[0] - b[0]
+        (a, b) => a[0] - b[0],
     ) as pointsType;
 
-    let index_1 = 0,
-        index_2 = 1,
-        index_3 = 2,
-        index_4 = 3;
+    let index_1 = 0;
+    let index_2 = 1;
+    let index_3 = 2;
+    let index_4 = 3;
     if (points[1][1] > points[0][1]) {
         index_1 = 0;
         index_4 = 1;
@@ -422,7 +424,7 @@ function flatten(arr: number[] | number[][]) {
     return arr.flat();
 }
 function linalgNorm(p0: pointType, p1: pointType) {
-    return Math.sqrt(Math.pow(p0[0] - p1[0], 2) + Math.pow(p0[1] - p1[1], 2));
+    return Math.sqrt((p0[0] - p1[0]) ** 2 + (p0[1] - p1[1]) ** 2);
 }
 function orderPointsClockwise(pts: BoxType) {
     const rect: BoxType = [
@@ -463,6 +465,7 @@ function getRotateCropImage(img: ImageData, points: BoxType) {
 
     const dst_img_height = dst.matSize[0];
     const dst_img_width = dst.matSize[1];
+    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
     let dst_rot;
     // 图像旋转
     if (dst_img_height / dst_img_width >= 1.5) {
@@ -503,7 +506,6 @@ function cvImShow(mat) {
             break;
         default:
             throw new Error("Bad number of channels (Source image must have 1, 3 or 4 channels)");
-            return;
     }
     const imgData = createImageData(new Uint8ClampedArray(img.data), img.cols, img.rows);
     img.delete();
@@ -543,9 +545,9 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
         for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
             const tmpArr = data.data.slice(i, i + predLen) as Float32Array;
 
-            let tmpMax = -Infinity;
+            let tmpMax = Number.NEGATIVE_INFINITY;
             let tmpIdx = -1;
-            let tmpSecond = -Infinity;
+            let tmpSecond = Number.NEGATIVE_INFINITY;
             let tmpSecondI = -1;
 
             for (let j = 0; j < tmpArr.length; j++) {
@@ -589,9 +591,9 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
         if (charList.length) {
             text = charList.join("").trim();
             let sum = 0;
-            confList.forEach((item) => {
+            for (const item of confList) {
                 sum += item;
-            });
+            }
             mean = sum / confList.length;
         }
         return { text, mean };
@@ -604,9 +606,9 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 function afAfRec(l: resultType) {
     if (dev) console.log(l);
 
-    let line: resultType = [];
-    let ind: Map<BoxType, number> = new Map();
-    for (let i in l) {
+    const line: resultType = [];
+    const ind: Map<BoxType, number> = new Map();
+    for (const i in l) {
         ind.set(l[i].box, Number(i));
     }
 
@@ -651,13 +653,13 @@ function afAfRec(l: resultType) {
         return result;
     }
 
-    let boxes = groupBoxesByMidlineDifference([...ind.keys()]);
+    const boxes = groupBoxesByMidlineDifference([...ind.keys()]);
 
-    for (let i of boxes) {
-        let t = [];
+    for (const i of boxes) {
+        const t = [];
         let m = 0;
-        for (let j of i) {
-            let x = l[ind.get(j)];
+        for (const j of i) {
+            const x = l[ind.get(j)];
             t.push(x.text);
             m += x.mean;
         }
