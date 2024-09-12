@@ -86,8 +86,7 @@ async function init(op: {
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
     if (op.cv) cv = op.cv;
-    // @ts-ignore
-    else if (require) cv = require("opencv.js");
+    else if (typeof require !== "undefined") cv = require("opencv.js");
     return { ocr: x, det: Det, rec: Rec };
 }
 
