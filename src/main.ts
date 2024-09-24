@@ -189,6 +189,11 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
     let resizeH = shapeH || h * ratio;
     let resizeW = shapeW || w * ratio;
 
+    if (dev) {
+        const srcCanvas = data2canvas(image);
+        putImgDom(srcCanvas);
+    }
+
     resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
     resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
     // biome-ignore lint: 规范化
@@ -605,6 +610,19 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 function afAfRec(l: resultType) {
     if (dev) console.log(l);
 
+    // 获取角度 竖排 横排
+
+    // 长轴扩散，合并为行
+
+    // 短轴扩散，合并为段
+    // todo 分割线为边界
+
+    // 识别行首空格
+
+    for (const i of l) {
+        drawBox(i.box);
+    }
+
     const line: resultType = [];
     const ind: Map<BoxType, number> = new Map();
     for (const i in l) {
@@ -665,4 +683,14 @@ function afAfRec(l: resultType) {
         line.push({ mean: m / i.length, text: t.join(" "), box: [i.at(0)[0], i.at(-1)[1], i.at(-1)[2], i.at(0)[3]] });
     }
     return line;
+}
+
+function drawBox(box: BoxType, color = "red") {
+    if (!dev) return;
+    const canvas = document.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.rect(box[0][0], box[0][1], box[2][0] - box[0][0], box[2][1] - box[0][1]);
+    ctx.stroke();
 }
