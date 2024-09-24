@@ -100,11 +100,11 @@ async function x(img: ImageData) {
 
     const box = await Det(img);
 
-    let mainLine = await Rec(box);
-    mainLine = afAfRec(mainLine);
-    console.log(mainLine);
+    const mainLine = await Rec(box);
+    const newMainLine = afAfRec(mainLine);
+    console.log(mainLine, newMainLine);
     task.l("end");
-    return mainLine;
+    return { src: mainLine, parse: newMainLine };
 }
 
 async function Det(img: ImageData) {

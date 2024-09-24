@@ -15,7 +15,7 @@ async function start() {
         ort,
     });
     let img = document.createElement("img");
-    img.src = "../a.png";
+    img.src = "../c.png";
     img.onload = () => {
         let canvas = document.createElement("canvas");
         canvas.width = img.width;
@@ -23,7 +23,7 @@ async function start() {
         canvas.getContext("2d").drawImage(img, 0, 0);
         x.ocr(canvas.getContext("2d").getImageData(0, 0, img.width, img.height)).then((v) => {
             let tl = [];
-            for (let i of v) {
+            for (let i of v.parse) {
                 tl.push(i.text);
             }
             let p = document.createElement("p");
