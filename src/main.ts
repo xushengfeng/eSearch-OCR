@@ -29,6 +29,10 @@ let createImageData = (data: Uint8ClampedArray, w: number, h: number) => {
     return new ImageData(data, w, h);
 };
 
+function log(...args: any[]) {
+    if (dev) console.log(...args);
+}
+
 export { init, x as ocr, Det as det, Rec as rec };
 export type initType = AsyncType<ReturnType<typeof init>>;
 
@@ -530,7 +534,7 @@ function beforeRec(box: { box: BoxType; img: ImageData }[]) {
         const reImg = resizeNormImg(r.img);
         l.push({ b: toPaddleInput(reImg.data, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]), imgH: reImg.h, imgW: reImg.w });
     }
-    if (dev) console.log(l);
+    log(l);
     return l;
 }
 
@@ -609,7 +613,7 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 // TODO 使用板式识别代替
 /** 组成行 */
 function afAfRec(l: resultType) {
-    if (dev) console.log(l);
+    log(l);
 
     // 获取角度 竖排 横排
 
@@ -716,7 +720,7 @@ function afAfRec(l: resultType) {
             if (!gs[gap]) gs[gap] = 0;
             gs[gap]++;
         }
-        console.log(gs);
+        log(gs);
 
         let splitGap = 0;
 
@@ -740,7 +744,7 @@ function afAfRec(l: resultType) {
         } else {
             splitGap = Number(Object.keys(gs)[0] || 0);
         }
-        console.log(splitGap);
+        log(splitGap);
 
         const p: resultType[] = [[c[0]]];
         for (let i = 1; i < c.length; i++) {
@@ -754,7 +758,7 @@ function afAfRec(l: resultType) {
                 p.at(-1).push(c[i]);
             }
         }
-        console.log(p);
+        log(p);
     }
 
     // 识别行首空格
