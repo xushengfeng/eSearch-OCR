@@ -707,6 +707,56 @@ function afAfRec(l: resultType) {
 
     // 长轴扩散，合并为行
 
+    for (const c of columns) {
+        const gs: Record<number, number> = {};
+        for (let i = 1; i < c.length; i++) {
+            const b1 = c[i - 1].box;
+            const b2 = c[i].box;
+            const gap = b2[0][1] - b1[2][1];
+            if (!gs[gap]) gs[gap] = 0;
+            gs[gap]++;
+        }
+        console.log(gs);
+
+        let splitGap = 0;
+
+        if (Object.keys(gs).length >= 2) {
+            let maxGap = 0;
+            let maxGapDelta = 0;
+            const maxN = Math.max(...Object.values(gs));
+            const gapsL = Object.keys(gs)
+                .sort()
+                .map(Number)
+                .filter((g) => g > 0)
+                .filter((g) => gs[g] !== maxN); // 去掉一个最大值
+            for (let i = 1; i < gapsL.length; i++) {
+                const delta = Math.abs((gs[gapsL[i]] - gs[gapsL[i - 1]]) / (gapsL[i] - gapsL[i - 1]));
+                if (delta >= maxGapDelta) {
+                    maxGap = gapsL[i];
+                    maxGapDelta = delta;
+                }
+            }
+            splitGap = maxGap;
+        } else {
+            splitGap = Number(Object.keys(gs)[0] || 0);
+        }
+        console.log(splitGap);
+
+        const p: resultType[] = [[c[0]]];
+        for (let i = 1; i < c.length; i++) {
+            const b1 = c[i - 1].box;
+            const b2 = c[i].box;
+            const gap = b2[0][1] - b1[2][1];
+            if (gap >= splitGap) {
+                p.push([c[i]]);
+            } else {
+                if (!p.at(-1)) p.push([]);
+                p.at(-1).push(c[i]);
+            }
+        }
+        console.log(p);
+    }
+
     // 识别行首空格
 
     // for (const i of l) {
