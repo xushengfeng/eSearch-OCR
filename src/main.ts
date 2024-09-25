@@ -100,7 +100,8 @@ async function x(img: ImageData) {
 
     const box = await Det(img);
 
-    const mainLine = await Rec(box);
+    // const mainLine = await Rec(box);
+    const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
     const newMainLine = afAfRec(mainLine);
     console.log(mainLine, newMainLine);
     task.l("end");
@@ -612,16 +613,105 @@ function afAfRec(l: resultType) {
 
     // 获取角度 竖排 横排
 
-    // 长轴扩散，合并为行
-
     // 短轴扩散，合并为段
     // todo 分割线为边界
+    // 分栏
+
+    const columns: resultType[] = [];
+
+    const newL = structuredClone(l).sort((a, b) => a.box[0][1] - b.box[0][1]);
+    const maxY = newL.reduce((a, b) => Math.max(a, b.box[2][1]), 0);
+    for (let i = 0; i <= maxY; i++) {
+        for (const j in newL) {
+            const b = newL[j];
+            if (!b) continue;
+            if (b.box[0][1] > i) break;
+            if (b.box[0][1] <= i && i <= b.box[2][1]) {
+                pushColumn(b);
+                newL[j] = null;
+            }
+        }
+    }
+
+    function centerPoint(points: pointsType) {
+        const n = points.length;
+        let x = 0;
+        let y = 0;
+        for (const p of points) {
+            x += p[0];
+            y += p[1];
+        }
+        return [x / n, y / n] as pointType;
+    }
+
+    function r(point: pointType, point2: pointType) {
+        return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
+    }
+
+    function pushColumn(b: resultType[0]) {
+        let nearest: number = null;
+        let _jl = Number.POSITIVE_INFINITY;
+        for (const i in columns) {
+            const last = columns[i].at(-1);
+            const jl = r(centerPoint(b.box), centerPoint(last.box));
+            if (jl < _jl) {
+                nearest = Number(i);
+                _jl = jl;
+            }
+        }
+        if (nearest === null) {
+            columns.push([b]);
+            return;
+        }
+
+        const last = columns[nearest].at(-1);
+        const thisW = b.box[1][0] - b.box[0][0];
+        const lastW = last.box[1][0] - last.box[0][0];
+        const minW = Math.min(thisW, lastW);
+        const em = b.box[2][1] - b.box[0][1];
+
+        if (
+            // 左右至少有一边是相近的，中心距离要相近
+            // 特别是处理在长行后分栏的情况
+            Math.abs(b.box[0][0] - last.box[0][0]) < em ||
+            Math.abs(b.box[1][0] - last.box[1][0]) < em ||
+            Math.abs((b.box[1][0] + b.box[0][0]) / 2 - (last.box[1][0] + last.box[0][0]) / 2) < minW * 0.4
+        ) {
+        } else {
+            const smallBox = thisW < lastW ? b : last;
+            const bigBox = thisW < lastW ? last : b;
+            const maxW = Math.max(thisW, lastW);
+            const ax = bigBox.box[0][0] + maxW / 2;
+            const bx = bigBox.box[1][0] - maxW / 2;
+            if (ax < smallBox.box[0][0] || bx > smallBox.box[1][0]) {
+                columns.push([b]);
+                return;
+            }
+        }
+
+        columns[nearest].push(b);
+    }
+
+    if (dev) {
+        const color = [];
+        for (let h = 0; h < 360; h += Math.floor(360 / columns.length)) {
+            color.push(`hsl(${h}, 100%, 50%)`);
+        }
+
+        for (const i in columns) {
+            for (const b of columns[i]) {
+                drawBox(b.box, b.text, color[i]);
+            }
+        }
+    }
+
+    // 长轴扩散，合并为行
 
     // 识别行首空格
 
-    for (const i of l) {
-        drawBox(i.box);
-    }
+    // for (const i of l) {
+    //     drawBox(i.box);
+    // }
 
     const line: resultType = [];
     const ind: Map<BoxType, number> = new Map();
@@ -685,7 +775,7 @@ function afAfRec(l: resultType) {
     return line;
 }
 
-function drawBox(box: BoxType, color = "red") {
+function drawBox(box: BoxType, id = "", color = "red") {
     if (!dev) return;
     const canvas = document.querySelector("canvas");
     const ctx = canvas.getContext("2d");
@@ -693,4 +783,5 @@ function drawBox(box: BoxType, color = "red") {
     ctx.strokeStyle = color;
     ctx.rect(box[0][0], box[0][1], box[2][0] - box[0][0], box[2][1] - box[0][1]);
     ctx.stroke();
+    ctx.strokeText(id, box[0][0], box[0][1]);
 }
