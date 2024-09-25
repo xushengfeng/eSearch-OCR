@@ -104,12 +104,12 @@ async function x(img: ImageData) {
 
     const box = await Det(img);
 
-    // const mainLine = await Rec(box);
-    const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
+    const mainLine = await Rec(box);
+    // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
     const newMainLine = afAfRec(mainLine);
     console.log(mainLine, newMainLine);
     task.l("end");
-    return { src: mainLine, parse: newMainLine };
+    return { src: mainLine, ...newMainLine };
 }
 
 async function Det(img: ImageData) {
@@ -652,6 +652,25 @@ function afAfRec(l: resultType) {
         return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
     }
 
+    function average(args: number[]) {
+        return args.reduce((a, b) => a + b, 0) / args.length;
+    }
+
+    function outerRect(boxes: BoxType[]) {
+        const [p0, p1, p2, p3] = structuredClone(boxes[0]);
+        for (const b of boxes) {
+            p0[0] = Math.min(p0[0], b[0][0]);
+            p0[1] = Math.min(p0[1], b[0][1]);
+            p1[0] = Math.max(p1[0], b[1][0]);
+            p1[1] = Math.min(p1[1], b[1][1]);
+            p2[0] = Math.max(p2[0], b[2][0]);
+            p2[1] = Math.max(p2[1], b[2][1]);
+            p3[0] = Math.min(p3[0], b[3][0]);
+            p3[1] = Math.max(p3[1], b[3][1]);
+        }
+        return [p0, p1, p2, p3] as BoxType;
+    }
+
     function pushColumn(b: resultType[0]) {
         let nearest: number = null;
         let _jl = Number.POSITIVE_INFINITY;
@@ -696,14 +715,46 @@ function afAfRec(l: resultType) {
         columns[nearest].push(b);
     }
 
+    const columnsInYaxis: { src: resultType; outerBox: BoxType; x: number; w: number }[][] = [];
+    for (const [i, c] of columns.entries()) {
+        const outer = outerRect(c.map((b) => b.box));
+        const x = (outer[0][0] + outer[1][0]) / 2;
+        const w = outer[1][0] - outer[0][0];
+        if (i === 0) {
+            columnsInYaxis.push([{ src: c, outerBox: outer, x, w }]);
+            continue;
+        }
+        const lastY = columnsInYaxis.at(-1);
+        let hasSame = false;
+        for (const r of lastY) {
+            const minW = Math.min(r.w, w);
+            if (Math.abs(r.x - x) < minW * 0.4) {
+                lastY.push({ src: c, outerBox: outer, x, w });
+                hasSame = true;
+                break;
+            }
+        }
+        if (!hasSame) {
+            columnsInYaxis.push([{ src: c, outerBox: outer, x, w }]);
+        }
+    }
+
+    columnsInYaxis.sort((a, b) => average(a.map((i) => i.x)) - average(b.map((i) => i.x)));
+
+    for (const y of columnsInYaxis) {
+        y.sort((a, b) => a.outerBox[0][1] - b.outerBox[0][1]);
+    }
+
+    const newColumns: { src: resultType; outerBox: BoxType }[] = columnsInYaxis.flat();
+
     if (dev) {
         const color = [];
-        for (let h = 0; h < 360; h += Math.floor(360 / columns.length)) {
+        for (let h = 0; h < 360; h += Math.floor(360 / newColumns.length)) {
             color.push(`hsl(${h}, 100%, 50%)`);
         }
 
-        for (const i in columns) {
-            for (const b of columns[i]) {
+        for (const i in newColumns) {
+            for (const b of newColumns[i].src) {
                 drawBox(b.box, b.text, color[i]);
             }
         }
@@ -711,8 +762,8 @@ function afAfRec(l: resultType) {
 
     // 长轴扩散，合并为行
 
-    const ps: resultType[][] = [];
-    for (const c of columns) {
+    const p = newColumns.map((v) => {
+        const c = v.src;
         const gs: Record<number, number> = {};
         for (let i = 1; i < c.length; i++) {
             const b1 = c[i - 1].box;
@@ -747,20 +798,40 @@ function afAfRec(l: resultType) {
         }
         log(splitGap);
 
-        const p: resultType[] = [[c[0]]];
+        const ps: resultType[] = [[c[0]]];
         for (let i = 1; i < c.length; i++) {
             const b1 = c[i - 1].box;
             const b2 = c[i].box;
             const gap = b2[0][1] - b1[2][1];
             if (gap >= splitGap) {
-                p.push([c[i]]);
+                ps.push([c[i]]);
             } else {
-                if (!p.at(-1)) p.push([]);
-                p.at(-1).push(c[i]);
+                if (!ps.at(-1)) ps.push([]);
+                ps.at(-1).push(c[i]);
             }
         }
-        log(p);
-        ps.push(p);
+        log(ps);
+        return { src: c, outerBox: v.outerBox, parragraphs: { src: ps, parse: joinResult(ps) } };
+    });
+
+    const pss = p.flatMap((v) => v.parragraphs.parse);
+
+    function joinResult(ps: resultType[]) {
+        const r: resultType = [];
+        const latin = /[a-zA-Z]/;
+        for (const p of ps) {
+            const res: resultType[0] = {
+                box: outerRect(p.map((i) => i.box)),
+                text: "",
+                mean: average(p.map((i) => i.mean)),
+            };
+            for (const i of p) {
+                if (res.text.at(-1)?.match(latin) || i.text.at(0)?.match(latin)) res.text += " ";
+                res.text += i.text;
+            }
+            r.push(res);
+        }
+        return r;
     }
 
     // 识别行首空格
@@ -769,7 +840,10 @@ function afAfRec(l: resultType) {
     //     drawBox(i.box);
     // }
 
-    return {};
+    return {
+        columns: p,
+        parragraphs: pss,
+    };
 }
 
 function drawBox(box: BoxType, id = "", color = "red") {
