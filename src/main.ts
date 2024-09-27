@@ -824,7 +824,7 @@ function afAfRec(l: resultType) {
             mean: average(p.map((i) => i.mean)),
         };
         for (const i of p) {
-            if (res.text.at(-1)?.match(latin) || i.text.at(0)?.match(latin)) res.text += " ";
+            if (res.text.at(-1) && (res.text.at(-1)?.match(latin) || i.text.at(0)?.match(latin))) res.text += " ";
             res.text += i.text;
         }
         return res;
