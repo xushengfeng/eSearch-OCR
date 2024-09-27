@@ -811,27 +811,23 @@ function afAfRec(l: resultType) {
             }
         }
         log(ps);
-        return { src: c, outerBox: v.outerBox, parragraphs: { src: ps, parse: joinResult(ps) } };
+        return { src: c, outerBox: v.outerBox, parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) })) };
     });
 
-    const pss = p.flatMap((v) => v.parragraphs.parse);
+    const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse));
 
-    function joinResult(ps: resultType[]) {
-        const r: resultType = [];
+    function joinResult(p: resultType) {
         const latin = /[a-zA-Z]/;
-        for (const p of ps) {
-            const res: resultType[0] = {
-                box: outerRect(p.map((i) => i.box)),
-                text: "",
-                mean: average(p.map((i) => i.mean)),
-            };
-            for (const i of p) {
-                if (res.text.at(-1)?.match(latin) || i.text.at(0)?.match(latin)) res.text += " ";
-                res.text += i.text;
-            }
-            r.push(res);
+        const res: resultType[0] = {
+            box: outerRect(p.map((i) => i.box)),
+            text: "",
+            mean: average(p.map((i) => i.mean)),
+        };
+        for (const i of p) {
+            if (res.text.at(-1)?.match(latin) || i.text.at(0)?.match(latin)) res.text += " ";
+            res.text += i.text;
         }
-        return r;
+        return res;
     }
 
     // 识别行首空格
