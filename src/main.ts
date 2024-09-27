@@ -817,14 +817,14 @@ function afAfRec(l: resultType) {
     const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse));
 
     function joinResult(p: resultType) {
-        const latin = /[a-zA-Z]/;
+        const cjkv = /\p{Ideographic}/u;
         const res: resultType[0] = {
             box: outerRect(p.map((i) => i.box)),
             text: "",
             mean: average(p.map((i) => i.mean)),
         };
         for (const i of p) {
-            if (res.text.at(-1) && (res.text.at(-1)?.match(latin) || i.text.at(0)?.match(latin))) res.text += " ";
+            if (res.text.at(-1) && (!res.text.at(-1).match(cjkv) || !i.text.at(0)?.match(cjkv))) res.text += " ";
             res.text += i.text;
         }
         return res;
