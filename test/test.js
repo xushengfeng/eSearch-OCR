@@ -1,5 +1,5 @@
 const x = require("../");
-const fs = require("fs");
+const fs = require("node:fs");
 const ort = require("onnxruntime-node");
 
 start();
@@ -14,21 +14,19 @@ async function start() {
         detShape: [640, 640],
         ort,
     });
-    let img = document.createElement("img");
-    img.src = "../c.png";
+    const img = document.createElement("img");
+    img.src = "../a4.png";
     img.onload = () => {
-        let canvas = document.createElement("canvas");
+        const canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         canvas.getContext("2d").drawImage(img, 0, 0);
         x.ocr(canvas.getContext("2d").getImageData(0, 0, img.width, img.height)).then((v) => {
-            let tl = [];
-            for (let i of v.parse) {
-                tl.push(i.text);
+            for (const i of v.parragraphs) {
+                const p = document.createElement("p");
+                p.innerText = i.text;
+                document.body.append(p);
             }
-            let p = document.createElement("p");
-            p.innerText = tl.join("\n");
-            document.body.append(p);
         });
     };
 }
