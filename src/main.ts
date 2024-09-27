@@ -59,7 +59,7 @@ async function init(op: {
     imgw?: number;
     ort: typeof import("onnxruntime-common");
     detShape?: [number, number];
-    ortOption: import("onnxruntime-common").InferenceSession.SessionOptions;
+    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
 
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     canvas?: (w: number, h: number) => any;
@@ -67,7 +67,7 @@ async function init(op: {
     cv?;
 }) {
     ort = op.ort;
-    dev = op.dev;
+    dev = Boolean(op.dev);
     if (!dev) {
         task.l = () => {};
         task2.l = () => {};
@@ -75,14 +75,14 @@ async function init(op: {
     if (op.detPath) det = await ort.InferenceSession.create(op.detPath, op.ortOption);
     if (op.recPath) rec = await ort.InferenceSession.create(op.recPath, op.ortOption);
     if (op.layoutPath) layout = await ort.InferenceSession.create(op.layoutPath, op.ortOption);
-    dic = op.dic.split(/\r\n|\r|\n/);
+    dic = op.dic?.split(/\r\n|\r|\n/) || [];
     if (dic.at(-1) === "") {
         // 多出的换行
         dic[dic.length - 1] = " ";
     } else {
         dic.push(" ");
     }
-    layoutDic = op.layoutDic?.split(/\r\n|\r|\n/);
+    layoutDic = op.layoutDic?.split(/\r\n|\r|\n/) || [];
     if (op.maxSide) limitSideLen = op.maxSide;
     if (op.imgh) imgH = op.imgh;
     if (op.imgw) imgW = op.imgw;
@@ -123,6 +123,7 @@ async function Det(img: ImageData) {
         if (_w < _h * _r) w = Math.floor(_h * _r);
         const c = newCanvas(w, h);
         const ctx = c.getContext("2d");
+        if (!ctx) throw new Error("canvas context is null");
         ctx.putImageData(img, 0, 0);
         // biome-ignore lint: 规范化
         img = ctx.getImageData(0, 0, w, h);
@@ -139,7 +140,7 @@ async function Det(img: ImageData) {
 }
 
 async function Rec(box: { box: BoxType; img: ImageData }[]) {
-    let mainLine: resultType = [];
+    const mainLine: resultType = [];
     task.l("bf_rec");
     const recL = beforeRec(box);
     const recPromises = recL.map(async (item) => {
@@ -148,14 +149,13 @@ async function Rec(box: { box: BoxType; img: ImageData }[]) {
         return afterRec(recResults, dic);
     });
     const l = await Promise.all(recPromises);
-    mainLine = l.flat().reverse();
+    const mainLine0 = l.flat().reverse();
     task.l("rec_end");
-    for (const i in mainLine) {
-        const b = box[mainLine.length - Number(i) - 1].box;
-        mainLine[i].box = b;
+    for (const i in mainLine0) {
+        const b = box[mainLine0.length - Number(i) - 1].box;
+        mainLine[i] = { mean: mainLine0[i].mean, text: mainLine0[i].text, box: b };
     }
-    mainLine = mainLine.filter((x) => x.mean >= 0.5);
-    return mainLine;
+    return mainLine.filter((x) => x.mean >= 0.5);
 }
 
 async function runDet(transposedData: number[][][], image: ImageData, det: SessionType) {
@@ -292,7 +292,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 type pointType = [number, number];
 type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
-type resultType = { text: string; mean: number; box?: BoxType }[];
+type resultType = { text: string; mean: number; box: BoxType }[];
 import clipper from "js-clipper";
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1;
@@ -337,7 +337,7 @@ function unclip(box: pointsType) {
     const area = Math.abs(polygonPolygonArea(box));
     const length = polygonPolygonLength(box);
     const distance = (area * unclip_ratio) / length;
-    const tmpArr = [];
+    const tmpArr: { X: number; Y: number }[] = [];
     for (const item of box) {
         const obj = {
             X: 0,
@@ -351,13 +351,12 @@ function unclip(box: pointsType) {
     offset.AddPath(tmpArr, clipper.JoinType.jtRound, clipper.EndType.etClosedPolygon);
     const expanded: { X: number; Y: number }[][] = [];
     offset.Execute(expanded, distance);
-    let expandedArr: pointsType = [];
+    const expandedArr: pointsType = [];
     for (const item of expanded[0] || []) {
         expandedArr.push([item.X, item.Y]);
     }
-    expandedArr = [].concat(...expandedArr);
 
-    return expandedArr;
+    return expandedArr.flat();
 }
 
 function boxPoints(center: { x: number; y: number }, size: { width: number; height: number }, angle: number) {
@@ -544,7 +543,7 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
     let ml = data.dims[0] - 1;
 
     function getChar(i: number) {
-        return character.at(i - 1);
+        return character.at(i - 1) ?? "";
     }
 
     for (let l = 0; l < data.data.length; l += predLen * data.dims[1]) {
@@ -582,8 +581,8 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
         ml--;
     }
     function decode(textIndex: number[], textProb: number[]) {
-        const charList = [];
-        const confList = [];
+        const charList: string[] = [];
+        const confList: number[] = [];
         const isRemoveDuplicate = true;
         for (let idx = 0; idx < textIndex.length; idx++) {
             if (textIndex[idx] === 0) continue;
@@ -610,8 +609,7 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
     return line;
 }
 
-// TODO 使用板式识别代替
-/** 组成行 */
+/** 排版分析 */
 function afAfRec(l: resultType) {
     log(l);
 
@@ -623,8 +621,8 @@ function afAfRec(l: resultType) {
 
     const columns: resultType[] = [];
 
-    const newL = structuredClone(l).sort((a, b) => a.box[0][1] - b.box[0][1]);
-    const maxY = newL.reduce((a, b) => Math.max(a, b.box[2][1]), 0);
+    const newL = structuredClone(l).sort((a, b) => a.box[0][1] - b.box[0][1]) as (resultType[0] | null)[];
+    const maxY = newL.reduce((a, b) => Math.max(a, b?.box[2][1] ?? 0), 0);
     for (let i = 0; i <= maxY; i++) {
         for (const j in newL) {
             const b = newL[j];
@@ -672,10 +670,11 @@ function afAfRec(l: resultType) {
     }
 
     function pushColumn(b: resultType[0]) {
-        let nearest: number = null;
+        let nearest: number | null = null;
         let _jl = Number.POSITIVE_INFINITY;
         for (const i in columns) {
             const last = columns[i].at(-1);
+            if (!last) continue;
             const jl = r(centerPoint(b.box), centerPoint(last.box));
             if (jl < _jl) {
                 nearest = Number(i);
@@ -687,7 +686,7 @@ function afAfRec(l: resultType) {
             return;
         }
 
-        const last = columns[nearest].at(-1);
+        const last = columns[nearest].at(-1) as resultType[0]; // 前面已经遍历过了，有-1的才能赋值到nearest
         const thisW = b.box[1][0] - b.box[0][0];
         const lastW = last.box[1][0] - last.box[0][0];
         const minW = Math.min(thisW, lastW);
@@ -724,7 +723,7 @@ function afAfRec(l: resultType) {
             columnsInYaxis.push([{ src: c, outerBox: outer, x, w }]);
             continue;
         }
-        const lastY = columnsInYaxis.at(-1);
+        const lastY = columnsInYaxis.at(-1) as (typeof columnsInYaxis)[0]; // 上面的代码保证了至少有一个元素
         let hasSame = false;
         for (const r of lastY) {
             const minW = Math.min(r.w, w);
@@ -748,7 +747,7 @@ function afAfRec(l: resultType) {
     const newColumns: { src: resultType; outerBox: BoxType }[] = columnsInYaxis.flat();
 
     if (dev) {
-        const color = [];
+        const color: string[] = [];
         for (let h = 0; h < 360; h += Math.floor(360 / newColumns.length)) {
             color.push(`hsl(${h}, 100%, 50%)`);
         }
@@ -806,8 +805,9 @@ function afAfRec(l: resultType) {
             if (gap >= splitGap) {
                 ps.push([c[i]]);
             } else {
-                if (!ps.at(-1)) ps.push([]);
-                ps.at(-1).push(c[i]);
+                const last = ps.at(-1);
+                if (!last) ps.push([c[i]]);
+                else last.push(c[i]);
             }
         }
         log(ps);
@@ -824,7 +824,8 @@ function afAfRec(l: resultType) {
             mean: average(p.map((i) => i.mean)),
         };
         for (const i of p) {
-            if (res.text.at(-1) && (!res.text.at(-1).match(cjkv) || !i.text.at(0)?.match(cjkv))) res.text += " ";
+            const lastChar = res.text.at(-1);
+            if (lastChar && (!lastChar.match(cjkv) || !i.text.at(0)?.match(cjkv))) res.text += " ";
             res.text += i.text;
         }
         return res;
@@ -844,8 +845,8 @@ function afAfRec(l: resultType) {
 
 function drawBox(box: BoxType, id = "", color = "red") {
     if (!dev) return;
-    const canvas = document.querySelector("canvas");
-    const ctx = canvas.getContext("2d");
+    const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     ctx.beginPath();
     ctx.strokeStyle = color;
     ctx.rect(box[0][0], box[0][1], box[2][0] - box[0][0], box[2][1] - box[0][1]);
