@@ -107,7 +107,7 @@ async function x(img: ImageData) {
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
     const newMainLine = afAfRec(mainLine);
-    console.log(mainLine, newMainLine);
+    log(mainLine, newMainLine);
     task.l("end");
     return { src: mainLine, ...newMainLine };
 }
@@ -205,7 +205,7 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
     image = resizeImg(image, resizeW, resizeH);
 
     const transposedData = toPaddleInput(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
-    console.log(image);
+    log(image);
     if (dev) {
         const srcCanvas = data2canvas(image);
         putImgDom(srcCanvas);
@@ -278,7 +278,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     }
     task2.l("e");
 
-    console.log(edgeRect);
+    log(edgeRect);
 
     src.delete();
     contours.delete();
