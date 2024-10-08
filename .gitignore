@@ -6,6 +6,5 @@ node_modules
 test/m
 *.png
 *.jpg
-*.svg
 PaddleOCR
 dist

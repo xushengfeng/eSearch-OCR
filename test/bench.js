@@ -1,0 +1,79 @@
+const x = require("../");
+const fs = require("node:fs");
+const ort = require("onnxruntime-node");
+const diff = require("diff-match-patch");
+
+const dmp = new diff();
+start();
+
+async function load(src) {
+    const img = document.createElement("img");
+    img.src = src;
+    await (() => {
+        return new Promise((re) => {
+            img.onload = () => {
+                re();
+            };
+        });
+    })();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d").drawImage(img, 0, 0);
+    return canvas.getContext("2d").getImageData(0, 0, img.width, img.height);
+}
+
+async function start() {
+    const ocr = await x.init({
+        detPath: "./m/v4/ppocr_det.onnx",
+        recPath: "./m/v4/ppocr_rec.onnx",
+        dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
+        layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
+        detShape: [640, 640],
+        ort,
+    });
+
+    const r = [];
+
+    for (const i of ["0", "ch", "en"]) {
+        const zqls = [];
+        const times = [];
+        const srcText = fs.readFileSync(`imgs/${i}.txt`).toString();
+        for (let c = 0; c < 5; c++) {
+            const data = await load(`imgs/${i}.svg`);
+            const text = [];
+            const startTime = performance.now();
+            for (const i of (await ocr.ocr(data)).parragraphs) {
+                text.push(i.text);
+            }
+            const spendTime = performance.now() - startTime;
+
+            console.table([text.join("\n"), srcText]);
+
+            const diff = dmp.diff_main(text.join("\n"), srcText);
+
+            let l = 0;
+            for (const i of diff) {
+                if (i[0] === 0) {
+                    l += i[1].length;
+                } else {
+                    l -= i[1].length * 0.5;
+                }
+            }
+            console.log(l / srcText.length, spendTime);
+            zqls.push(l / srcText.length);
+            times.push(spendTime);
+        }
+        const time = times.reduce((a, b) => (a + b) / 2);
+        r.push({
+            name: i,
+            zql: zqls.reduce((a, b) => (a + b) / 2),
+            spendTime: time,
+            charsP: srcText.length / (time / 1000),
+        });
+    }
+
+    const log = JSON.parse(fs.readFileSync("log.json").toString());
+    log[new Date().getTime()] = r;
+    fs.writeFileSync("log.json", JSON.stringify(log, null, 2));
+}

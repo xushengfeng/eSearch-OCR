@@ -10,7 +10,7 @@ function createWindow() {
         },
     });
 
-    win.loadFile("index.html");
+    win.loadFile(process.argv.includes("bench") ? "bench.html" : "index.html");
 
     win.webContents.openDevTools();
 }

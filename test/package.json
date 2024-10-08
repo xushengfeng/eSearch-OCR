@@ -1,3 +1,6 @@
 {
-    "main": "main.js"
+    "main": "main.js",
+    "dependencies": {
+      "diff-match-patch": "^1.0.5"
+    }
   }
