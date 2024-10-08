@@ -44,7 +44,7 @@ async function start() {
         const zqls = [];
         const times = [];
         const srcText = fs.readFileSync(`imgs/${i}.txt`).toString();
-        for (let c = 0; c < 5; c++) {
+        for (let c = 0; c < 9; c++) {
             const data = await load(`imgs/${i}.svg`);
             const text = [];
             const startTime = performance.now();
