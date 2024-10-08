@@ -823,6 +823,7 @@ function afAfRec(l: resultType) {
 
     const p = newColumns.map((v) => {
         const c = v.src;
+        // gap feq
         const gs: Record<number, number> = {};
         for (let i = 1; i < c.length; i++) {
             const b1 = c[i - 1].box;
@@ -839,10 +840,10 @@ function afAfRec(l: resultType) {
             let maxGap = 0;
             let maxGapDelta = 0;
             const maxN = Math.max(...Object.values(gs));
+            const minX = Math.min(...Object.keys(gs).map(Number));
             const gapsL = Object.keys(gs)
                 .sort()
-                .map(Number)
-                .filter((g) => g > 0)
+                .map((i) => Number(i) - minX)
                 .filter((g) => gs[g] !== maxN); // 去掉一个最大值
             for (let i = 1; i < gapsL.length; i++) {
                 const delta = Math.abs((gs[gapsL[i]] - gs[gapsL[i - 1]]) / (gapsL[i] - gapsL[i - 1]));
@@ -873,6 +874,19 @@ function afAfRec(l: resultType) {
         log(ps);
         return { src: c, outerBox: v.outerBox, parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) })) };
     });
+
+    if (dev) {
+        const color: string[] = [];
+        for (let h = 10; h < 360; h += Math.floor(360 / p.length)) {
+            color.push(`hsl(${h}, 100%, 50%)`);
+        }
+
+        for (const i in p) {
+            for (const b of p[i].parragraphs) {
+                drawBox(b.parse.box, b.parse.text, color[i]);
+            }
+        }
+    }
 
     const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse));
 
