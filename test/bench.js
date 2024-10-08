@@ -79,6 +79,11 @@ async function start() {
     }
 
     const log = JSON.parse(fs.readFileSync("log.json").toString());
-    log[new Date().getTime()] = r;
+    log[new Date().getTime()] = {
+        onnx: "1.18.0",
+        type: "node",
+        provider: "cpu",
+        r,
+    };
     fs.writeFileSync("log.json", JSON.stringify(log, null, 2));
 }
