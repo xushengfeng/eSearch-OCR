@@ -625,12 +625,63 @@ function afAfRec(l: resultType) {
     // 获取角度 竖排 横排
 
     // 短轴扩散，合并为段
+
+    const newL_ = structuredClone(l).sort((a, b) => a.box[0][1] - b.box[0][1]) as resultType[0][];
+    const newLZ: resultType[0][][] = [];
+    // 合并行
+    for (const j of newL_) {
+        const last = newLZ.at(-1)?.at(-1);
+        if (!last) {
+            newLZ.push([j]);
+            continue;
+        }
+        const thisCy = (j.box[2][1] + j.box[0][1]) / 2;
+        const lastCy = (last.box[2][1] + last.box[0][1]) / 2;
+        if (Math.abs(thisCy - lastCy) < 0.5 * (j.box[2][1] - j.box[0][1])) {
+            const lLast = newLZ.at(-1);
+            if (!lLast) {
+                newLZ.push([j]);
+            } else {
+                lLast.push(j);
+            }
+        } else {
+            newLZ.push([j]);
+        }
+    }
+
+    // 根据距离，合并或保持拆分
+    const newL: (resultType[0] | null)[] = [];
+    for (const l of newLZ) {
+        if (l.length === 1) {
+            newL.push(l.at(0) as resultType[0]);
+            continue;
+        }
+
+        const em = average(l.map((i) => i.box[2][1] - i.box[0][1]));
+        l.sort((a, b) => a.box[0][0] - b.box[0][0]);
+
+        let last = l.at(0) as resultType[0];
+
+        for (const this_ of l.slice(1)) {
+            const lastBoxRightX = last.box[1][0] ?? Number.NEGATIVE_INFINITY;
+            const thisLeftX = this_.box[0][0];
+            if (thisLeftX - lastBoxRightX > em) {
+                newL.push(last);
+                last = this_;
+            } else {
+                last.text += this_.text;
+                last.mean = (last.mean + this_.mean) / 2;
+                last.box = outerRect([last.box, this_.box]);
+            }
+        }
+        newL.push(last);
+    }
+
     // todo 分割线为边界
     // 分栏
 
     const columns: resultType[] = [];
 
-    const newL = structuredClone(l).sort((a, b) => a.box[0][1] - b.box[0][1]) as (resultType[0] | null)[];
     const maxY = newL.reduce((a, b) => Math.max(a, b?.box[2][1] ?? 0), 0);
     for (let i = 0; i <= maxY; i++) {
         for (const j in newL) {
@@ -684,7 +735,7 @@ function afAfRec(l: resultType) {
         for (const i in columns) {
             const last = columns[i].at(-1);
             if (!last) continue;
-            const jl = r(centerPoint(b.box), centerPoint(last.box));
+            const jl = centerPoint(b.box)[1] - centerPoint(last.box)[1];
             if (jl < _jl) {
                 nearest = Number(i);
                 _jl = jl;
@@ -860,5 +911,6 @@ function drawBox(box: BoxType, id = "", color = "red") {
     ctx.strokeStyle = color;
     ctx.rect(box[0][0], box[0][1], box[2][0] - box[0][0], box[2][1] - box[0][1]);
     ctx.stroke();
+    ctx.strokeStyle = "black";
     ctx.strokeText(id, box[0][0], box[0][1]);
 }

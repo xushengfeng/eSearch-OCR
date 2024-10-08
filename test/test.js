@@ -13,9 +13,14 @@ async function start() {
         dev: true,
         detShape: [640, 640],
         ort,
+        onProgress: (t, a, n) => {
+            if (t === "rec") {
+                console.log(n / a);
+            }
+        },
     });
     const img = document.createElement("img");
-    img.src = "../a4.png";
+    img.src = "imgs/ch.svg";
     img.onload = () => {
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
