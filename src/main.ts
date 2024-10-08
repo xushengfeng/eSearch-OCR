@@ -47,6 +47,8 @@ let imgW = 320;
 let detShape = [Number.NaN, Number.NaN];
 let layoutDic: string[];
 
+let onProgress = (type: "det" | "rec", total: number, count: number) => {};
+
 async function init(op: {
     detPath?: string;
     recPath?: string;
@@ -65,6 +67,8 @@ async function init(op: {
     canvas?: (w: number, h: number) => any;
     imageData?;
     cv?;
+
+    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
 }) {
     ort = op.ort;
     dev = Boolean(op.dev);
@@ -91,6 +95,7 @@ async function init(op: {
     if (op.imageData) createImageData = op.imageData;
     if (op.cv) cv = op.cv;
     else if (typeof require !== "undefined") cv = require("opencv.js");
+    if (op.onProgress) onProgress = op.onProgress;
     return { ocr: x, det: Det, rec: Rec };
 }
 
@@ -103,6 +108,7 @@ async function x(img: ImageData) {
     }
 
     const box = await Det(img);
+    onProgress("det", 1, 1);
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
@@ -143,9 +149,12 @@ async function Rec(box: { box: BoxType; img: ImageData }[]) {
     const mainLine: resultType = [];
     task.l("bf_rec");
     const recL = beforeRec(box);
+    let runCount = 0;
     const recPromises = recL.map(async (item) => {
         const { b, imgH, imgW } = item;
         const recResults = await runRec(b, imgH, imgW, rec);
+        runCount++;
+        onProgress("rec", recL.length, runCount);
         return afterRec(recResults, dic);
     });
     const l = await Promise.all(recPromises);

@@ -31,6 +31,11 @@ async function start() {
         layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
         detShape: [640, 640],
         ort,
+        onProgress: (t, a, n) => {
+            if (t === "rec") {
+                console.log(n / a);
+            }
+        },
     });
 
     const r = [];
