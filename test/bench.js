@@ -80,7 +80,7 @@ async function start() {
 
     const log = JSON.parse(fs.readFileSync("log.json").toString());
     log[new Date().getTime()] = {
-        onnx: "1.18.0",
+        onnx: "1.19.2",
         type: "node",
         provider: "cpu",
         r,
