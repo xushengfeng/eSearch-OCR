@@ -57,6 +57,8 @@ async function start() {
 
             const diff = dmp.diff_main(text.join("\n"), srcText);
 
+            if (c === 0) console.log(diff);
+
             let l = 0;
             for (const i of diff) {
                 if (i[0] === 0) {
