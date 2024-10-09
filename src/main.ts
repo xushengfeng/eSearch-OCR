@@ -33,6 +33,12 @@ function log(...args: any[]) {
     if (dev) console.log(...args);
 }
 
+function logColor(...args: string[]) {
+    if (dev) {
+        console.log(args.map((x) => `%c${x}`).join(""), ...args.map((x) => `color: ${x}`));
+    }
+}
+
 export { init, x as ocr, Det as det, Rec as rec };
 export type initType = AsyncType<ReturnType<typeof init>>;
 
@@ -112,9 +118,10 @@ async function x(img: ImageData) {
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
-    for (const x of box) {
-        drawBox(x.box, "", "black");
-    }
+    if (dev)
+        for (const x of box) {
+            drawBox2(x.box, "hi", `rgb(${x.style.bg.join(",")})`, `rgb(${x.style.text.join(",")})`);
+        }
     // return;
     const newMainLine = afAfRec(mainLine);
     log(mainLine, newMainLine);
@@ -149,7 +156,7 @@ async function Det(img: ImageData) {
     return box;
 }
 
-type detResultType = { box: BoxType; img: ImageData }[];
+type detResultType = { box: BoxType; img: ImageData; style: { bg: color; text: color } }[];
 
 async function Rec(box: detResultType) {
     const mainLine: resultType = [];
@@ -168,7 +175,12 @@ async function Rec(box: detResultType) {
     task.l("rec_end");
     for (const i in mainLine0) {
         const b = box[mainLine0.length - Number(i) - 1].box;
-        mainLine[i] = { mean: mainLine0[i].mean, text: mainLine0[i].text, box: b };
+        mainLine[i] = {
+            mean: mainLine0[i].mean,
+            text: mainLine0[i].text,
+            box: b,
+            style: box[mainLine0.length - Number(i) - 1].style,
+        };
     }
     return mainLine.filter((x) => x.mean >= 0.5);
 }
@@ -291,9 +303,11 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
         task2.l("match best");
 
+        const { bg, text } = getImgColor(c);
+
         const bb = matchBestBox(box, c);
 
-        edgeRect.push({ box: bb, img: c });
+        edgeRect.push({ box: bb, img: c, style: { bg, text } });
     }
     task2.l("e");
 
@@ -311,7 +325,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 type pointType = [number, number];
 type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
-type resultType = { text: string; mean: number; box: BoxType }[];
+type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
 import clipper from "js-clipper";
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1;
@@ -510,6 +524,86 @@ function getRotateCropImage(img: ImageData, points: BoxType) {
     srcTri.delete();
     dstTri.delete();
     return d;
+}
+
+type color = [number, number, number];
+
+function getImgColor(img: ImageData) {
+    const histogram = new Map<string, number>();
+    const data = img.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const x = (i / 4) % img.width;
+        if (x > img.height * 4) continue;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const colorKey = [r, g, b].join(",");
+        histogram.set(colorKey, (histogram.get(colorKey) || 0) + 1);
+    }
+
+    const colorList = getHighestFrequency(histogram, 20).map((c) => ({
+        el: c.el.split(",").map(Number) as color,
+        count: c.count,
+    }));
+    const bg = colorList[0].el;
+    const textEdge = colorList[1].el;
+
+    let text = textEdge;
+
+    const colorD = 100;
+
+    if (areColorsSimilar(textEdge, bg) < colorD) {
+        const colorSplit = colorList.slice(1).filter((c) => areColorsSimilar(c.el, bg) > 50);
+        const jq = colorSplit.map((c) => c.el.map((x) => x * c.count)) as color[];
+        const sum = colorSplit.reduce((acc, i) => acc + i.count, 0);
+        text = [0, 1, 2] // rgb各自平均
+            .map((i) =>
+                Math.round(
+                    average(
+                        jq.map((c) => c[i]),
+                        sum,
+                    ),
+                ),
+            ) as color;
+        if (areColorsSimilar(text, bg) < colorD) text = bg.map((x) => 255 - x) as color;
+        logColor(`rgb(${text.join(",")})`);
+    }
+
+    return {
+        bg: bg,
+        text: text,
+        textEdge: textEdge,
+    };
+}
+
+function areColorsSimilar(color1: color, color2: color) {
+    const rgb1 = color1;
+    const rgb2 = color2;
+
+    const distance = Math.sqrt((rgb1[0] - rgb2[0]) ** 2 + (rgb1[1] - rgb2[1]) ** 2 + (rgb1[2] - rgb2[2]) ** 2);
+
+    return distance;
+}
+
+function getHighestFrequency<t>(map: Map<t, number>, c = 1) {
+    let l: { el: t; count: number }[] = [];
+    map.forEach((count, name) => {
+        if (l.length === 0) l.push({ el: name, count });
+        else {
+            if (l.length < c) {
+                l.push({ el: name, count });
+            } else if (l.find((i) => i.count <= count)) {
+                l.push({ el: name, count });
+            }
+            l.sort((a, b) => b.count - a.count);
+            if (l.length > c) {
+                l = l.slice(0, c);
+            }
+        }
+    });
+
+    return l;
 }
 
 function matchBestBox(box: BoxType, img: ImageData) {
@@ -791,10 +885,6 @@ function afAfRec(l: resultType) {
         return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
     }
 
-    function average(args: number[]) {
-        return args.reduce((a, b) => a + b, 0) / args.length;
-    }
-
     function outerRect(boxes: BoxType[]) {
         const [p0, p1, p2, p3] = structuredClone(boxes[0]);
         for (const b of boxes) {
@@ -977,6 +1067,7 @@ function afAfRec(l: resultType) {
             box: outerRect(p.map((i) => i.box)),
             text: "",
             mean: average(p.map((i) => i.mean)),
+            style: p[0].style,
         };
         for (const i of p) {
             const lastChar = res.text.at(-1);
@@ -998,6 +1089,10 @@ function afAfRec(l: resultType) {
     };
 }
 
+function average(args: number[], v = args.length) {
+    return args.reduce((a, b) => a + b, 0) / v;
+}
+
 function drawBox(box: BoxType, id = "", color = "red") {
     if (!dev) return;
     const canvas = document.querySelector("canvas") as HTMLCanvasElement;
@@ -1008,4 +1103,18 @@ function drawBox(box: BoxType, id = "", color = "red") {
     ctx.stroke();
     ctx.strokeStyle = "black";
     ctx.strokeText(id, box[0][0], box[0][1]);
+}
+
+function drawBox2(box: BoxType, id = "", bg = "white", color = "red") {
+    if (!dev) return;
+    const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    ctx.beginPath();
+    ctx.strokeStyle = "black";
+    ctx.fillStyle = bg;
+    ctx.rect(box[0][0], box[0][1], 16, 16);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fillRect(box[0][0], box[0][1], 6, 6);
 }
