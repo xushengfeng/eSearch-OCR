@@ -149,7 +149,9 @@ async function Det(img: ImageData) {
     return box;
 }
 
-async function Rec(box: { box: BoxType; img: ImageData }[]) {
+type detResultType = { box: BoxType; img: ImageData }[];
+
+async function Rec(box: detResultType) {
     const mainLine: resultType = [];
     task.l("bf_rec");
     const recL = beforeRec(box);
@@ -237,7 +239,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     }
     task2.l("edge");
 
-    const edgeRect: { box: BoxType; boxBetter: BoxType; img: ImageData }[] = [];
+    const edgeRect: detResultType = [];
 
     let src = cvImRead(createImageData(myImageData, w, h));
 
@@ -291,7 +293,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
         const bb = matchBestBox(box, c);
 
-        edgeRect.push({ box: bb, boxBetter: bb, img: c });
+        edgeRect.push({ box: bb, img: c });
     }
     task2.l("e");
 
