@@ -735,7 +735,7 @@ function afAfRec(l: resultType) {
         for (const i in columns) {
             const last = columns[i].at(-1);
             if (!last) continue;
-            const jl = centerPoint(b.box)[1] - centerPoint(last.box)[1];
+            const jl = r(b.box[0], last.box[0]);
             if (jl < _jl) {
                 nearest = Number(i);
                 _jl = jl;
@@ -837,13 +837,13 @@ function afAfRec(l: resultType) {
         let splitGap = 0;
 
         if (Object.keys(gs).length >= 2) {
+            let maxN = Math.max(...Object.values(gs));
             let maxGap = 0;
             let maxGapDelta = 0;
-            const maxN = Math.max(...Object.values(gs));
-            const minX = Math.min(...Object.keys(gs).map(Number));
+            if (Object.values(gs).filter((i) => i === maxN)) maxN++; // 有多个最大值就不去了
             const gapsL = Object.keys(gs)
                 .sort()
-                .map((i) => Number(i) - minX)
+                .map(Number)
                 .filter((g) => gs[g] !== maxN); // 去掉一个最大值
             for (let i = 1; i < gapsL.length; i++) {
                 const delta = Math.abs((gs[gapsL[i]] - gs[gapsL[i - 1]]) / (gapsL[i] - gapsL[i - 1]));
@@ -852,7 +852,7 @@ function afAfRec(l: resultType) {
                     maxGapDelta = delta;
                 }
             }
-            splitGap = maxGap;
+            splitGap = Math.max(maxGap, ((gapsL.at(0) as number) + (gapsL.at(-1) as number)) / 2);
         } else {
             splitGap = Number(Object.keys(gs)[0] || 0);
         }
