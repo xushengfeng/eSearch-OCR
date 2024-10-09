@@ -112,6 +112,10 @@ async function x(img: ImageData) {
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
+    for (const x of box) {
+        drawBox(x.box, "", "black");
+    }
+    // return;
     const newMainLine = afAfRec(mainLine);
     log(mainLine, newMainLine);
     task.l("end");
@@ -233,7 +237,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
     }
     task2.l("edge");
 
-    const edgeRect: { box: BoxType; img: ImageData }[] = [];
+    const edgeRect: { box: BoxType; boxBetter: BoxType; img: ImageData }[] = [];
 
     let src = cvImRead(createImageData(myImageData, w, h));
 
@@ -283,7 +287,11 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
         const c = getRotateCropImage(srcData, box);
 
-        edgeRect.push({ box, img: c });
+        task2.l("match best");
+
+        const bb = matchBestBox(box, c);
+
+        edgeRect.push({ box: bb, boxBetter: bb, img: c });
     }
     task2.l("e");
 
@@ -500,6 +508,77 @@ function getRotateCropImage(img: ImageData, points: BoxType) {
     srcTri.delete();
     dstTri.delete();
     return d;
+}
+
+function matchBestBox(box: BoxType, img: ImageData) {
+    let yFromTop = 0;
+    let yFromBottom = img.height;
+    let xFromLeft = 0;
+    let xFromRight = img.width;
+
+    yt: for (let y = yFromTop; y < img.height; y++) {
+        for (let x = 0; x < img.width; x++) {
+            const pix = getImgPix(img, x, y);
+            if (ld(pix) < 200) {
+                yFromTop = y;
+                break yt;
+            }
+        }
+    }
+
+    yb: for (let y = yFromBottom - 1; y >= 0; y--) {
+        for (let x = 0; x < img.width; x++) {
+            const pix = getImgPix(img, x, y);
+            if (ld(pix) < 200) {
+                yFromBottom = y;
+                break yb;
+            }
+        }
+    }
+
+    xl: for (let x = xFromLeft; x < img.width; x++) {
+        for (let y = yFromTop; y <= yFromBottom; y++) {
+            const pix = getImgPix(img, x, y);
+            if (ld(pix) < 200) {
+                xFromLeft = x;
+                break xl;
+            }
+        }
+    }
+
+    xr: for (let x = xFromRight - 1; x >= 0; x--) {
+        for (let y = yFromTop; y <= yFromBottom; y++) {
+            const pix = getImgPix(img, x, y);
+            if (ld(pix) < 200) {
+                xFromRight = x;
+                break xr;
+            }
+        }
+    }
+
+    const dyT = yFromTop;
+    const dyB = img.height - yFromBottom;
+    const dxL = xFromLeft - 1;
+    const dxR = img.width - xFromRight + 1;
+
+    const newBox = [
+        [box[0][0] + dxL, box[0][1] + dyT],
+        [box[1][0] - dxR, box[1][1] + dyT],
+        [box[2][0] + dxL, box[2][1] - dyB],
+        [box[3][0] - dxR, box[3][1] - dyB],
+    ] as BoxType;
+
+    return newBox;
+}
+
+function getImgPix(img: ImageData, x: number, y: number) {
+    const index = (y * img.width + x) * 4;
+    return img.data.slice(index, index + 4);
+}
+
+function ld(c: Uint8ClampedArray) {
+    const x = (c[0] + c[1] + c[2]) / 3;
+    return x;
 }
 
 function cvImRead(img: ImageData) {
