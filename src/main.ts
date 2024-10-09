@@ -673,6 +673,7 @@ function getImgPix(img: ImageData, x: number, y: number) {
 }
 
 function ld(c: Uint8ClampedArray) {
+    // todo textEdge color
     const x = (c[0] + c[1] + c[2]) / 3;
     return x;
 }
@@ -1028,6 +1029,8 @@ function afAfRec(l: resultType) {
             splitGap = Number(Object.keys(gs)[0] || 0);
         }
         log(splitGap);
+
+        // todo 相差太大也分段
 
         const ps: resultType[] = [[c[0]]];
         for (let i = 1; i < c.length; i++) {
