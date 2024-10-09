@@ -558,8 +558,8 @@ function matchBestBox(box: BoxType, img: ImageData) {
 
     const dyT = yFromTop;
     const dyB = img.height - yFromBottom;
-    const dxL = xFromLeft - 1;
-    const dxR = img.width - xFromRight + 1;
+    const dxL = xFromLeft;
+    const dxR = img.width - xFromRight;
 
     const newBox = [
         [box[0][0] + dxL, box[0][1] + dyT],
