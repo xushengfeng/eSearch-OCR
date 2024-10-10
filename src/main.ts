@@ -592,18 +592,20 @@ function getImgColor(img: ImageData) {
 
     if (areColorsSimilar(textEdge, bg) < colorD) {
         const colorSplit = colorList.slice(1).filter((c) => areColorsSimilar(c.el, bg) > 50);
-        const jq = colorSplit.map((c) => c.el.map((x) => x * c.count)) as color[];
-        const sum = colorSplit.reduce((acc, i) => acc + i.count, 0);
-        text = [0, 1, 2] // rgb各自平均
-            .map((i) =>
-                Math.round(
-                    average(
-                        jq.map((c) => c[i]),
-                        sum,
+        if (colorSplit.length > 0) {
+            const jq = colorSplit.map((c) => c.el.map((x) => x * c.count)) as color[];
+            const sum = colorSplit.reduce((acc, i) => acc + i.count, 0);
+            text = [0, 1, 2] // rgb各自平均
+                .map((i) =>
+                    Math.round(
+                        average(
+                            jq.map((c) => c[i]),
+                            sum,
+                        ),
                     ),
-                ),
-            ) as color;
-        if (areColorsSimilar(text, bg) < colorD) text = bg.map((x) => 255 - x) as color;
+                ) as color;
+        }
+        if (colorSplit.length === 0 || areColorsSimilar(text, bg) < colorD) text = bg.map((x) => 255 - x) as color;
         logColor(`rgb(${text.join(",")})`);
     }
 
