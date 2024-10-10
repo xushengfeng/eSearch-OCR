@@ -200,15 +200,15 @@ async function Rec(box: detResultType) {
     task.l("bf_rec");
     const recL = beforeRec(box);
     let runCount = 0;
-    const recPromises = recL.map(async (item) => {
+    const mainLine0: { text: string; mean: number }[] = [];
+    for (const item of recL) {
         const { b, imgH, imgW } = item;
         const recResults = await runRec(b, imgH, imgW, rec);
         runCount++;
         onProgress("rec", recL.length, runCount);
-        return afterRec(recResults, dic);
-    });
-    const l = await Promise.all(recPromises);
-    const mainLine0 = l.flat().reverse();
+        mainLine0.push(...afterRec(recResults, dic));
+    }
+    mainLine0.reverse();
     task.l("rec_end");
     for (const i in mainLine0) {
         const b = box[mainLine0.length - Number(i) - 1].box;

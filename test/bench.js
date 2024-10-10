@@ -80,7 +80,24 @@ async function start() {
         });
     }
 
+    console.log("bench end");
+
     const log = JSON.parse(fs.readFileSync("log.json").toString());
+
+    /** @type {typeof r} */
+    const lastTest = Object.values(log).at(-1).r;
+
+    for (const i of lastTest) {
+        const name = i.name;
+        const thistest = r.find((x) => x.name === name);
+        if (Math.abs(i.zql - thistest.zql) > 0.01) {
+            console.log("准确率变化：", name, `${i.zql} -> ${thistest.zql}`);
+        }
+        if (Math.abs(i.charsP - thistest.charsP) / thistest.charsP > 0.1) {
+            console.log("字符速度变化：", name, `${i.charsP} -> ${thistest.charsP}`);
+        }
+    }
+
     log[new Date().getTime()] = {
         onnx: "1.19.2",
         type: "node",
