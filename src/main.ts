@@ -105,9 +105,46 @@ async function init(op: {
     return { ocr: x, det: Det, rec: Rec };
 }
 
+type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
+
+async function loadImg(src: loadImgType) {
+    let img: HTMLImageElement | HTMLCanvasElement | ImageData;
+    if (typeof window === "undefined") {
+        const x = src as ImageData;
+        if (!x.data || !x.width || !x.height) throw new Error("invalid image data");
+        return x;
+    }
+    if (typeof src === "string") {
+        img = new Image();
+        img.src = src;
+        await new Promise((resolve) => {
+            (img as HTMLImageElement).onload = resolve;
+        });
+    } else if (src instanceof ImageData) {
+        img = src;
+    } else {
+        img = src;
+    }
+    if (img instanceof HTMLImageElement) {
+        const canvas = newCanvas(img.width, img.height);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("canvas context is null");
+        ctx.drawImage(img, 0, 0);
+        img = ctx.getImageData(0, 0, img.width, img.height);
+    }
+    if (img instanceof HTMLCanvasElement) {
+        const ctx = img.getContext("2d");
+        if (!ctx) throw new Error("canvas context is null");
+        img = ctx.getImageData(0, 0, img.width, img.height);
+    }
+    return img;
+}
+
 /** 主要操作 */
-async function x(img: ImageData) {
+async function x(srcimg: loadImgType) {
     task.l("");
+
+    const img = await loadImg(srcimg);
 
     if (layout) {
         const sr = await runLayout(img, ort, layout, layoutDic);
@@ -129,7 +166,8 @@ async function x(img: ImageData) {
     return { src: mainLine, ...newMainLine };
 }
 
-async function Det(img: ImageData) {
+async function Det(srcimg: loadImgType) {
+    let img = await loadImg(srcimg);
     let h = img.height;
     let w = img.width;
     const _r = 0.6;
@@ -142,7 +180,6 @@ async function Det(img: ImageData) {
         const ctx = c.getContext("2d");
         if (!ctx) throw new Error("canvas context is null");
         ctx.putImageData(img, 0, 0);
-        // biome-ignore lint: 规范化
         img = ctx.getImageData(0, 0, w, h);
     }
 

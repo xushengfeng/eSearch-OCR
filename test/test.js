@@ -19,19 +19,13 @@ async function start() {
             }
         },
     });
-    const img = document.createElement("img");
-    img.src = "imgs/ch.svg";
-    img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext("2d").drawImage(img, 0, 0);
-        x.ocr(canvas.getContext("2d").getImageData(0, 0, img.width, img.height)).then((v) => {
-            for (const i of v.parragraphs) {
-                const p = document.createElement("p");
-                p.innerText = i.text;
-                document.body.append(p);
-            }
-        });
-    };
+    // const src = "imgs/ch.svg";
+    const src = "../c.png";
+    x.ocr(src).then((v) => {
+        for (const i of v.parragraphs) {
+            const p = document.createElement("p");
+            p.innerText = i.text;
+            document.body.append(p);
+        }
+    });
 }

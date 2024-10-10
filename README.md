@@ -48,17 +48,10 @@ await ocr.init({
     ort,
 });
 
-let img = document.createElement("img");
-img.src = "data:image/png;base64,...";
-img.onload = async () => {
-    let canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    canvas.getContext("2d").drawImage(img, 0, 0);
-    ocr.ocr(canvas.getContext("2d").getImageData(0, 0, img.width, img.height))
-        .then((l) => {})
-        .catch((e) => {});
-};
+const url = "data:image/png;base64,...";
+ocr.ocr(url)
+    .then((l) => {})
+    .catch((e) => {});
 ```
 
 或者
