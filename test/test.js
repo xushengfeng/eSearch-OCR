@@ -5,6 +5,8 @@ const ort = require("onnxruntime-node");
 start();
 
 async function start() {
+    const pro = document.createElement("progress");
+    document.body.append(pro);
     await x.init({
         detPath: "./m/v4/ppocr_det.onnx",
         recPath: "./m/v4/ppocr_rec.onnx",
@@ -16,9 +18,14 @@ async function start() {
         onProgress: (t, a, n) => {
             if (t === "rec") {
                 console.log(n / a);
+                pro.value = n / a;
+            }
+            if (t === "det") {
+                pro.value = 1;
             }
         },
     });
+    pro.value = 0;
     // const src = "imgs/ch.svg";
     const src = "../c.png";
     x.ocr(src).then((v) => {
