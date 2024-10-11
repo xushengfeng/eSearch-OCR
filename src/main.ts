@@ -1056,8 +1056,8 @@ function afAfRec(l: resultType) {
             let maxGapDelta = 0;
             if (Object.values(gs).filter((i) => i === maxN)) maxN++; // 有多个最大值就不去了
             const gapsL = Object.keys(gs)
-                .sort()
                 .map(Number)
+                .sort((a, b) => a - b)
                 .filter((g) => gs[g] !== maxN); // 去掉一个最大值
             for (let i = 1; i < gapsL.length; i++) {
                 const delta = Math.abs((gs[gapsL[i]] - gs[gapsL[i - 1]]) / (gapsL[i] - gapsL[i - 1]));
