@@ -588,8 +588,8 @@ function getImgColor(img: ImageData) {
         el: c.el.split(",").map(Number) as color,
         count: c.count,
     }));
-    const bg = colorList[0].el;
-    const textEdge = colorList[1].el;
+    const bg = colorList.at(0)?.el || [255, 255, 255];
+    const textEdge = colorList.at(1)?.el || [0, 0, 0];
 
     let text = textEdge;
 
