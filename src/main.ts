@@ -151,7 +151,6 @@ async function x(srcimg: loadImgType) {
     }
 
     const box = await Det(img);
-    onProgress("det", 1, 1);
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
@@ -183,6 +182,8 @@ async function Det(srcimg: loadImgType) {
         img = ctx.getImageData(0, 0, w, h);
     }
 
+    onProgress("det", 1, 0);
+
     task.l("pre_det");
     const { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
     task.l("det");
@@ -190,6 +191,9 @@ async function Det(srcimg: loadImgType) {
 
     task.l("aft_det");
     const box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
+
+    onProgress("det", 1, 1);
+
     return box;
 }
 
@@ -200,6 +204,7 @@ async function Rec(box: detResultType) {
     task.l("bf_rec");
     const recL = beforeRec(box);
     let runCount = 0;
+    onProgress("rec", recL.length, runCount);
     const mainLine0: { text: string; mean: number }[] = [];
     for (const item of recL) {
         const { b, imgH, imgW } = item;
