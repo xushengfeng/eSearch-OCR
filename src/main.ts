@@ -1108,6 +1108,7 @@ function afAfRec(l: resultType) {
 
     function joinResult(p: resultType) {
         const cjkv = /\p{Ideographic}/u;
+        const cjkf = /[。，！？；：“”‘’《》、【】（）…—]/;
         const res: resultType[0] = {
             box: outerRect(p.map((i) => i.box)),
             text: "",
@@ -1116,7 +1117,12 @@ function afAfRec(l: resultType) {
         };
         for (const i of p) {
             const lastChar = res.text.at(-1);
-            if (lastChar && (!lastChar.match(cjkv) || !i.text.at(0)?.match(cjkv))) res.text += " ";
+            if (
+                lastChar &&
+                ((!lastChar.match(cjkv) && !lastChar.match(cjkf)) ||
+                    (!i.text.at(0)?.match(cjkv) && !i.text.at(0)?.match(cjkf)))
+            )
+                res.text += " ";
             res.text += i.text;
         }
         return res;
