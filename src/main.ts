@@ -347,7 +347,7 @@ function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number,
 
         const { bg, text } = getImgColor(c);
 
-        const bb = matchBestBox(box, c);
+        const bb = matchBestBox(box, c, text);
 
         edgeRect.push({ box: bb, img: c, style: { bg, text } });
     }
@@ -650,16 +650,20 @@ function getHighestFrequency<t>(map: Map<t, number>, c = 1) {
     return l;
 }
 
-function matchBestBox(box: BoxType, img: ImageData) {
+function matchBestBox(box: BoxType, img: ImageData, textEdgeColor: color) {
     let yFromTop = 0;
     let yFromBottom = img.height;
     let xFromLeft = 0;
     let xFromRight = img.width;
 
+    function match(pix: color) {
+        return areColorsSimilar(pix, textEdgeColor) < 200;
+    }
+
     yt: for (let y = yFromTop; y < img.height; y++) {
         for (let x = 0; x < img.width; x++) {
             const pix = getImgPix(img, x, y);
-            if (ld(pix) < 200) {
+            if (match(pix)) {
                 yFromTop = y;
                 break yt;
             }
@@ -669,7 +673,7 @@ function matchBestBox(box: BoxType, img: ImageData) {
     yb: for (let y = yFromBottom - 1; y >= 0; y--) {
         for (let x = 0; x < img.width; x++) {
             const pix = getImgPix(img, x, y);
-            if (ld(pix) < 200) {
+            if (match(pix)) {
                 yFromBottom = y;
                 break yb;
             }
@@ -679,7 +683,7 @@ function matchBestBox(box: BoxType, img: ImageData) {
     xl: for (let x = xFromLeft; x < img.width; x++) {
         for (let y = yFromTop; y <= yFromBottom; y++) {
             const pix = getImgPix(img, x, y);
-            if (ld(pix) < 200) {
+            if (match(pix)) {
                 xFromLeft = x;
                 break xl;
             }
@@ -689,17 +693,17 @@ function matchBestBox(box: BoxType, img: ImageData) {
     xr: for (let x = xFromRight - 1; x >= 0; x--) {
         for (let y = yFromTop; y <= yFromBottom; y++) {
             const pix = getImgPix(img, x, y);
-            if (ld(pix) < 200) {
+            if (match(pix)) {
                 xFromRight = x;
                 break xr;
             }
         }
     }
 
-    const dyT = yFromTop;
-    const dyB = img.height - yFromBottom;
-    const dxL = xFromLeft;
-    const dxR = img.width - xFromRight;
+    const dyT = clip(yFromTop - 1, 0, 4);
+    const dyB = clip(img.height - yFromBottom - 1, 0, 4);
+    const dxL = clip(xFromLeft - 1, 0, 4);
+    const dxR = clip(img.width - xFromRight - 1, 0, 4);
 
     const newBox = [
         [box[0][0] + dxL, box[0][1] + dyT],
@@ -713,13 +717,7 @@ function matchBestBox(box: BoxType, img: ImageData) {
 
 function getImgPix(img: ImageData, x: number, y: number) {
     const index = (y * img.width + x) * 4;
-    return img.data.slice(index, index + 4);
-}
-
-function ld(c: Uint8ClampedArray) {
-    // todo textEdge color
-    const x = (c[0] + c[1] + c[2]) / 3;
-    return x;
+    return Array.from(img.data.slice(index, index + 4)) as color;
 }
 
 function cvImRead(img: ImageData) {

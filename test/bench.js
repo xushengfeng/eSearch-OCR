@@ -40,7 +40,7 @@ async function start() {
 
     const r = [];
 
-    for (const i of ["0", "ch", "en"]) {
+    for (const i of ["ch", "en", "bg1", "bg2"]) {
         const zqls = [];
         const times = [];
         const srcText = fs.readFileSync(`imgs/${i}.txt`).toString();
@@ -89,7 +89,7 @@ async function start() {
 
     for (const i of lastTest) {
         const name = i.name;
-        const thistest = r.find((x) => x.name === name);
+        const thistest = r.find((x) => x.name === name) || { zql: 0, charsP: 0 };
         if (Math.abs(i.zql - thistest.zql) > 0.01) {
             console.log("准确率变化：", name, `${i.zql} -> ${thistest.zql}`);
         }
