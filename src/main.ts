@@ -598,16 +598,9 @@ function getImgColor(img: ImageData) {
     if (areColorsSimilar(textEdge, bg) < colorD) {
         const colorSplit = colorList.slice(1).filter((c) => areColorsSimilar(c.el, bg) > 50);
         if (colorSplit.length > 0) {
-            const jq = colorSplit.map((c) => c.el.map((x) => x * c.count)) as color[];
-            const sum = colorSplit.reduce((acc, i) => acc + i.count, 0);
             text = [0, 1, 2] // rgb各自平均
                 .map((i) =>
-                    Math.round(
-                        average(
-                            jq.map((c) => c[i]),
-                            sum,
-                        ),
-                    ),
+                    Math.round(average2(colorSplit.map((c) => [c.el[i], c.count] as [number, number]))),
                 ) as color;
         }
         if (colorSplit.length === 0 || areColorsSimilar(text, bg) < colorD) text = bg.map((x) => 255 - x) as color;
@@ -1140,8 +1133,8 @@ function afAfRec(l: resultType) {
     };
 }
 
-function average(args: number[], v = args.length) {
-    return args.reduce((a, b) => a + b, 0) / v;
+function average(args: number[]) {
+    return args.reduce((a, b) => a + b, 0) / args.length;
 }
 function average2(args: [number, number][]) {
     const xsum = args.map((i) => i[1]).reduce((a, b) => a + b, 0);
