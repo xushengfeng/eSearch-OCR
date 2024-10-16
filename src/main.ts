@@ -32,6 +32,9 @@ let createImageData = (data: Uint8ClampedArray, w: number, h: number) => {
 function log(...args: any[]) {
     if (dev) console.log(...args);
 }
+function logSrc(...args: any[]) {
+    if (dev) console.log(...args.map((i) => structuredClone(i)));
+}
 
 function logColor(...args: string[]) {
     if (dev) {
@@ -848,7 +851,7 @@ function afAfRec(l: resultType) {
         }
         const thisCy = (j.box[2][1] + j.box[0][1]) / 2;
         const lastCy = (last.box[2][1] + last.box[0][1]) / 2;
-        if (Math.abs(thisCy - lastCy) < 0.5 * (j.box[2][1] - j.box[0][1])) {
+        if (Math.abs(thisCy - lastCy) < 0.5 * (j.box[3][1] - j.box[0][1])) {
             const lLast = newLZ.at(-1);
             if (!lLast) {
                 newLZ.push([j]);
@@ -868,7 +871,7 @@ function afAfRec(l: resultType) {
             continue;
         }
 
-        const em = average(l.map((i) => i.box[2][1] - i.box[0][1]));
+        const em = average(l.map((i) => i.box[3][1] - i.box[0][1]));
         l.sort((a, b) => a.box[0][0] - b.box[0][0]);
 
         let last = l.at(0) as resultType[0];
@@ -893,13 +896,13 @@ function afAfRec(l: resultType) {
 
     const columns: resultType[] = [];
 
-    const maxY = newL.reduce((a, b) => Math.max(a, b?.box[2][1] ?? 0), 0);
+    const maxY = newL.reduce((a, b) => Math.max(a, Math.max(b?.box[2][1] ?? 0, b?.box[3][1] ?? 0)), 0);
     for (let i = 0; i <= maxY; i++) {
         for (const j in newL) {
             const b = newL[j];
             if (!b) continue;
             if (b.box[0][1] > i) break;
-            if (b.box[0][1] <= i && i <= b.box[2][1]) {
+            if (b.box[0][1] <= i && i <= b.box[3][1]) {
                 pushColumn(b);
                 newL[j] = null;
             }
@@ -957,7 +960,7 @@ function afAfRec(l: resultType) {
         const thisW = b.box[1][0] - b.box[0][0];
         const lastW = last.box[1][0] - last.box[0][0];
         const minW = Math.min(thisW, lastW);
-        const em = b.box[2][1] - b.box[0][1];
+        const em = b.box[3][1] - b.box[0][1];
 
         if (
             // 左右至少有一边是相近的，中心距离要相近
