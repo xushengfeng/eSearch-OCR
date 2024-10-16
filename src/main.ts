@@ -1112,7 +1112,7 @@ function afAfRec(l: resultType) {
         const res: resultType[0] = {
             box: outerRect(p.map((i) => i.box)),
             text: "",
-            mean: average(p.map((i) => i.mean)),
+            mean: average2(p.map((i) => [i.mean, i.text.length])),
             style: p[0].style,
         };
         for (const i of p) {
@@ -1142,6 +1142,14 @@ function afAfRec(l: resultType) {
 
 function average(args: number[], v = args.length) {
     return args.reduce((a, b) => a + b, 0) / v;
+}
+function average2(args: [number, number][]) {
+    const xsum = args.map((i) => i[1]).reduce((a, b) => a + b, 0);
+    let n = 0;
+    for (const i of args) {
+        n += (i[0] * i[1]) / xsum;
+    }
+    return n;
 }
 
 function drawBox(box: BoxType, id = "", color = "red") {
