@@ -48,9 +48,9 @@ await ocr.init({
     ort,
 });
 
-const url = "data:image/png;base64,...";
+const url = "data:image/png;base64,..."; // 还支持 HTMLImageElement | HTMLCanvasElement | ImageData
 ocr.ocr(url)
-    .then((l) => {})
+    .then((result) => {}) // 见下面的解释
     .catch((e) => {});
 ```
 
@@ -92,15 +92,37 @@ init type
 }
 ```
 
-ocr type
+对于返回的值
 
-```typescript
-type PointType = [number, number]
-ocr(img: ImageData): Promise<{
+```ts
+type resultType = {
     text: string;
     mean: number;
-    box: [PointType, PointType, PointType, PointType]; // ↖ ↗ ↘ ↙
-}[]>
+    box: BoxType; // ↖ ↗ ↘ ↙
+    style: { bg: color; text: color }; // rgb数组，表示背景颜色和文字颜色，在简单移除文字时非常有用
+}[];
+
+{
+    src: resultType; // 每个视觉行，rec输出
+    columns: {
+        // 分栏，如左右分栏
+        src: resultType;
+        outerBox: BoxType;
+        parragraphs: {
+            src: resultType;
+            parse: resultType[0];
+        }
+        [];
+    }
+    [];
+    parragraphs: resultType; // 聚合了columns的每个段落
+}
 ```
 
-除了 ocr 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看编辑器提示
+合并的文字可以使用
+
+```js
+result.parragraphs.map((item) => item.text).join("\n");
+```
+
+除了 `ocr` 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看类型提示。
