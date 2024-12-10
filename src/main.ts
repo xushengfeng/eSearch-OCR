@@ -227,7 +227,7 @@ async function Rec(box: detResultType) {
             style: box[mainLine0.length - Number(i) - 1].style,
         };
     }
-    return mainLine.filter((x) => x.mean >= 0.5);
+    return mainLine.filter((x) => x.mean >= 0.5) as resultType;
 }
 
 async function runDet(transposedData: number[][][], image: ImageData, det: SessionType) {
@@ -1084,7 +1084,11 @@ function afAfRec(l: resultType) {
             }
         }
         log(ps);
-        return { src: c, outerBox: v.outerBox, parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) })) };
+        return {
+            src: c,
+            outerBox: v.outerBox,
+            parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) as resultType[0] })),
+        };
     });
 
     if (dev) {
@@ -1100,7 +1104,7 @@ function afAfRec(l: resultType) {
         }
     }
 
-    const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse));
+    const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse)) as resultType;
 
     function joinResult(p: resultType) {
         const cjkv = /\p{Ideographic}/u;
