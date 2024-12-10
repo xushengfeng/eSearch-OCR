@@ -28,13 +28,17 @@ export function clip(n: number, min: number, max: number) {
 export function resizeImg(data: ImageData, w: number, h: number) {
     const x = data2canvas(data);
     const src = newCanvas(w, h);
-    src.getContext("2d").scale(w / data.width, h / data.height);
-    src.getContext("2d").drawImage(x, 0, 0);
-    return src.getContext("2d").getImageData(0, 0, w, h);
+    const ctx = src.getContext("2d");
+    if (!ctx) throw new Error("canvas context is null");
+    ctx.scale(w / data.width, h / data.height);
+    ctx.drawImage(x, 0, 0);
+    return ctx.getImageData(0, 0, w, h);
 }
 export function data2canvas(data: ImageData, w?: number, h?: number) {
     const x = newCanvas(w || data.width, h || data.height);
-    x.getContext("2d").putImageData(data, 0, 0);
+    const ctx = x.getContext("2d");
+    if (!ctx) throw new Error("canvas context is null");
+    ctx.putImageData(data, 0, 0);
     return x;
 }
 export function toPaddleInput(image: ImageData, mean: number[], std: number[]) {
@@ -87,7 +91,7 @@ export class tLog {
             const t = i.c > 1 ? `${i.n}x${i.c}` : i.n;
             x.push(`${t} ${i.d}`);
         }
-        x.push(this.tl.at(-1).t);
+        x.push((this.tl.at(-1) as (typeof this.tl)[0]).t);
         console.log(`${this.name} ${l.map((i) => i.d).reduce((p, c) => p + c, 0)}ms: `, x.join(" "));
     }
 }
