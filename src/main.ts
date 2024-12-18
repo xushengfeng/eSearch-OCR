@@ -53,7 +53,7 @@ let dic: string[];
 let limitSideLen = 960;
 let imgH = 48;
 let imgW = 320;
-let detShape = [Number.NaN, Number.NaN];
+let detShape = [Number.NaN, Number.NaN] as [number, number];
 let layoutDic: string[];
 
 let onProgress = (type: "det" | "rec", total: number, count: number) => {};
@@ -153,7 +153,7 @@ async function x(srcimg: loadImgType) {
         const sr = await runLayout(img, ort, layout, layoutDic);
     }
 
-    const box = await Det(img);
+    const box = await Det(img, detShape, "resize");
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
@@ -168,26 +168,16 @@ async function x(srcimg: loadImgType) {
     return { src: mainLine, ...newMainLine };
 }
 
-async function Det(srcimg: loadImgType) {
-    let img = await loadImg(srcimg);
-    let h = img.height;
-    let w = img.width;
-    const _r = 0.6;
-    const _h = h;
-    const _w = w;
-    if (_h < _w * _r || _w < _h * _r) {
-        if (_h < _w * _r) h = Math.floor(_w * _r);
-        if (_w < _h * _r) w = Math.floor(_h * _r);
-        const c = newCanvas(w, h);
-        const ctx = c.getContext("2d");
-        if (!ctx) throw new Error("canvas context is null");
-        ctx.putImageData(img, 0, 0);
-        img = ctx.getImageData(0, 0, w, h);
-    }
+async function Det(
+    srcimg: loadImgType,
+    detShape: [number, number] = [Number.NaN, Number.NaN],
+    type: "clip" | "resize" = "clip", // todo 视网膜屏幕视频 添加ratio选项
+) {
+    const img = await loadImg(srcimg);
 
     task.l("pre_det");
     const detData: detDataType = [];
-    const beforeDetData = beforeDet(img, detShape[0], detShape[1]);
+    const beforeDetData = beforeDet(img, detShape, type);
     for (const [i, { transposedData, image, x, y }] of beforeDetData.entries()) {
         task.l("det");
         onProgress("det", beforeDetData.length, i);
@@ -255,7 +245,8 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
     return recResults[rec.outputNames[0]];
 }
 
-function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
+function beforeDet(image: ImageData, [shapeH, shapeW]: [number, number], type: "clip" | "resize") {
+    const datas: { transposedData: number[][][]; image: ImageData; x: number; y: number }[] = [];
     let ratio = 1;
     const h = image.height;
     const w = image.width;
