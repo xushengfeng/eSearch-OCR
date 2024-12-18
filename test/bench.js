@@ -40,10 +40,10 @@ async function start() {
 
     const r = [];
 
-    for (const i of ["ch", "en", "bg1", "bg2"]) {
+    for (const i of ["ch", "en", "bg1", "bg2", "long", "long_small"]) {
         const zqls = [];
         const times = [];
-        const srcText = fs.readFileSync(`imgs/${i}.txt`).toString();
+        const srcText = fs.readFileSync(`imgs/${i}.txt`).toString().trim();
         for (let c = 0; c < 9; c++) {
             const data = await load(`imgs/${i}.svg`);
             const text = [];

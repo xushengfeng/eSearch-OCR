@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="60"
+   height="200"
+   viewBox="0 0 15.874996 52.916666"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   sodipodi:docname="long_small.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="2.9070177"
+     inkscape:cx="27.863607"
+     inkscape:cy="84.622808"
+     inkscape:window-width="1920"
+     inkscape:window-height="1020"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <rect
+       x="121.9769"
+       y="202.50143"
+       width="637.24738"
+       height="698.68866"
+       id="rect1" />
+  </defs>
+  <g
+     inkscape:label="图层 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#e6e6e6;stroke-width:0.460593;stroke-linecap:round;stroke-linejoin:round"
+       id="rect2"
+       width="15.875"
+       height="52.916668"
+       x="0"
+       y="-6.357829e-07" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-28.331734,-44.976815)"
+       id="text1"
+       style="font-size:16px;line-height:1.25;font-family:sans-serif;white-space:pre;shape-inside:url(#rect1);display:inline"><tspan
+         x="121.97656"
+         y="218.10195"
+         id="tspan1">你好
+</tspan><tspan
+         x="121.97656"
+         y="238.10195"
+         id="tspan2">世界
+</tspan><tspan
+         x="121.97656"
+         y="258.10195"
+         id="tspan3">用于
+</tspan><tspan
+         x="121.97656"
+         y="278.10195"
+         id="tspan4">测试
+</tspan><tspan
+         x="121.97656"
+         y="298.10195"
+         id="tspan5">长条
+</tspan><tspan
+         x="121.97656"
+         y="318.10195"
+         id="tspan6">竖排</tspan></text>
+  </g>
+</svg>
