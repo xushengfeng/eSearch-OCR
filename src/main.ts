@@ -307,10 +307,13 @@ type detDataType = {
     y: number;
 }[];
 
-function afterDet(dataSet: detDataType, w: number, h: number, srcData: ImageData) {
+function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcData: ImageData) {
     task2.l("");
 
     task2.l("join");
+    // 考虑到fill模式，小的不变动
+    const w = Math.min(srcData.width, _resizeW);
+    const h = Math.min(srcData.height, _resizeH);
     const canvas = newCanvas(w, h);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("canvas context is null");
