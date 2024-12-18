@@ -178,7 +178,7 @@ async function Det(
 
     task.l("pre_det");
     const detData: detDataType = [];
-    const beforeDetData = beforeDet(img, detShape, type);
+    const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img, detShape, type);
     for (const [i, { transposedData, image, x, y }] of beforeDetData.entries()) {
         task.l("det");
         onProgress("det", beforeDetData.length, i);
@@ -187,7 +187,7 @@ async function Det(
     }
 
     task.l("aft_det");
-    const box = afterDet(detData, img);
+    const box = afterDet(detData, resizeW, resizeH, img);
 
     onProgress("det", 1, 1);
 
@@ -268,7 +268,7 @@ function beforeDet(srcImg: ImageData, [shapeH, shapeW]: [number, number], type: 
             const srcCanvas = data2canvas(image);
             putImgDom(srcCanvas);
         }
-        return [{ transposedData, image, x: 0, y: 0 }];
+        return { data: [{ transposedData, image, x: 0, y: 0 }], width: resizeW, height: resizeH };
     }
     // clip
 
@@ -296,7 +296,7 @@ function beforeDet(srcImg: ImageData, [shapeH, shapeW]: [number, number], type: 
         }
     }
 
-    return datas;
+    return { data: datas, width: resizeW, height: resizeH };
 }
 
 type detDataType = {
@@ -307,21 +307,30 @@ type detDataType = {
     y: number;
 }[];
 
-function afterDet(dataSet: detDataType, srcData: ImageData) {
+function afterDet(dataSet: detDataType, w: number, h: number, srcData: ImageData) {
     task2.l("");
-    const { data, width: w, height: h } = dataSet[0]; // todo 拼接
-    const myImageData = new Uint8ClampedArray(w * h * 4);
-    for (let i = 0; i < data.length; i++) {
-        const n = i * 4;
-        const v = (data[i] as number) > 0.3 ? 255 : 0;
-        myImageData[n] = myImageData[n + 1] = myImageData[n + 2] = v;
-        myImageData[n + 3] = 255;
+
+    task2.l("join");
+    const canvas = newCanvas(w, h);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas context is null");
+    for (const { data, width, height, x, y } of dataSet) {
+        const clipData = new Uint8ClampedArray(width * height * 4);
+        for (let i = 0; i < data.length; i++) {
+            const n = i * 4;
+            const v = (data[i] as number) > 0.3 ? 255 : 0;
+            clipData[n] = clipData[n + 1] = clipData[n + 2] = v;
+            clipData[n + 3] = 255;
+        }
+        ctx.putImageData(createImageData(clipData, width, height), x, y);
     }
+    const myImageData = ctx.getImageData(0, 0, w, h);
+
     task2.l("edge");
 
     const edgeRect: detResultType = [];
 
-    let src = cvImRead(createImageData(myImageData, w, h));
+    let src = cvImRead(myImageData);
 
     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
     let contours = new cv.MatVector();
