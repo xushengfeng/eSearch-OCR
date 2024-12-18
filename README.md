@@ -2,7 +2,7 @@
 
 本仓库是 [eSearch](https://github.com/xushengfeng/eSearch)的 OCR 服务依赖
 
-支持本地 OCR（基于 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)）
+支持本地 OCR（基于 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)v4）
 
 [PaddleOCR License](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.4/LICENSE)
 
@@ -82,10 +82,7 @@ init type
     recPath: string;
     dic: string; // 文件内容，不是路径
     dev?: boolean;
-    maxSide?: number;
     imgh?: number;
-    imgw?: number;
-    detShape?: [number, number]; // ppocr v3 需要指定为[960, 960], v4 为[640, 640]
     canvas?: (w: number, h: number) => any; // 用于node
     imageData?: any; // 用于node
     cv?: any;
