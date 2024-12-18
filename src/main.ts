@@ -176,6 +176,11 @@ async function Det(
 ) {
     const img = await loadImg(srcimg);
 
+    if (dev) {
+        const srcCanvas = data2canvas(img);
+        putImgDom(srcCanvas);
+    }
+
     task.l("pre_det");
     const detData: detDataType = [];
     const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img, detShape, type);
