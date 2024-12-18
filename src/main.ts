@@ -14,6 +14,7 @@ import {
     int,
     tLog,
     clip,
+    resizeImgC,
 } from "./untils";
 
 const task = new tLog("t");
@@ -153,7 +154,7 @@ async function x(srcimg: loadImgType) {
         const sr = await runLayout(img, ort, layout, layoutDic);
     }
 
-    const box = await Det(img, detShape, "resize");
+    const box = await Det(img, detShape, "clip");
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
@@ -270,6 +271,30 @@ function beforeDet(srcImg: ImageData, [shapeH, shapeW]: [number, number], type: 
         return [{ transposedData, image, x: 0, y: 0 }];
     }
     // clip
+
+    const wNum = Math.max(Math.floor(srcImg.width / shapeW), 1);
+    const hNum = Math.max(Math.floor(srcImg.height / shapeH), 1);
+
+    const resizeW = wNum * shapeW;
+    const resizeH = hNum * shapeH;
+
+    log("resizeW", resizeW, "resizeH", resizeH);
+
+    const image = resizeImgC(srcImg, resizeW, resizeH, "fill");
+
+    for (let ny = 0; ny < hNum; ny++) {
+        for (let nx = 0; nx < wNum; nx++) {
+            const x = nx * shapeW;
+            const y = ny * shapeH;
+            const imageData = image.getImageData(x, y, shapeW, shapeH);
+            const transposedData = toPaddleInput(imageData, paddleArg1, paddleArg2);
+            if (dev) {
+                const srcCanvas = data2canvas(imageData);
+                putImgDom(srcCanvas);
+            }
+            datas.push({ transposedData, image: imageData, x: x, y: y });
+        }
+    }
 
     return datas;
 }

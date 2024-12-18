@@ -27,6 +27,18 @@ export function clip(n: number, min: number, max: number) {
  * @param  fill 小于输出宽高的部分填充还是拉伸
  */
 export function resizeImg(data: ImageData, w: number, h: number, fill?: "fill") {
+    const ctx = resizeImgC(data, w, h, fill);
+    return ctx.getImageData(0, 0, w, h);
+}
+
+/**
+ *
+ * @param  data 原图
+ * @param  w 输出宽
+ * @param  h 输出高
+ * @param  fill 小于输出宽高的部分填充还是拉伸
+ */
+export function resizeImgC(data: ImageData, w: number, h: number, fill?: "fill") {
     const x = data2canvas(data);
     const src = newCanvas(w, h);
     const ctx = src.getContext("2d");
@@ -37,7 +49,7 @@ export function resizeImg(data: ImageData, w: number, h: number, fill?: "fill") 
         ctx.scale(w / data.width, h / data.height);
     }
     ctx.drawImage(x, 0, 0);
-    return ctx.getImageData(0, 0, w, h);
+    return ctx;
 }
 export function data2canvas(data: ImageData, w?: number, h?: number) {
     const x = newCanvas(w || data.width, h || data.height);
