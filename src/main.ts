@@ -185,15 +185,18 @@ async function Det(srcimg: loadImgType) {
         img = ctx.getImageData(0, 0, w, h);
     }
 
-    onProgress("det", 1, 0);
-
     task.l("pre_det");
-    const { transposedData, image } = beforeDet(img, detShape[0], detShape[1]);
-    task.l("det");
-    const detResults = await runDet(transposedData, image, det);
+    const detData: detDataType = [];
+    const beforeDetData = beforeDet(img, detShape[0], detShape[1]);
+    for (const [i, { transposedData, image, x, y }] of beforeDetData.entries()) {
+        task.l("det");
+        onProgress("det", beforeDetData.length, i);
+        const detResults = await runDet(transposedData, image, det);
+        detData.push({ data: detResults.data, width: detResults.dims[3], height: detResults.dims[2], x, y });
+    }
 
     task.l("aft_det");
-    const box = afterDet(detResults.data, detResults.dims[3], detResults.dims[2], img);
+    const box = afterDet(detData, img);
 
     onProgress("det", 1, 1);
 
@@ -282,11 +285,20 @@ function beforeDet(image: ImageData, shapeH: number, shapeW: number) {
         const srcCanvas = data2canvas(image);
         putImgDom(srcCanvas);
     }
-    return { transposedData, image };
+    return [{ transposedData, image, x: 0, y: 0 }];
 }
 
-function afterDet(data: AsyncType<ReturnType<typeof runDet>>["data"], w: number, h: number, srcData: ImageData) {
+type detDataType = {
+    data: AsyncType<ReturnType<typeof runDet>>["data"];
+    width: number;
+    height: number;
+    x: number;
+    y: number;
+}[];
+
+function afterDet(dataSet: detDataType, srcData: ImageData) {
     task2.l("");
+    const { data, width: w, height: h } = dataSet[0]; // todo 拼接
     const myImageData = new Uint8ClampedArray(w * h * 4);
     for (let i = 0; i < data.length; i++) {
         const n = i * 4;
