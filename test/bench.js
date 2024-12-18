@@ -24,12 +24,13 @@ async function load(src) {
 }
 
 async function start() {
+    const detRatio = 0.75;
     const ocr = await x.init({
         detPath: "./m/v4/ppocr_det.onnx",
         recPath: "./m/v4/ppocr_rec.onnx",
         dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
         layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
-        detShape: [640, 640],
+        detRatio,
         ort,
         onProgress: (t, a, n) => {
             if (t === "rec") {
@@ -102,6 +103,7 @@ async function start() {
         onnx: "1.19.2",
         type: "node",
         provider: "cpu",
+        detRatio,
         r,
     };
     fs.writeFileSync("log.json", JSON.stringify(log, null, 2));

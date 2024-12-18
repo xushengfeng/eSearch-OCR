@@ -51,6 +51,7 @@ let rec: SessionType;
 let layout: SessionType;
 let dic: string[];
 let imgH = 48;
+let detRatio = 1;
 let layoutDic: string[];
 
 let onProgress = (type: "det" | "rec", total: number, count: number) => {};
@@ -63,6 +64,7 @@ async function init(op: {
     layoutDic?: string;
     dev?: boolean;
     imgh?: number;
+    detRatio?: number;
     ort: typeof import("onnxruntime-common");
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
 
@@ -91,6 +93,7 @@ async function init(op: {
     }
     layoutDic = op.layoutDic?.split(/\r\n|\r|\n/) || [];
     if (op.imgh) imgH = op.imgh;
+    if (op.detRatio) detRatio = op.detRatio;
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
     if (op.cv) cv = op.cv;
@@ -240,8 +243,8 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
 }
 
 function beforeDet(srcImg: ImageData) {
-    const resizeH = Math.max(Math.round(srcImg.height / 32) * 32, 32);
-    const resizeW = Math.max(Math.round(srcImg.width / 32) * 32, 32);
+    const resizeH = Math.max(Math.round((srcImg.height * detRatio) / 32) * 32, 32);
+    const resizeW = Math.max(Math.round((srcImg.width * detRatio) / 32) * 32, 32);
 
     if (dev) {
         const srcCanvas = data2canvas(srcImg);
