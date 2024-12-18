@@ -50,10 +50,7 @@ let det: SessionType;
 let rec: SessionType;
 let layout: SessionType;
 let dic: string[];
-let limitSideLen = 960;
 let imgH = 48;
-let imgW = 320;
-let detShape = [960, 960] as [number, number];
 let layoutDic: string[];
 
 let onProgress = (type: "det" | "rec", total: number, count: number) => {};
@@ -65,11 +62,8 @@ async function init(op: {
     dic?: string;
     layoutDic?: string;
     dev?: boolean;
-    maxSide?: number;
     imgh?: number;
-    imgw?: number;
     ort: typeof import("onnxruntime-common");
-    detShape?: [number, number];
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
 
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -96,10 +90,7 @@ async function init(op: {
         dic.push(" ");
     }
     layoutDic = op.layoutDic?.split(/\r\n|\r|\n/) || [];
-    if (op.maxSide) limitSideLen = op.maxSide;
     if (op.imgh) imgH = op.imgh;
-    if (op.imgw) imgW = op.imgw;
-    if (op.detShape) detShape = op.detShape;
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
     if (op.cv) cv = op.cv;
