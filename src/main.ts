@@ -53,7 +53,7 @@ let dic: string[];
 let limitSideLen = 960;
 let imgH = 48;
 let imgW = 320;
-let detShape = [Number.NaN, Number.NaN] as [number, number];
+let detShape = [640, 640] as [number, number];
 let layoutDic: string[];
 
 let onProgress = (type: "det" | "rec", total: number, count: number) => {};
@@ -247,26 +247,15 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
 
 function beforeDet(image: ImageData, [shapeH, shapeW]: [number, number], type: "clip" | "resize") {
     const datas: { transposedData: number[][][]; image: ImageData; x: number; y: number }[] = [];
-    let ratio = 1;
-    const h = image.height;
-    const w = image.width;
-    if (Math.max(h, w) > limitSideLen) {
-        if (h > w) {
-            ratio = limitSideLen / h;
-        } else {
-            ratio = limitSideLen / w;
-        }
-    }
-    let resizeH = shapeH || h * ratio;
-    let resizeW = shapeW || w * ratio;
+
+    const resizeH = shapeH;
+    const resizeW = shapeW;
 
     if (dev) {
         const srcCanvas = data2canvas(image);
         putImgDom(srcCanvas);
     }
 
-    resizeH = Math.max(Math.round(resizeH / 32) * 32, 32);
-    resizeW = Math.max(Math.round(resizeW / 32) * 32, 32);
     // biome-ignore lint: 规范化
     image = resizeImg(image, resizeW, resizeH);
 
