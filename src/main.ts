@@ -14,7 +14,6 @@ import {
     int,
     tLog,
     clip,
-    resizeImgC,
 } from "./untils";
 
 const task = new tLog("t");
@@ -54,7 +53,7 @@ let dic: string[];
 let limitSideLen = 960;
 let imgH = 48;
 let imgW = 320;
-let detShape = [640, 640] as [number, number];
+let detShape = [960, 960] as [number, number];
 let layoutDic: string[];
 
 let onProgress = (type: "det" | "rec", total: number, count: number) => {};
@@ -154,7 +153,7 @@ async function x(srcimg: loadImgType) {
         const sr = await runLayout(img, ort, layout, layoutDic);
     }
 
-    const box = await Det(img, detShape, "clip");
+    const box = await Det(img);
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
@@ -169,11 +168,7 @@ async function x(srcimg: loadImgType) {
     return { src: mainLine, ...newMainLine };
 }
 
-async function Det(
-    srcimg: loadImgType,
-    detShape: [number, number] = [Number.NaN, Number.NaN],
-    type: "clip" | "resize" = "clip", // todo 视网膜屏幕视频 添加ratio选项
-) {
+async function Det(srcimg: loadImgType) {
     const img = await loadImg(srcimg);
 
     if (dev) {
@@ -182,17 +177,19 @@ async function Det(
     }
 
     task.l("pre_det");
-    const detData: detDataType = [];
-    const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img, detShape, type);
-    for (const [i, { transposedData, image, x, y }] of beforeDetData.entries()) {
-        task.l("det");
-        onProgress("det", beforeDetData.length, i);
-        const detResults = await runDet(transposedData, image, det);
-        detData.push({ data: detResults.data, width: detResults.dims[3], height: detResults.dims[2], x, y });
-    }
+    const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img);
+    const { transposedData, image } = beforeDetData;
+    task.l("det");
+    onProgress("det", 1, 0);
+    const detResults = await runDet(transposedData, image, det);
 
     task.l("aft_det");
-    const box = afterDet(detData, resizeW, resizeH, img);
+    const box = afterDet(
+        { data: detResults.data, width: detResults.dims[3], height: detResults.dims[2] },
+        resizeW,
+        resizeH,
+        img,
+    );
 
     onProgress("det", 1, 1);
 
@@ -251,88 +248,54 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
     return recResults[rec.outputNames[0]];
 }
 
-function beforeDet(srcImg: ImageData, [shapeH, shapeW]: [number, number], type: "clip" | "resize") {
-    const datas: { transposedData: number[][][]; image: ImageData; x: number; y: number }[] = [];
-    const paddleArg1 = [0.485, 0.456, 0.406];
-    const paddleArg2 = [0.229, 0.224, 0.225];
+function beforeDet(srcImg: ImageData) {
+    const resizeH = Math.max(Math.round(srcImg.height / 32) * 32, 32);
+    const resizeW = Math.max(Math.round(srcImg.width / 32) * 32, 32);
 
-    if (type === "resize") {
-        const resizeH = shapeH;
-        const resizeW = shapeW;
-
-        if (dev) {
-            const srcCanvas = data2canvas(srcImg);
-            putImgDom(srcCanvas);
-        }
-
-        const image = resizeImg(srcImg, resizeW, resizeH, "fill");
-
-        const transposedData = toPaddleInput(image, paddleArg1, paddleArg2);
-        log(image);
-        if (dev) {
-            const srcCanvas = data2canvas(image);
-            putImgDom(srcCanvas);
-        }
-        return { data: [{ transposedData, image, x: 0, y: 0 }], width: resizeW, height: resizeH };
-    }
-    // clip
-
-    const wNum = Math.max(Math.floor(srcImg.width / shapeW), 1);
-    const hNum = Math.max(Math.floor(srcImg.height / shapeH), 1);
-
-    const resizeW = wNum * shapeW;
-    const resizeH = hNum * shapeH;
-
-    log("resizeW", resizeW, "resizeH", resizeH);
-
-    const image = resizeImgC(srcImg, resizeW, resizeH, "fill");
-
-    for (let ny = 0; ny < hNum; ny++) {
-        for (let nx = 0; nx < wNum; nx++) {
-            const x = nx * shapeW;
-            const y = ny * shapeH;
-            const imageData = image.getImageData(x, y, shapeW, shapeH);
-            const transposedData = toPaddleInput(imageData, paddleArg1, paddleArg2);
-            if (dev) {
-                const srcCanvas = data2canvas(imageData);
-                putImgDom(srcCanvas);
-            }
-            datas.push({ transposedData, image: imageData, x: x, y: y });
-        }
+    if (dev) {
+        const srcCanvas = data2canvas(srcImg);
+        putImgDom(srcCanvas);
     }
 
-    return { data: datas, width: resizeW, height: resizeH };
+    const image = resizeImg(srcImg, resizeW, resizeH, "fill");
+
+    const transposedData = toPaddleInput(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
+    log(image);
+    if (dev) {
+        const srcCanvas = data2canvas(image);
+        putImgDom(srcCanvas);
+    }
+    return { data: { transposedData, image }, width: resizeW, height: resizeH };
 }
 
 type detDataType = {
     data: AsyncType<ReturnType<typeof runDet>>["data"];
     width: number;
     height: number;
-    x: number;
-    y: number;
-}[];
+};
 
 function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcData: ImageData) {
     task2.l("");
 
-    task2.l("join");
     // 考虑到fill模式，小的不变动
     const w = Math.min(srcData.width, _resizeW);
     const h = Math.min(srcData.height, _resizeH);
-    const canvas = newCanvas(w, h);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("canvas context is null");
-    for (const { data, width, height, x, y } of dataSet) {
-        const clipData = new Uint8ClampedArray(width * height * 4);
-        for (let i = 0; i < data.length; i++) {
-            const n = i * 4;
-            const v = (data[i] as number) > 0.3 ? 255 : 0;
-            clipData[n] = clipData[n + 1] = clipData[n + 2] = v;
-            clipData[n + 3] = 255;
-        }
-        ctx.putImageData(createImageData(clipData, width, height), x, y);
+
+    const { data, width, height } = dataSet;
+    const clipData = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < data.length; i++) {
+        const n = i * 4;
+        const v = (data[i] as number) > 0.3 ? 255 : 0;
+        clipData[n] = clipData[n + 1] = clipData[n + 2] = v;
+        clipData[n + 3] = 255;
     }
-    const myImageData = ctx.getImageData(0, 0, w, h);
+
+    const myImageData = createImageData(clipData, width, height);
+
+    if (dev) {
+        const srcCanvas = data2canvas(myImageData);
+        putImgDom(srcCanvas);
+    }
 
     task2.l("edge");
 
