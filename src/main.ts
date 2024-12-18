@@ -245,27 +245,33 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
     return recResults[rec.outputNames[0]];
 }
 
-function beforeDet(image: ImageData, [shapeH, shapeW]: [number, number], type: "clip" | "resize") {
+function beforeDet(srcImg: ImageData, [shapeH, shapeW]: [number, number], type: "clip" | "resize") {
     const datas: { transposedData: number[][][]; image: ImageData; x: number; y: number }[] = [];
+    const paddleArg1 = [0.485, 0.456, 0.406];
+    const paddleArg2 = [0.229, 0.224, 0.225];
 
-    const resizeH = shapeH;
-    const resizeW = shapeW;
+    if (type === "resize") {
+        const resizeH = shapeH;
+        const resizeW = shapeW;
 
-    if (dev) {
-        const srcCanvas = data2canvas(image);
-        putImgDom(srcCanvas);
+        if (dev) {
+            const srcCanvas = data2canvas(srcImg);
+            putImgDom(srcCanvas);
+        }
+
+        const image = resizeImg(srcImg, resizeW, resizeH, "fill");
+
+        const transposedData = toPaddleInput(image, paddleArg1, paddleArg2);
+        log(image);
+        if (dev) {
+            const srcCanvas = data2canvas(image);
+            putImgDom(srcCanvas);
+        }
+        return [{ transposedData, image, x: 0, y: 0 }];
     }
+    // clip
 
-    // biome-ignore lint: 规范化
-    image = resizeImg(image, resizeW, resizeH);
-
-    const transposedData = toPaddleInput(image, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]);
-    log(image);
-    if (dev) {
-        const srcCanvas = data2canvas(image);
-        putImgDom(srcCanvas);
-    }
-    return [{ transposedData, image, x: 0, y: 0 }];
+    return datas;
 }
 
 type detDataType = {

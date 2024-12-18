@@ -21,16 +21,21 @@ export function clip(n: number, min: number, max: number) {
 }
 /**
  *
- * @param {ImageData} data 原图
- * @param {number} w 输出宽
- * @param {number} h 输出高
+ * @param  data 原图
+ * @param  w 输出宽
+ * @param  h 输出高
+ * @param  fill 小于输出宽高的部分填充还是拉伸
  */
-export function resizeImg(data: ImageData, w: number, h: number) {
+export function resizeImg(data: ImageData, w: number, h: number, fill?: "fill") {
     const x = data2canvas(data);
     const src = newCanvas(w, h);
     const ctx = src.getContext("2d");
     if (!ctx) throw new Error("canvas context is null");
-    ctx.scale(w / data.width, h / data.height);
+    if (fill === "fill") {
+        ctx.scale(Math.min(w / data.width, 1), Math.min(h / data.height, 1));
+    } else {
+        ctx.scale(w / data.width, h / data.height);
+    }
     ctx.drawImage(x, 0, 0);
     return ctx.getImageData(0, 0, w, h);
 }
