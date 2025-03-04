@@ -1,7 +1,7 @@
-// biome-ignore lint/suspicious/noImplicitAnyLet: 可自定义cv
-let cv;
+let cv: typeof import("@techstark/opencv-js");
 let ort: typeof import("onnxruntime-common");
 
+import type { Mat } from "@techstark/opencv-js";
 import { runLayout } from "./layout";
 import {
     newCanvas,
@@ -295,11 +295,11 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
     const edgeRect: detResultType = [];
 
-    let src = cvImRead(myImageData);
+    const src = cvImRead(myImageData);
 
     cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-    let contours = new cv.MatVector();
-    let hierarchy = new cv.Mat();
+    const contours = new cv.MatVector();
+    const hierarchy = new cv.Mat();
 
     cv.findContours(src, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
@@ -313,7 +313,7 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
         const clipBox = unclip(points);
 
-        const boxMap = new cv.matFromArray(clipBox.length / 2, 1, cv.CV_32SC2, clipBox);
+        const boxMap = cv.matFromArray(clipBox.length / 2, 1, cv.CV_32SC2, clipBox);
 
         const resultObj = getMiniBoxes(boxMap);
         const box = resultObj.points;
@@ -358,8 +358,6 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
     src.delete();
     contours.delete();
     hierarchy.delete();
-
-    src = contours = hierarchy = null;
 
     return edgeRect;
 }
@@ -546,10 +544,9 @@ function getRotateCropImage(img: ImageData, points: BoxType) {
     // 透视转换
     cv.warpPerspective(src, dst, M, dsize, cv.INTER_CUBIC, cv.BORDER_REPLICATE, new cv.Scalar());
 
-    const dst_img_height = dst.matSize[0];
-    const dst_img_width = dst.matSize[1];
-    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-    let dst_rot;
+    const dst_img_height = dst.size().height;
+    const dst_img_width = dst.size().width;
+    let dst_rot: Mat | null = null;
     // 图像旋转
     if (dst_img_height / dst_img_width >= 1.5) {
         dst_rot = new cv.Mat();

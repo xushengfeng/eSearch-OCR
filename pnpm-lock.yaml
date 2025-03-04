@@ -8,15 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@techstark/opencv-js':
+        specifier: 4.10.0-release.1
+        version: 4.10.0-release.1
       js-clipper:
         specifier: ^1.0.1
         version: 1.0.1
       onnxruntime-common:
         specifier: ^1.18.0
         version: 1.18.0
-      opencv.js:
-        specifier: ^1.2.1
-        version: 1.2.1
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.8.3
@@ -329,6 +329,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@techstark/opencv-js@4.10.0-release.1':
+    resolution: {integrity: sha512-S4XELidRiQeA0q1s9VQLo540wCxUo24r1O4C+LqZ6llX+sPCXvZCPv3Ice8dEIr0uavyZ8YZeKXSBdDgMXSXjw==}
+
   '@types/estree@1.0.5':
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
 
@@ -443,9 +446,6 @@ packages:
   onnxruntime-node@1.18.0:
     resolution: {integrity: sha512-iTnFcxKpmywCatx8ov4GTbECe3tJk2Bp1OA2mWRJde78q+7tpPYBhKMnwhlaoKy9oKQcy4UoEuuhoy2PSD13ww==}
     os: [win32, darwin, linux]
-
-  opencv.js@1.2.1:
-    resolution: {integrity: sha512-+ji5Pk3eyz+RRSeZr2kLZNJpjsKoGyPJOjFWng7+Cuq9ylHakBqJMxDGlBW1+qdju3k8DadWOiHJ6JaF28UpKA==}
 
   path-key@3.1.1:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
@@ -728,6 +728,8 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.17.2':
     optional: true
 
+  '@techstark/opencv-js@4.10.0-release.1': {}
+
   '@types/estree@1.0.5': {}
 
   ansi-regex@5.0.1: {}
@@ -843,8 +845,6 @@ snapshots:
     dependencies:
       onnxruntime-common: 1.18.0
       tar: 7.2.0
-
-  opencv.js@1.2.1: {}
 
   path-key@3.1.1: {}
 
