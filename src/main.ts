@@ -719,17 +719,8 @@ function getImgPix(img: ImageData, x: number, y: number) {
     return Array.from(img.data.slice(index, index + 4)) as color;
 }
 
-function cvMat() {
-    return cv.Mat;
-}
-
 function cvImRead(img: ImageData) {
-    console.log(cv);
-
-    const m = cv.Mat;
-    const mat = new cv.Mat(img.height, img.width, cv.CV_8UC4);
-    mat.data.set(img.data);
-    return mat;
+    return cv.matFromImageData(img);
 }
 
 function cvImShow(mat) {
