@@ -97,9 +97,18 @@ async function init(op: {
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
     if (op.cv) cv = op.cv;
-    else if (typeof require !== "undefined") cv = require("opencv.js");
+    else if (typeof require !== "undefined") cv = require("@techstark/opencv-js");
     if (op.onProgress) onProgress = op.onProgress;
-    return { ocr: x, det: Det, rec: Rec };
+    return new Promise<{ ocr: typeof x; det: typeof Det; rec: typeof Rec }>((re, rj) => {
+        if (cv) {
+            cv.onRuntimeInitialized = () => {
+                log("cv loaded");
+                re({ ocr: x, det: Det, rec: Rec });
+            };
+        } else {
+            rj();
+        }
+    });
 }
 
 type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
@@ -710,8 +719,17 @@ function getImgPix(img: ImageData, x: number, y: number) {
     return Array.from(img.data.slice(index, index + 4)) as color;
 }
 
+function cvMat() {
+    return cv.Mat;
+}
+
 function cvImRead(img: ImageData) {
-    return cv.matFromImageData(img);
+    console.log(cv);
+
+    const m = cv.Mat;
+    const mat = new cv.Mat(img.height, img.width, cv.CV_8UC4);
+    mat.data.set(img.data);
+    return mat;
 }
 
 function cvImShow(mat) {
