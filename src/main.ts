@@ -376,6 +376,8 @@ type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
 import clipper from "js-clipper";
+import { type Contour, minAreaRect } from "./cv";
+
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1;
     const n = polygon.length;
@@ -480,8 +482,13 @@ function boxPoints(center: { x: number; y: number }, size: { width: number; heig
     return rotatedPoints;
 }
 
-function getMiniBoxes(contour: any) {
-    const boundingBox = cv.minAreaRect(contour);
+function getMiniBoxes(contour: Mat) {
+    const l: Contour = [];
+    for (let i = 0; i < contour.data32S.length; i += 2) {
+        l.push({ x: contour.data32S[i], y: contour.data32S[i + 1] });
+    }
+
+    const boundingBox = minAreaRect(l);
     const points = Array.from(boxPoints(boundingBox.center, boundingBox.size, boundingBox.angle)).sort(
         (a, b) => a[0] - b[0],
     ) as pointsType;
