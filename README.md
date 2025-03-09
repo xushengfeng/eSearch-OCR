@@ -12,7 +12,9 @@
 
 模型需要转换为 onnx 才能使用：[Paddle2ONNX](https://github.com/PaddlePaddle/Paddle2ONNX) 或[在线转换](https://www.paddlepaddle.org.cn/paddle/visualdl/modelconverter/x2paddle)
 
-部分模型已打包：[Releases](https://github.com/xushengfeng/eSearch-OCR/releases/tag/4.0.0)
+部分模型已打包：[Releases 4.0.0](https://github.com/xushengfeng/eSearch-OCR/releases/tag/4.0.0)，由 paddleOCR 官方的模型转换而来。
+
+模型文字： 中（简体）英混合、中文繁体、英文、韩文、日文、泰卢固文、卡纳达文、泰米尔文、拉丁文、阿拉伯字母、斯拉夫字母、梵文字母。
 
 在 js 文件下可以使用 electron 进行调试
 
@@ -42,7 +44,7 @@ const ort = require("onnxruntime-node");
 
 ```javascript
 await ocr.init({
-    detPath: "ocr/det.onnx",
+    detPath: "ocr/det.onnx", // det指识别模型，如果上面提到的文字包没有，那就用中英混合的det（在ch.zip里）。
     recPath: "ocr/rec.onnx",
     dic: "abcdefg...",
     ort,
