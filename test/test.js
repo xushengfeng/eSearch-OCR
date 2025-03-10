@@ -7,18 +7,17 @@ start();
 async function start() {
     const pro = document.createElement("progress");
     document.body.append(pro);
+    const modelBasePath = "./m/v4/";
     await x.init({
-        detPath: "./m/v4/ppocr_det.onnx",
-        recPath: "./m/v4/ppocr_rec.onnx",
+        detPath: `${modelBasePath}/ppocr_det.onnx`,
+        recPath: `${modelBasePath}/ppocr_rec.onnx`,
         dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
         layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
         dev: true,
-        detShape: [640, 640],
         ort,
         onProgress: (t, a, n) => {
             if (t === "rec") {
-                console.log(n / a);
-                pro.value = n / a;
+                if (a !== 0) pro.value = n / a;
             }
             if (t === "det") {
                 pro.value = 1;
