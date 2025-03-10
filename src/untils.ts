@@ -26,8 +26,14 @@ export function clip(n: number, min: number, max: number) {
  * @param  h 输出高
  * @param  fill 小于输出宽高的部分填充还是拉伸
  */
-export function resizeImg(data: ImageData, w: number, h: number, fill?: "fill") {
-    const ctx = resizeImgC(data, w, h, fill);
+export function resizeImg(
+    data: ImageData,
+    w: number,
+    h: number,
+    fill?: "fill",
+    smoothing: false | "low" | "medium" | "high" = "high",
+) {
+    const ctx = resizeImgC(data, w, h, fill, smoothing);
     return ctx.getImageData(0, 0, w, h);
 }
 
@@ -38,11 +44,18 @@ export function resizeImg(data: ImageData, w: number, h: number, fill?: "fill") 
  * @param  h 输出高
  * @param  fill 小于输出宽高的部分填充还是拉伸
  */
-export function resizeImgC(data: ImageData, w: number, h: number, fill?: "fill") {
+export function resizeImgC(
+    data: ImageData,
+    w: number,
+    h: number,
+    fill?: "fill",
+    smoothing: false | "low" | "medium" | "high" = "high",
+) {
     const x = data2canvas(data);
     const src = newCanvas(w, h);
-    const ctx = src.getContext("2d");
-    if (!ctx) throw new Error("canvas context is null");
+    const ctx = src.getContext("2d")!;
+    ctx.imageSmoothingEnabled = smoothing !== false;
+    if (smoothing) ctx.imageSmoothingQuality = smoothing;
     if (fill === "fill") {
         ctx.scale(Math.min(w / data.width, 1), Math.min(h / data.height, 1));
     } else {
@@ -53,8 +66,7 @@ export function resizeImgC(data: ImageData, w: number, h: number, fill?: "fill")
 }
 export function data2canvas(data: ImageData, w?: number, h?: number) {
     const x = newCanvas(w || data.width, h || data.height);
-    const ctx = x.getContext("2d");
-    if (!ctx) throw new Error("canvas context is null");
+    const ctx = x.getContext("2d")!;
     ctx.putImageData(data, 0, 0);
     return x;
 }

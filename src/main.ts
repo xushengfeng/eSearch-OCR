@@ -539,45 +539,42 @@ function orderPointsClockwise(pts: BoxType) {
     return rect;
 }
 function getRotateCropImage(img: ImageData, points: BoxType) {
-    const img_crop_width = int(Math.max(linalgNorm(points[0], points[1]), linalgNorm(points[2], points[3])));
-    const img_crop_height = int(Math.max(linalgNorm(points[0], points[3]), linalgNorm(points[1], points[2])));
-    const pts_std = [
-        [0, 0],
-        [img_crop_width, 0],
-        [img_crop_width, img_crop_height],
-        [0, img_crop_height],
-    ];
+    // todo 根据曲线裁切
+    const [p0, p1, p2, p3] = points.map((p) => ({ x: p[0], y: p[1] }));
+    // 计算原始宽高
+    const width = Math.sqrt((p1.x - p0.x) ** 2 + (p1.y - p0.y) ** 2);
+    const height = Math.sqrt((p3.x - p0.x) ** 2 + (p3.y - p0.y) ** 2);
 
-    const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, flatten(points));
-    const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, flatten(pts_std));
+    // 计算变换矩阵参数
+    const dx1 = p1.x - p0.x;
+    const dy1 = p1.y - p0.y;
+    const dx3 = p3.x - p0.x;
+    const dy3 = p3.y - p0.y;
 
-    // 获取到目标矩阵
-    const M = cv.getPerspectiveTransform(srcTri, dstTri);
-    const src = cvImRead(img);
-    const dst = new cv.Mat();
-    const dsize = new cv.Size(img_crop_width, img_crop_height);
-    // 透视转换
-    cv.warpPerspective(src, dst, M, dsize, cv.INTER_CUBIC, cv.BORDER_REPLICATE, new cv.Scalar());
+    const determinant = dx1 * dy3 - dx3 * dy1;
+    if (determinant === 0) throw new Error("点共线，无法形成矩形");
 
-    const dst_img_height = dst.size().height;
-    const dst_img_width = dst.size().width;
-    let dst_rot: Mat | null = null;
-    // 图像旋转
-    if (dst_img_height / dst_img_width >= 1.5) {
-        dst_rot = new cv.Mat();
-        const dsize_rot = new cv.Size(dst.rows, dst.cols);
-        const center = new cv.Point(dst.cols / 2, dst.cols / 2);
-        const M = cv.getRotationMatrix2D(center, 90, 1);
-        cv.warpAffine(dst, dst_rot, M, dsize_rot, cv.INTER_CUBIC, cv.BORDER_REPLICATE, new cv.Scalar());
-    }
+    const a = (width * dy3) / determinant;
+    const c = (-dx3 * width) / determinant;
+    const b = (-height * dy1) / determinant;
+    const d = (dx1 * height) / determinant;
+    const e = -a * p0.x - c * p0.y;
+    const f = -b * p0.x - d * p0.y;
 
-    const d = cvImShow(dst_rot || dst);
+    const inputCanvas = data2canvas(img);
 
-    src.delete();
-    dst.delete();
-    srcTri.delete();
-    dstTri.delete();
-    return d;
+    // 创建输出Canvas
+    const outputCanvas = newCanvas(Math.ceil(width), Math.ceil(height));
+    const ctx = outputCanvas.getContext("2d")!;
+
+    // 应用变换并绘制
+    ctx.setTransform(a, b, c, d, e, f);
+    ctx.drawImage(inputCanvas, 0, 0);
+
+    // 重置变换以进行后续操作
+    ctx.resetTransform();
+
+    return ctx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
 }
 
 type color = [number, number, number];
@@ -729,34 +726,11 @@ function cvImRead(img: ImageData) {
     return cv.matFromImageData(img);
 }
 
-function cvImShow(mat) {
-    const img = new cv.Mat();
-    const depth = mat.type() % 8;
-    const scale = depth <= cv.CV_8S ? 1 : depth <= cv.CV_32S ? 1 / 256 : 255;
-    const shift = depth === cv.CV_8S || depth === cv.CV_16S ? 128 : 0;
-    mat.convertTo(img, cv.CV_8U, scale, shift);
-    switch (img.type()) {
-        case cv.CV_8UC1:
-            cv.cvtColor(img, img, cv.COLOR_GRAY2RGBA);
-            break;
-        case cv.CV_8UC3:
-            cv.cvtColor(img, img, cv.COLOR_RGB2RGBA);
-            break;
-        case cv.CV_8UC4:
-            break;
-        default:
-            throw new Error("Bad number of channels (Source image must have 1, 3 or 4 channels)");
-    }
-    const imgData = createImageData(new Uint8ClampedArray(img.data), img.cols, img.rows);
-    img.delete();
-    return imgData;
-}
-
 function beforeRec(box: { box: BoxType; img: ImageData }[]) {
     const l: { b: number[][][]; imgH: number; imgW: number }[] = [];
     function resizeNormImg(img: ImageData) {
         const w = Math.floor(imgH * (img.width / img.height));
-        const d = resizeImg(img, w, imgH);
+        const d = resizeImg(img, w, imgH, undefined, false);
         if (dev) putImgDom(data2canvas(d, w, imgH));
         return { data: d, w, h: imgH };
     }
@@ -1033,7 +1007,7 @@ function afAfRec(l: resultType) {
 
         for (const i in newColumns) {
             for (const b of newColumns[i].src) {
-                drawBox(b.box, b.text, color[i]);
+                // drawBox(b.box, b.text, color[i]);
             }
         }
     }
@@ -1167,7 +1141,11 @@ function drawBox(box: BoxType, id = "", color = "red") {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     ctx.beginPath();
     ctx.strokeStyle = color;
-    ctx.rect(box[0][0], box[0][1], box[2][0] - box[0][0], box[2][1] - box[0][1]);
+    ctx.moveTo(box[0][0], box[0][1]);
+    ctx.lineTo(box[1][0], box[1][1]);
+    ctx.lineTo(box[2][0], box[2][1]);
+    ctx.lineTo(box[3][0], box[3][1]);
+    ctx.lineTo(box[0][0], box[0][1]);
     ctx.stroke();
     ctx.strokeStyle = "black";
     ctx.strokeText(id, box[0][0], box[0][1]);
