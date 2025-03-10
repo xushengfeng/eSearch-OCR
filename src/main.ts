@@ -17,9 +17,14 @@ import {
 const task = new tLog("t");
 const task2 = new tLog("af_det");
 
-function putImgDom(img: HTMLElement) {
+function putImgDom(img: OffscreenCanvas, id?: string) {
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d")!.drawImage(img, 0, 0);
+    if (id) canvas.id = id;
     try {
-        document?.body?.append(img);
+        document?.body?.append(canvas);
     } catch (error) {}
 }
 
@@ -289,9 +294,7 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
         }
         const myImageData = createImageData(clipData, width, height);
         const srcCanvas = data2canvas(myImageData);
-        putImgDom(srcCanvas);
-
-        srcCanvas.id = "det_ru";
+        putImgDom(srcCanvas, "det_ru");
     }
 
     task2.l("edge");

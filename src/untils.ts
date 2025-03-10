@@ -1,7 +1,5 @@
 let canvas = (width: number, height: number) => {
-    const c = document.createElement("canvas");
-    c.width = width;
-    c.height = height;
+    const c = new OffscreenCanvas(width, height);
     return c;
 };
 
