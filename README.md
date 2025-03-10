@@ -4,19 +4,23 @@
 
 支持本地 OCR（基于 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)v4）
 
+## 特性
+
+-   文字检测
+-   文字识别
+-   简单的段落合并
+-   不依赖 opencv.js，轻量一点
+-   支持浏览器(esm)、node(CommonJS) 和 Electron
+-   完善的类型提示
+-   可简单分析背景色和文字颜色
+
 [PaddleOCR License](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.4/LICENSE)
 
-[paddle 预测库](https://paddle-inference.readthedocs.io/en/latest/user_guides/download_lib.html)
-
 基于[onnxruntime](https://github.com/microsoft/onnxruntime)的 web runtime，使用 wasm 运行，未来可能使用 webgl 甚至是 webgpu。
-
-模型需要转换为 onnx 才能使用：[Paddle2ONNX](https://github.com/PaddlePaddle/Paddle2ONNX) 或[在线转换](https://www.paddlepaddle.org.cn/paddle/visualdl/modelconverter/x2paddle)
 
 部分模型已打包：[Releases 4.0.0](https://github.com/xushengfeng/eSearch-OCR/releases/tag/4.0.0)，由 paddleOCR 官方的模型转换而来。
 
 模型文字： 中（简体）英混合、中文繁体、英文、韩文、日文、泰卢固文、卡纳达文、泰米尔文、拉丁文、阿拉伯字母、斯拉夫字母、梵文字母。
-
-在 js 文件下可以使用 electron 进行调试
 
 ## 使用
 
@@ -46,7 +50,7 @@ const ort = require("onnxruntime-node");
 await ocr.init({
     detPath: "ocr/det.onnx", // det指识别模型，如果上面提到的文字包没有，那就用中英混合的det（在ch.zip里）。
     recPath: "ocr/rec.onnx",
-    dic: "abcdefg...",
+    dic: "abcdefg...", // 在模型压缩包中的txt文件，需要传入里面的内容而不是路径
     ort,
 });
 
@@ -125,3 +129,13 @@ result.parragraphs.map((item) => item.text).join("\n");
 ```
 
 除了 `ocr` 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看类型提示。
+
+## 模型
+
+[paddle 预测库](https://paddle-inference.readthedocs.io/en/latest/user_guides/download_lib.html)
+
+模型需要转换为 onnx 才能使用：[Paddle2ONNX](https://github.com/PaddlePaddle/Paddle2ONNX) 或[在线转换](https://www.paddlepaddle.org.cn/paddle/visualdl/modelconverter/x2paddle)
+
+## 调试
+
+使用 Electron 来调试，既有可视化也要`onnxruntime-node`的本地性能。
