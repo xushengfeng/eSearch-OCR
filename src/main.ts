@@ -1,7 +1,5 @@
-let cv: typeof import("@techstark/opencv-js");
 let ort: typeof import("onnxruntime-common");
 
-import type { Mat } from "@techstark/opencv-js";
 import { runLayout } from "./layout";
 import {
     newCanvas,
@@ -96,19 +94,8 @@ async function init(op: {
     if (op.detRatio) detRatio = op.detRatio;
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
-    if (op.cv) cv = op.cv;
-    else if (typeof require !== "undefined") cv = require("@techstark/opencv-js");
     if (op.onProgress) onProgress = op.onProgress;
-    return new Promise<{ ocr: typeof x; det: typeof Det; rec: typeof Rec }>((re, rj) => {
-        if (cv) {
-            cv.onRuntimeInitialized = () => {
-                log("cv loaded");
-                re({ ocr: x, det: Det, rec: Rec });
-            };
-        } else {
-            rj();
-        }
-    });
+    return { ocr: x, det: Det, rec: Rec };
 }
 
 type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
@@ -160,10 +147,10 @@ async function x(srcimg: loadImgType) {
 
     const mainLine = await Rec(box);
     // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
-    if (dev)
-        for (const x of box) {
-            drawBox2(x.box, "hi", `rgb(${x.style.bg.join(",")})`, `rgb(${x.style.text.join(",")})`);
-        }
+    // if (dev)
+    //     for (const x of box) {
+    //         drawBox2(x.box, "hi", `rgb(${x.style.bg.join(",")})`, `rgb(${x.style.text.join(",")})`);
+    //     }
     // return;
     const newMainLine = afAfRec(mainLine);
     log(mainLine, newMainLine);
@@ -285,41 +272,57 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
     const h = Math.min(srcData.height, _resizeH);
 
     const { data, width, height } = dataSet;
-    const clipData = new Uint8ClampedArray(width * height * 4);
+    const bitData = new Uint8Array(width * height);
     for (let i = 0; i < data.length; i++) {
-        const n = i * 4;
         const v = (data[i] as number) > 0.3 ? 255 : 0;
-        clipData[n] = clipData[n + 1] = clipData[n + 2] = v;
-        clipData[n + 3] = 255;
+        bitData[i] = v;
     }
 
-    const myImageData = createImageData(clipData, width, height);
-
     if (dev) {
+        const clipData = new Uint8ClampedArray(width * height * 4);
+        for (let i = 0; i < data.length; i++) {
+            const n = i * 4;
+            const v = (data[i] as number) > 0.3 ? 255 : 0;
+            clipData[n] = clipData[n + 1] = clipData[n + 2] = v;
+            clipData[n + 3] = 255;
+            bitData[i] = v;
+        }
+        const myImageData = createImageData(clipData, width, height);
         const srcCanvas = data2canvas(myImageData);
         putImgDom(srcCanvas);
+
+        srcCanvas.id = "det_ru";
     }
 
     task2.l("edge");
 
     const edgeRect: detResultType = [];
 
-    const src = cvImRead(myImageData);
+    const src2: number[][] = [];
+    for (let y = 0; y < height; y++) {
+        src2.push(Array.from(bitData.slice(y * width, y * width + width)));
+    }
 
-    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-    const contours = new cv.MatVector();
-    const hierarchy = new cv.Mat();
+    const contours2: Point[][] = [];
 
-    cv.findContours(src, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    findContours(src2, contours2);
 
-    for (let i = 0; i < contours.size(); i++) {
+    const xctx = (document.querySelector("#det_ru") as HTMLCanvasElement).getContext("2d")!;
+
+    for (const item of contours2) {
+        xctx.moveTo(item[0].x, item[0].y);
+        for (const p of item) {
+            xctx.lineTo(p.x, p.y);
+        }
+        xctx.strokeStyle = "red";
+        xctx.closePath();
+        xctx.stroke();
+    }
+
+    for (let i = 0; i < contours2.length; i++) {
         task2.l("get_box");
         const minSize = 3;
-        const cnt = contours.get(i);
-        const l: Contour = [];
-        for (let i = 0; i < cnt.data32S.length; i += 2) {
-            l.push({ x: cnt.data32S[i], y: cnt.data32S[i + 1] });
-        }
+        const l: Contour = contours2[i];
 
         const { points, sside } = getMiniBoxes(l);
         if (sside < minSize) continue;
@@ -351,6 +354,8 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
         const rect_height = int(linalgNorm(box1[0], box1[3]));
         if (rect_width <= 3 || rect_height <= 3) continue;
 
+        drawBox(box, "", "red", "det_ru");
+
         task2.l("crop");
 
         const c = getRotateCropImage(srcData, box);
@@ -367,10 +372,6 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
     log(edgeRect);
 
-    src.delete();
-    contours.delete();
-    hierarchy.delete();
-
     return edgeRect;
 }
 
@@ -379,7 +380,7 @@ type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
 import clipper from "js-clipper";
-import { type Contour, minAreaRect, type Point } from "./cv";
+import { type Contour, findContours, minAreaRect, type Point } from "./cv";
 
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1;
@@ -720,10 +721,6 @@ function matchBestBox(box: BoxType, img: ImageData, textEdgeColor: color) {
 function getImgPix(img: ImageData, x: number, y: number) {
     const index = (y * img.width + x) * 4;
     return Array.from(img.data.slice(index, index + 4)) as color;
-}
-
-function cvImRead(img: ImageData) {
-    return cv.matFromImageData(img);
 }
 
 function beforeRec(box: { box: BoxType; img: ImageData }[]) {
@@ -1135,9 +1132,9 @@ function average2(args: [number, number][]) {
     return n;
 }
 
-function drawBox(box: BoxType, id = "", color = "red") {
+function drawBox(box: BoxType, id = "", color = "red", qid?: string) {
     if (!dev) return;
-    const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+    const canvas = document.querySelector(qid ? `#${qid}` : "canvas") as HTMLCanvasElement;
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     ctx.beginPath();
     ctx.strokeStyle = color;
