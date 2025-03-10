@@ -39,9 +39,6 @@
         "js-clipper": "^1.0.1",
         "onnxruntime-common": "^1.18.0"
     },
-    "peerDependencies": {
-        "@techstark/opencv-js": "4.10.0-release.1"
-    },
     "devDependencies": {
         "@biomejs/biome": "^1.8.3",
         "onnxruntime-node": "^1.18.0",
