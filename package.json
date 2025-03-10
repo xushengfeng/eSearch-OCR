@@ -36,10 +36,10 @@
     },
     "license": "Apache-2.0",
     "dependencies": {
-        "js-clipper": "^1.0.1",
         "onnxruntime-common": "^1.18.0"
     },
     "devDependencies": {
+        "js-clipper": "^1.0.1",
         "@biomejs/biome": "^1.8.3",
         "onnxruntime-node": "^1.18.0",
         "typescript": "^5.4.5",
