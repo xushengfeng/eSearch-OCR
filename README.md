@@ -88,7 +88,6 @@ init type
     detRatio?: number; // 缩放，小于1 越小越快，但准确率也会下降一点
     canvas?: (w: number, h: number) => any; // 用于node
     imageData?: any; // 用于node
-    cv?: any;
 }
 ```
 
