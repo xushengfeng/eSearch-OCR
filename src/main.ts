@@ -316,15 +316,18 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
         task2.l("get_box");
         const minSize = 3;
         const cnt = contours.get(i);
-        const { points, sside } = getMiniBoxes(cnt);
+        const l: Contour = [];
+        for (let i = 0; i < cnt.data32S.length; i += 2) {
+            l.push({ x: cnt.data32S[i], y: cnt.data32S[i + 1] });
+        }
+
+        const { points, sside } = getMiniBoxes(l);
         if (sside < minSize) continue;
         // TODO sort fast
 
         const clipBox = unclip(points);
 
-        const boxMap = cv.matFromArray(clipBox.length / 2, 1, cv.CV_32SC2, clipBox);
-
-        const resultObj = getMiniBoxes(boxMap);
+        const resultObj = getMiniBoxes(clipBox);
         const box = resultObj.points;
         if (resultObj.sside < minSize + 2) {
             continue;
@@ -376,7 +379,7 @@ type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
 import clipper from "js-clipper";
-import { type Contour, minAreaRect } from "./cv";
+import { type Contour, minAreaRect, type Point } from "./cv";
 
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1;
@@ -435,12 +438,12 @@ function unclip(box: pointsType) {
     offset.AddPath(tmpArr, clipper.JoinType.jtRound, clipper.EndType.etClosedPolygon);
     const expanded: { X: number; Y: number }[][] = [];
     offset.Execute(expanded, distance);
-    const expandedArr: pointsType = [];
+    const expandedArr: Point[] = [];
     for (const item of expanded[0] || []) {
-        expandedArr.push([item.X, item.Y]);
+        expandedArr.push({ x: item.X, y: item.Y });
     }
 
-    return expandedArr.flat();
+    return expandedArr;
 }
 
 function boxPoints(center: { x: number; y: number }, size: { width: number; height: number }, angle: number) {
@@ -482,12 +485,8 @@ function boxPoints(center: { x: number; y: number }, size: { width: number; heig
     return rotatedPoints;
 }
 
-function getMiniBoxes(contour: Mat) {
-    const l: Contour = [];
-    for (let i = 0; i < contour.data32S.length; i += 2) {
-        l.push({ x: contour.data32S[i], y: contour.data32S[i + 1] });
-    }
-
+function getMiniBoxes(contour: Point[]) {
+    const l = contour;
     const boundingBox = minAreaRect(l);
     const points = Array.from(boxPoints(boundingBox.center, boundingBox.size, boundingBox.angle)).sort(
         (a, b) => a[0] - b[0],
