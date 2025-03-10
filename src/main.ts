@@ -307,16 +307,18 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
     findContours(src2, contours2);
 
-    const xctx = (document.querySelector("#det_ru") as HTMLCanvasElement).getContext("2d")!;
+    if (dev) {
+        const xctx = (document.querySelector("#det_ru") as HTMLCanvasElement).getContext("2d")!;
 
-    for (const item of contours2) {
-        xctx.moveTo(item[0].x, item[0].y);
-        for (const p of item) {
-            xctx.lineTo(p.x, p.y);
+        for (const item of contours2) {
+            xctx.moveTo(item[0].x, item[0].y);
+            for (const p of item) {
+                xctx.lineTo(p.x, p.y);
+            }
+            xctx.strokeStyle = "red";
+            xctx.closePath();
+            xctx.stroke();
         }
-        xctx.strokeStyle = "red";
-        xctx.closePath();
-        xctx.stroke();
     }
 
     for (let i = 0; i < contours2.length; i++) {
