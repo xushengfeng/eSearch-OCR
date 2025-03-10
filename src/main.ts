@@ -1,5 +1,3 @@
-let ort: typeof import("onnxruntime-common");
-
 import { runLayout } from "./layout";
 import {
     newCanvas,
@@ -13,9 +11,39 @@ import {
     tLog,
     clip,
 } from "./untils";
+import { type Contour, findContours, minAreaRect, type Point } from "./cv";
+import clipper from "js-clipper";
+
+export { init, x as ocr, Det as det, Rec as rec };
+export type initType = AsyncType<ReturnType<typeof init>>;
+
+type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
+type detResultType = { box: BoxType; img: ImageData; style: { bg: color; text: color } }[];
+type detDataType = {
+    data: AsyncType<ReturnType<typeof runDet>>["data"];
+    width: number;
+    height: number;
+};
+type pointType = [number, number];
+type BoxType = [pointType, pointType, pointType, pointType];
+type pointsType = pointType[];
+type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
+
+let ort: typeof import("onnxruntime-common");
 
 const task = new tLog("t");
 const task2 = new tLog("af_det");
+
+let dev = true;
+let det: SessionType;
+let rec: SessionType;
+let layout: SessionType;
+let dic: string[];
+let imgH = 48;
+let detRatio = 1;
+let layoutDic: string[];
+
+let onProgress = (type: "det" | "rec", total: number, count: number) => {};
 
 function putImgDom(img: OffscreenCanvas, id?: string) {
     const canvas = document.createElement("canvas");
@@ -44,20 +72,6 @@ function logColor(...args: string[]) {
         console.log(args.map((x) => `%c${x}`).join(""), ...args.map((x) => `color: ${x}`));
     }
 }
-
-export { init, x as ocr, Det as det, Rec as rec };
-export type initType = AsyncType<ReturnType<typeof init>>;
-
-let dev = true;
-let det: SessionType;
-let rec: SessionType;
-let layout: SessionType;
-let dic: string[];
-let imgH = 48;
-let detRatio = 1;
-let layoutDic: string[];
-
-let onProgress = (type: "det" | "rec", total: number, count: number) => {};
 
 async function init(op: {
     detPath?: string;
@@ -102,8 +116,6 @@ async function init(op: {
     if (op.onProgress) onProgress = op.onProgress;
     return { ocr: x, det: Det, rec: Rec };
 }
-
-type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
 
 async function loadImg(src: loadImgType) {
     let img: HTMLImageElement | HTMLCanvasElement | ImageData;
@@ -191,8 +203,6 @@ async function Det(srcimg: loadImgType) {
     return box;
 }
 
-type detResultType = { box: BoxType; img: ImageData; style: { bg: color; text: color } }[];
-
 async function Rec(box: detResultType) {
     const mainLine: resultType = [];
     task.l("bf_rec");
@@ -262,12 +272,6 @@ function beforeDet(srcImg: ImageData) {
     }
     return { data: { transposedData, image }, width: resizeW, height: resizeH };
 }
-
-type detDataType = {
-    data: AsyncType<ReturnType<typeof runDet>>["data"];
-    width: number;
-    height: number;
-};
 
 function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcData: ImageData) {
     task2.l("");
@@ -379,13 +383,6 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
     return edgeRect;
 }
-
-type pointType = [number, number];
-type BoxType = [pointType, pointType, pointType, pointType];
-type pointsType = pointType[];
-type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
-import clipper from "js-clipper";
-import { type Contour, findContours, minAreaRect, type Point } from "./cv";
 
 function polygonPolygonArea(polygon: pointsType) {
     let i = -1;
