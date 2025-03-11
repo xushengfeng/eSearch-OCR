@@ -12,7 +12,6 @@ import {
     clip,
 } from "./untils";
 import { type Contour, findContours, minAreaRect, type Point } from "./cv";
-import clipper from "js-clipper";
 
 export { init, x as ocr, Det as det, Rec as rec };
 export type initType = AsyncType<ReturnType<typeof init>>;
@@ -337,9 +336,7 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
         if (sside < minSize) continue;
         // TODO sort fast
 
-        const clipBox = unclip(points);
-
-        const resultObj = getMiniBoxes(clipBox);
+        const resultObj = unclip2(points);
         const box = resultObj.points;
         if (resultObj.sside < minSize + 2) {
             continue;
@@ -422,31 +419,39 @@ function polygonPolygonLength(polygon: pointsType) {
 
     return perimeter;
 }
-function unclip(box: pointsType) {
+
+function unclip2(box: pointsType) {
     const unclip_ratio = 1.5;
     const area = Math.abs(polygonPolygonArea(box));
     const length = polygonPolygonLength(box);
     const distance = (area * unclip_ratio) / length;
-    const tmpArr: { X: number; Y: number }[] = [];
-    for (const item of box) {
-        const obj = {
-            X: 0,
-            Y: 0,
-        };
-        obj.X = item[0];
-        obj.Y = item[1];
-        tmpArr.push(obj);
-    }
-    const offset = new clipper.ClipperOffset();
-    offset.AddPath(tmpArr, clipper.JoinType.jtRound, clipper.EndType.etClosedPolygon);
-    const expanded: { X: number; Y: number }[][] = [];
-    offset.Execute(expanded, distance);
-    const expandedArr: Point[] = [];
-    for (const item of expanded[0] || []) {
-        expandedArr.push({ x: item.X, y: item.Y });
+
+    const expandedArr: pointType[] = [];
+
+    for (const [i, p] of box.entries()) {
+        const lastPoint = box.at((i - 1) % 4)!;
+        const nextPoint = box.at((i + 1) % 4)!;
+
+        const x1 = p[0] - lastPoint[0];
+        const y1 = p[1] - lastPoint[1];
+        const d1 = Math.sqrt(x1 ** 2 + y1 ** 2);
+        const dx1 = (x1 / d1) * distance;
+        const dy1 = (y1 / d1) * distance;
+
+        const x2 = p[0] - nextPoint[0];
+        const y2 = p[1] - nextPoint[1];
+        const d2 = Math.sqrt(x2 ** 2 + y2 ** 2);
+        const dx2 = (x2 / d2) * distance;
+        const dy2 = (y2 / d2) * distance;
+
+        expandedArr.push([p[0] + dx1 + dx2, p[1] + dy1 + dy2]);
     }
 
-    return expandedArr;
+    const v1 = [expandedArr[0][0] - expandedArr[1][0], expandedArr[0][1] - expandedArr[1][1]];
+    const v2 = [expandedArr[2][0] - expandedArr[1][0], expandedArr[2][1] - expandedArr[1][1]];
+    const cross = v1[0] * v2[1] - v1[1] * v2[0];
+
+    return { points: expandedArr as BoxType, sside: Math.abs(cross) };
 }
 
 function boxPoints(center: { x: number; y: number }, size: { width: number; height: number }, angle: number) {
