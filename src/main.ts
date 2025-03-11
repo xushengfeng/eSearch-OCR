@@ -718,8 +718,8 @@ function matchBestBox(box: BoxType, img: ImageData, textEdgeColor: color) {
     const newBox = [
         [box[0][0] + dxL, box[0][1] + dyT],
         [box[1][0] - dxR, box[1][1] + dyT],
-        [box[2][0] + dxL, box[2][1] - dyB],
-        [box[3][0] - dxR, box[3][1] - dyB],
+        [box[2][0] - dxR, box[2][1] - dyB],
+        [box[3][0] + dxL, box[3][1] - dyB],
     ] as BoxType;
 
     return newBox;
