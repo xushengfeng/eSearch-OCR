@@ -9,7 +9,7 @@
 -   文字检测
 -   文字识别
 -   简单的段落合并
--   不依赖 opencv.js，轻量一点
+-   轻量，仅需要引入 onnx，gizp 后 10kB
 -   支持浏览器(esm)、node(CommonJS) 和 Electron
 -   完善的类型提示
 -   可简单分析背景色和文字颜色
