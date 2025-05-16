@@ -1,6 +1,13 @@
 const { app, BrowserWindow } = require("electron");
 
 function createWindow() {
+    function loadScript(fileName) {
+        win.webContents.executeJavaScript(`
+                const script = document.querySelector('script');
+                if (script) script.src = '${fileName}';
+            `);
+    }
+
     const win = new BrowserWindow({
         width: 800,
         height: 600,
@@ -10,7 +17,14 @@ function createWindow() {
         },
     });
 
-    win.loadFile(process.argv.includes("bench") ? "bench.html" : "index.html");
+    win.loadFile("index.html");
+    win.webContents.once("did-finish-load", () => {
+        if (process.argv.includes("bench")) {
+            loadScript("bench.js");
+        } else {
+            loadScript("test.js");
+        }
+    });
 
     win.webContents.openDevTools();
 }
