@@ -21,6 +21,8 @@ function createWindow() {
     win.webContents.once("did-finish-load", () => {
         if (process.argv.includes("bench")) {
             loadScript("bench.js");
+        } else if (process.argv.includes("layout")) {
+            loadScript("test_layout.js");
         } else {
             loadScript("test.js");
         }
