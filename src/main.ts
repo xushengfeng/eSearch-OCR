@@ -13,7 +13,7 @@ import {
 } from "./untils";
 import { type Contour, findContours, minAreaRect, type Point } from "./cv";
 
-export { init, x as ocr, Det as det, Rec as rec };
+export { init, x as ocr, Det as det, Rec as rec, afAfRec as analyzeLayout };
 export type initType = AsyncType<ReturnType<typeof init>>;
 
 type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
@@ -162,12 +162,6 @@ async function x(srcimg: loadImgType) {
     const box = await Det(img);
 
     const mainLine = await Rec(box);
-    // const mainLine = box.map((i, n) => ({ text: n.toString(), box: i.box, mean: 1 }));
-    // if (dev)
-    //     for (const x of box) {
-    //         drawBox2(x.box, "hi", `rgb(${x.style.bg.join(",")})`, `rgb(${x.style.text.join(",")})`);
-    //     }
-    // return;
     const newMainLine = afAfRec(mainLine);
     log(mainLine, newMainLine);
     task.l("end");
