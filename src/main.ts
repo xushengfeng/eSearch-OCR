@@ -34,6 +34,7 @@ const task = new tLog("t");
 const task2 = new tLog("af_det");
 
 let dev = true;
+let canlog = true;
 let det: SessionType;
 let rec: SessionType;
 let layout: SessionType;
@@ -60,14 +61,14 @@ let createImageData = (data: Uint8ClampedArray, w: number, h: number) => {
 };
 
 function log(...args: any[]) {
-    if (dev) console.log(...args);
+    if (canlog) console.log(...args);
 }
 function logSrc(...args: any[]) {
-    if (dev) console.log(...args.map((i) => structuredClone(i)));
+    if (canlog) console.log(...args.map((i) => structuredClone(i)));
 }
 
 function logColor(...args: string[]) {
-    if (dev) {
+    if (canlog) {
         console.log(args.map((x) => `%c${x}`).join(""), ...args.map((x) => `color: ${x}`));
     }
 }
@@ -79,6 +80,7 @@ async function init(op: {
     dic?: string;
     layoutDic?: string;
     dev?: boolean;
+    log?: boolean;
     imgh?: number;
     detRatio?: number;
     ort: typeof import("onnxruntime-common");
@@ -93,6 +95,7 @@ async function init(op: {
 }) {
     ort = op.ort;
     dev = Boolean(op.dev);
+    canlog = dev || Boolean(op.log);
     if (!dev) {
         task.l = () => {};
         task2.l = () => {};
