@@ -878,6 +878,15 @@ function afAfRec(l: resultType) {
         columns[nearest].push(b);
     }
 
+    function boxA(b: BoxType | undefined) {
+        if (b) {
+            const w = b[1][0] - b[0][0];
+            const h = b[3][1] - b[0][1];
+            return { w, h };
+        }
+        return undefined;
+    }
+
     function joinResult(p: resultType) {
         const cjkv = /\p{Ideographic}/u;
         const cjkf = /[。，！？；：“”‘’《》、【】（）…—]/;
@@ -1004,8 +1013,6 @@ function afAfRec(l: resultType) {
         }
     }
 
-    columnsInYaxis.sort((a, b) => average(a.map((i) => i.x)) - average(b.map((i) => i.x)));
-
     for (const y of columnsInYaxis) {
         y.sort((a, b) => a.outerBox[0][1] - b.outerBox[0][1]);
     }
@@ -1017,6 +1024,14 @@ function afAfRec(l: resultType) {
         const s = c.flatMap((i) => i.src);
         newColumns.push({ src: s, outerBox: o });
     }
+
+    newColumns.sort((a, b) => {
+        const em = boxA(a.src.at(0)?.box)?.h ?? 2;
+        if (Math.abs(a.outerBox[0][1] - b.outerBox[0][1]) < em) {
+            return a.outerBox[0][0] - b.outerBox[0][0];
+        }
+        return a.outerBox[0][1] - b.outerBox[0][1];
+    });
 
     if (dev) {
         const color: string[] = [];

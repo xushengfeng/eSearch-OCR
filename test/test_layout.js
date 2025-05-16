@@ -46,6 +46,12 @@ async function start() {
             for (let h = 10; h < 360; h += Math.floor(360 / l.columns.length)) {
                 color.push(`hsl(${h}, 100%, 50%)`);
             }
+            for (const [i, c] of color.entries()) {
+                const v = 8;
+                const x = i * v;
+                ctx.fillStyle = c;
+                ctx.fillRect(x, 0, v, 8);
+            }
 
             for (const [i, c] of l.columns.entries()) {
                 for (const p of c.parragraphs) {
