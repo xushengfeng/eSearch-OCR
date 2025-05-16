@@ -12,11 +12,14 @@ async function start() {
         dic: fs.readFileSync("../assets/ppocrv4_doc_dict.txt").toString(),
         layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
         log: true,
+        // dev: true,
         ort,
     });
     document.body.style.display = "flex";
     document.body.style.flexWrap = "wrap";
+    const only = 0;
     for (let i = 1; i <= 5; i++) {
+        if (i !== only && only !== 0) continue;
         const src = `../test/layout_img/${i}.svg`;
         const img = new Image();
         img.src = src;

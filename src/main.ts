@@ -864,21 +864,15 @@ function afAfRec(l: resultType) {
 
         if (
             // 左右至少有一边是相近的，中心距离要相近
-            // 特别是处理在长行后分栏的情况
-            Math.abs(b.box[0][0] - last.box[0][0]) < em ||
-            Math.abs(b.box[1][0] - last.box[1][0]) < em ||
-            Math.abs((b.box[1][0] + b.box[0][0]) / 2 - (last.box[1][0] + last.box[0][0]) / 2) < minW * 0.4
+            // 行之间也不要离太远
+            (Math.abs(b.box[0][0] - last.box[0][0]) < 3 * em ||
+                Math.abs(b.box[1][0] - last.box[1][0]) < 3 * em ||
+                Math.abs((b.box[1][0] + b.box[0][0]) / 2 - (last.box[1][0] + last.box[0][0]) / 2) < minW * 0.4) &&
+            Math.abs(b.box[0][1] - last.box[3][1]) < em * 1.1
         ) {
         } else {
-            const smallBox = thisW < lastW ? b : last;
-            const bigBox = thisW < lastW ? last : b;
-            const maxW = Math.max(thisW, lastW);
-            const ax = bigBox.box[0][0] + maxW / 2;
-            const bx = bigBox.box[1][0] - maxW / 2;
-            if (ax < smallBox.box[0][0] || bx > smallBox.box[1][0]) {
-                columns.push([b]);
-                return;
-            }
+            columns.push([b]);
+            return;
         }
 
         columns[nearest].push(b);
@@ -964,6 +958,7 @@ function afAfRec(l: resultType) {
     // todo 分割线为边界
     // 分栏
 
+    // 按很细的粒度去分栏
     const columns: resultType[] = [];
 
     const maxY = newL.reduce((a, b) => Math.max(a, Math.max(b?.box[2][1] ?? 0, b?.box[3][1] ?? 0)), 0);
@@ -988,17 +983,23 @@ function afAfRec(l: resultType) {
             columnsInYaxis.push([{ src: c, outerBox: outer, x, w }]);
             continue;
         }
-        const lastY = columnsInYaxis.at(-1) as (typeof columnsInYaxis)[0]; // 上面的代码保证了至少有一个元素
-        let hasSame = false;
-        for (const r of lastY) {
+        const l = columnsInYaxis.find((oc) => {
+            const r = oc.at(-1)!;
             const minW = Math.min(r.w, w);
-            if (Math.abs(r.x - x) < minW * 0.4) {
-                lastY.push({ src: c, outerBox: outer, x, w });
-                hasSame = true;
-                break;
-            }
-        }
-        if (!hasSame) {
+            const em = c.at(0)!.box[3][1] - c.at(0)!.box[0][1];
+            if (
+                (Math.abs(r.outerBox[0][0] - outer[0][0]) < 3 * em ||
+                    Math.abs(r.outerBox[1][0] - outer[1][0]) < 3 * em ||
+                    Math.abs(r.x - x) < minW * 0.4) &&
+                Math.abs(outer[0][1] - r.outerBox[3][1]) < em * 2
+                // todo 与上面的合并
+            )
+                return true;
+            return false;
+        });
+        if (l) {
+            l.push({ src: c, outerBox: outer, x, w });
+        } else {
             columnsInYaxis.push([{ src: c, outerBox: outer, x, w }]);
         }
     }
@@ -1009,7 +1010,13 @@ function afAfRec(l: resultType) {
         y.sort((a, b) => a.outerBox[0][1] - b.outerBox[0][1]);
     }
 
-    const newColumns: { src: resultType; outerBox: BoxType }[] = columnsInYaxis.flat();
+    const newColumns: { src: resultType; outerBox: BoxType }[] = [];
+
+    for (const c of columnsInYaxis) {
+        const o = outerRect(c.map((i) => i.outerBox));
+        const s = c.flatMap((i) => i.src);
+        newColumns.push({ src: s, outerBox: o });
+    }
 
     if (dev) {
         const color: string[] = [];
