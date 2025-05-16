@@ -820,6 +820,92 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 function afAfRec(l: resultType) {
     log(l);
 
+    function r(point: pointType, point2: pointType) {
+        return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
+    }
+
+    function outerRect(boxes: BoxType[]) {
+        const [p0, p1, p2, p3] = structuredClone(boxes[0]);
+        for (const b of boxes) {
+            p0[0] = Math.min(p0[0], b[0][0]);
+            p0[1] = Math.min(p0[1], b[0][1]);
+            p1[0] = Math.max(p1[0], b[1][0]);
+            p1[1] = Math.min(p1[1], b[1][1]);
+            p2[0] = Math.max(p2[0], b[2][0]);
+            p2[1] = Math.max(p2[1], b[2][1]);
+            p3[0] = Math.min(p3[0], b[3][0]);
+            p3[1] = Math.max(p3[1], b[3][1]);
+        }
+        return [p0, p1, p2, p3] as BoxType;
+    }
+
+    function pushColumn(b: resultType[0]) {
+        let nearest: number | null = null;
+        let _jl = Number.POSITIVE_INFINITY;
+        for (const i in columns) {
+            const last = columns[i].at(-1);
+            if (!last) continue;
+            const jl = r(b.box[0], last.box[0]);
+            if (jl < _jl) {
+                nearest = Number(i);
+                _jl = jl;
+            }
+        }
+        if (nearest === null) {
+            columns.push([b]);
+            return;
+        }
+
+        const last = columns[nearest].at(-1) as resultType[0]; // 前面已经遍历过了，有-1的才能赋值到nearest
+        const thisW = b.box[1][0] - b.box[0][0];
+        const lastW = last.box[1][0] - last.box[0][0];
+        const minW = Math.min(thisW, lastW);
+        const em = b.box[3][1] - b.box[0][1];
+
+        if (
+            // 左右至少有一边是相近的，中心距离要相近
+            // 特别是处理在长行后分栏的情况
+            Math.abs(b.box[0][0] - last.box[0][0]) < em ||
+            Math.abs(b.box[1][0] - last.box[1][0]) < em ||
+            Math.abs((b.box[1][0] + b.box[0][0]) / 2 - (last.box[1][0] + last.box[0][0]) / 2) < minW * 0.4
+        ) {
+        } else {
+            const smallBox = thisW < lastW ? b : last;
+            const bigBox = thisW < lastW ? last : b;
+            const maxW = Math.max(thisW, lastW);
+            const ax = bigBox.box[0][0] + maxW / 2;
+            const bx = bigBox.box[1][0] - maxW / 2;
+            if (ax < smallBox.box[0][0] || bx > smallBox.box[1][0]) {
+                columns.push([b]);
+                return;
+            }
+        }
+
+        columns[nearest].push(b);
+    }
+
+    function joinResult(p: resultType) {
+        const cjkv = /\p{Ideographic}/u;
+        const cjkf = /[。，！？；：“”‘’《》、【】（）…—]/;
+        const res: resultType[0] = {
+            box: outerRect(p.map((i) => i.box)),
+            text: "",
+            mean: average2(p.map((i) => [i.mean, i.text.length])),
+            style: p[0].style,
+        };
+        for (const i of p) {
+            const lastChar = res.text.at(-1);
+            if (
+                lastChar &&
+                ((!lastChar.match(cjkv) && !lastChar.match(cjkf)) ||
+                    (!i.text.at(0)?.match(cjkv) && !i.text.at(0)?.match(cjkf)))
+            )
+                res.text += " ";
+            res.text += i.text;
+        }
+        return res;
+    }
+
     // 获取角度 竖排 横排
 
     // 短轴扩散，合并为段
@@ -891,81 +977,6 @@ function afAfRec(l: resultType) {
                 newL[j] = null;
             }
         }
-    }
-
-    function centerPoint(points: pointsType) {
-        const n = points.length;
-        let x = 0;
-        let y = 0;
-        for (const p of points) {
-            x += p[0];
-            y += p[1];
-        }
-        return [x / n, y / n] as pointType;
-    }
-
-    function r(point: pointType, point2: pointType) {
-        return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
-    }
-
-    function outerRect(boxes: BoxType[]) {
-        const [p0, p1, p2, p3] = structuredClone(boxes[0]);
-        for (const b of boxes) {
-            p0[0] = Math.min(p0[0], b[0][0]);
-            p0[1] = Math.min(p0[1], b[0][1]);
-            p1[0] = Math.max(p1[0], b[1][0]);
-            p1[1] = Math.min(p1[1], b[1][1]);
-            p2[0] = Math.max(p2[0], b[2][0]);
-            p2[1] = Math.max(p2[1], b[2][1]);
-            p3[0] = Math.min(p3[0], b[3][0]);
-            p3[1] = Math.max(p3[1], b[3][1]);
-        }
-        return [p0, p1, p2, p3] as BoxType;
-    }
-
-    function pushColumn(b: resultType[0]) {
-        let nearest: number | null = null;
-        let _jl = Number.POSITIVE_INFINITY;
-        for (const i in columns) {
-            const last = columns[i].at(-1);
-            if (!last) continue;
-            const jl = r(b.box[0], last.box[0]);
-            if (jl < _jl) {
-                nearest = Number(i);
-                _jl = jl;
-            }
-        }
-        if (nearest === null) {
-            columns.push([b]);
-            return;
-        }
-
-        const last = columns[nearest].at(-1) as resultType[0]; // 前面已经遍历过了，有-1的才能赋值到nearest
-        const thisW = b.box[1][0] - b.box[0][0];
-        const lastW = last.box[1][0] - last.box[0][0];
-        const minW = Math.min(thisW, lastW);
-        const em = b.box[3][1] - b.box[0][1];
-
-        if (
-            // 左右至少有一边是相近的，中心距离要相近
-            // 特别是处理在长行后分栏的情况
-            Math.abs(b.box[0][0] - last.box[0][0]) < em ||
-            Math.abs(b.box[1][0] - last.box[1][0]) < em ||
-            Math.abs((b.box[1][0] + b.box[0][0]) / 2 - (last.box[1][0] + last.box[0][0]) / 2) < minW * 0.4
-        ) {
-        } else {
-            const smallBox = thisW < lastW ? b : last;
-            const bigBox = thisW < lastW ? last : b;
-            const maxW = Math.max(thisW, lastW);
-            const ax = bigBox.box[0][0] + maxW / 2;
-            const bx = bigBox.box[1][0] - maxW / 2;
-            if (ax < smallBox.box[0][0] || bx > smallBox.box[1][0]) {
-                columns.push([b]);
-                return;
-            }
-        }
-
-        columns[nearest].push(b);
     }
 
     const columnsInYaxis: { src: resultType; outerBox: BoxType; x: number; w: number }[][] = [];
@@ -1089,28 +1100,6 @@ function afAfRec(l: resultType) {
     }
 
     const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse)) as resultType;
-
-    function joinResult(p: resultType) {
-        const cjkv = /\p{Ideographic}/u;
-        const cjkf = /[。，！？；：“”‘’《》、【】（）…—]/;
-        const res: resultType[0] = {
-            box: outerRect(p.map((i) => i.box)),
-            text: "",
-            mean: average2(p.map((i) => [i.mean, i.text.length])),
-            style: p[0].style,
-        };
-        for (const i of p) {
-            const lastChar = res.text.at(-1);
-            if (
-                lastChar &&
-                ((!lastChar.match(cjkv) && !lastChar.match(cjkf)) ||
-                    (!i.text.at(0)?.match(cjkv) && !i.text.at(0)?.match(cjkf)))
-            )
-                res.text += " ";
-            res.text += i.text;
-        }
-        return res;
-    }
 
     // 识别行首空格
 
