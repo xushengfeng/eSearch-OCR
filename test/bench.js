@@ -27,8 +27,8 @@ async function start() {
     const detRatio = 0.75;
     const ocr = await x.init({
         detPath: "./m/v4/ppocr_det.onnx",
-        recPath: "./m/v4/ppocr_rec.onnx",
-        dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
+        recPath: "./m/v4/ppocr_v4_rec_doc.onnx",
+        dic: fs.readFileSync("../assets/ppocrv4_doc_dict.txt").toString(),
         layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
         detRatio,
         ort,
@@ -104,6 +104,7 @@ async function start() {
         type: "node",
         provider: "cpu",
         detRatio,
+        models: { rec: "v4_doc" },
         r,
     };
     fs.writeFileSync("log.json", JSON.stringify(log, null, 2));
