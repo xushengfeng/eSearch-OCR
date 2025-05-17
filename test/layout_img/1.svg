@@ -25,7 +25,7 @@
      inkscape:document-units="mm"
      inkscape:zoom="0.79212693"
      inkscape:cx="314.34356"
-     inkscape:cy="486.03322"
+     inkscape:cy="667.82226"
      inkscape:window-width="1920"
      inkscape:window-height="1020"
      inkscape:window-x="0"
@@ -49,8 +49,8 @@
     <rect
        x="77.542602"
        y="669.08469"
-       width="566.2936"
-       height="56.809074"
+       width="157.92001"
+       height="190.62601"
        id="rect7" />
     <rect
        x="75.558349"
@@ -109,13 +109,13 @@
        y="0"><tspan
          x="72.138672"
          y="96.242969"
-         id="tspan5">这是排版分析测试，分为零</tspan><tspan
+         id="tspan1">这是排版分析测试，分为零</tspan><tspan
          x="72.138672"
          y="136.24297"
-         id="tspan6">散布局、两栏布局、网页布</tspan><tspan
+         id="tspan2">散布局、两栏布局、网页布</tspan><tspan
          x="72.138672"
          y="176.24297"
-         id="tspan7">局和出版布局。</tspan></text>
+         id="tspan3">局和出版布局。</tspan></text>
     <text
        xml:space="preserve"
        transform="matrix(0.26458333,0,0,0.26458333,48.432369,-8.8668359)"
@@ -125,13 +125,13 @@
        y="0"><tspan
          x="73.734375"
          y="302.01836"
-         id="tspan8">零散布局一般出现在屏幕</tspan><tspan
+         id="tspan4">零散布局一般出现在屏幕</tspan><tspan
          x="73.734375"
          y="342.01836"
-         id="tspan9">上，特别是多窗口多组件</tspan><tspan
+         id="tspan5">上，特别是多窗口多组件</tspan><tspan
          x="73.734375"
          y="382.01836"
-         id="tspan10">或多区域。</tspan></text>
+         id="tspan6">或多区域。</tspan></text>
     <text
        xml:space="preserve"
        transform="scale(0.26458333)"
@@ -141,39 +141,48 @@
        y="0"><tspan
          x="75.558594"
          y="484.41094"
-         id="tspan11">两栏布局在部分出版上</tspan><tspan
+         id="tspan7">两栏布局在部分出版上</tspan><tspan
          x="75.558594"
          y="524.41094"
-         id="tspan12">存在，为了减少文字行</tspan><tspan
+         id="tspan8">存在，为了减少文字行</tspan><tspan
          x="75.558594"
          y="564.41094"
-         id="tspan13">宽，把文字拆成两栏。</tspan></text>
+         id="tspan9">宽，把文字拆成两栏。</tspan></text>
     <text
        xml:space="preserve"
-       transform="scale(0.26458333)"
+       transform="matrix(0.26458333,0,0,0.26458333,1.4729721,1.3360653)"
        id="text6"
        style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect7);display:inline"
        x="-60.447998"
        y="0"><tspan
          x="77.542969"
          y="700.28398"
-         id="tspan14">网页布局即通过空行来分段。</tspan></text>
+         id="tspan10">网页布局</tspan><tspan
+         x="77.542969"
+         y="740.28398"
+         id="tspan11">即通过空</tspan><tspan
+         x="77.542969"
+         y="780.28398"
+         id="tspan12">行来分</tspan><tspan
+         x="77.542969"
+         y="820.28398"
+         id="tspan13">段。</tspan></text>
     <text
        xml:space="preserve"
-       transform="matrix(0.26458333,0,0,0.26458333,57.45081,-20.04098)"
+       transform="matrix(0.26458333,0,0,0.26458333,55.780728,-54.778679)"
        id="text7"
        style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect8);display:inline"
        x="-285.02399"
        y="0"><tspan
          x="81.222656"
          y="863.1375"
-         id="tspan15">出版布局。由于以前印刷成本</tspan><tspan
+         id="tspan14">出版布局。由于以前印刷成本</tspan><tspan
          x="81.222656"
          y="903.1375"
-         id="tspan16">高，为了节省且能体现换行，一</tspan><tspan
+         id="tspan20">高，为了节省且能体现换行，一</tspan><tspan
          x="81.222656"
          y="943.1375"
-         id="tspan17">般在段首空2格。</tspan></text>
+         id="tspan21">般在段首空2格。</tspan></text>
     <text
        xml:space="preserve"
        transform="scale(0.26458333)"
@@ -183,9 +192,9 @@
        y="0"><tspan
          x="83.078125"
          y="1010.8406"
-         id="tspan18">还有代码布局，这是考虑到部分编程软件使</tspan><tspan
+         id="tspan22">还有代码布局，这是考虑到部分编程软件使</tspan><tspan
          x="83.078125"
          y="1050.8406"
-         id="tspan19">用空格来区分块，空格具有语义。</tspan></text>
+         id="tspan23">用空格来区分块，空格具有语义。</tspan></text>
   </g>
 </svg>

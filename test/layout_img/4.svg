@@ -120,61 +120,68 @@
        transform="translate(-25.816814,-67.572915)"><tspan
          x="38.41188"
          y="84.506126"
-         id="tspan2">         这是排版分析测试，分为零散布局、两栏布</tspan><tspan
+         id="tspan2">        占位字占位字占位字占位字占位字占位字占位</tspan><tspan
          x="38.41188"
          y="95.089461"
-         id="tspan3">局、网页布局和出版布局。
+         id="tspan3">字
 </tspan><tspan
          x="38.41188"
          y="105.6728"
-         id="tspan4">         零散布局一般出现在屏幕上，特别是多窗口多</tspan><tspan
+         id="tspan4">        这是排版分析测试，分为零散布局、两栏布</tspan><tspan
          x="38.41188"
          y="116.25613"
-         id="tspan5">组件或多区域。
+         id="tspan5">局、网页布局和出版布局。
 </tspan><tspan
          x="38.41188"
          y="126.83947"
-         id="tspan6">         两栏布局在部分出版上存在，为了减少文字行</tspan><tspan
+         id="tspan6">        零散布局一般出现在屏幕上，特别是多窗口多</tspan><tspan
          x="38.41188"
          y="137.4228"
-         id="tspan7">宽，把文字拆成两栏。占位字占位字占位字占位字</tspan><tspan
+         id="tspan7">组件或多区域。
+</tspan><tspan
          x="38.41188"
          y="148.00615"
-         id="tspan8">占位字占位字占位字占位字占位字占位字占位字占</tspan><tspan
+         id="tspan8">        两栏布局在部分出版上存在，为了减少文字行</tspan><tspan
          x="38.41188"
          y="158.58949"
-         id="tspan9">位字占位字。
-</tspan><tspan
+         id="tspan9">宽，把文字拆成两栏。占位字占位字占位字占位字</tspan><tspan
          x="38.41188"
          y="169.17283"
-         id="tspan10">         网页布局即通过空行来分段。
-</tspan><tspan
+         id="tspan10">占位字占位字占位字占位字占位字占位字占位字占</tspan><tspan
          x="38.41188"
          y="179.75618"
-         id="tspan11">         出版布局。由于以前印刷成本高，为了节省且</tspan><tspan
+         id="tspan11">位字占位字。
+</tspan><tspan
          x="38.41188"
          y="190.33952"
-         id="tspan12">能体现换行，一般在段首空2格。
+         id="tspan12">        网页布局即通过空行来分段。
 </tspan><tspan
          x="38.41188"
          y="200.92287"
-         id="tspan13">         还有代码布局，这是考虑到部分编程软件使用</tspan><tspan
+         id="tspan13">        出版布局。由于以前印刷成本高，为了节省且</tspan><tspan
          x="38.41188"
          y="211.50621"
-         id="tspan14">空格来区分块，空格具有语义。
+         id="tspan14">能体现换行，一般在段首空2格。
 </tspan><tspan
          x="38.41188"
          y="222.08955"
-         id="tspan15">         占位字占位字占位字占位字占位字占位字占位</tspan><tspan
+         id="tspan15">        还有代码布局，这是考虑到部分编程软件使用</tspan><tspan
          x="38.41188"
          y="232.6729"
-         id="tspan16">字占占位字占位字占位字占位字占位字占位字占位</tspan><tspan
-         x="38.41188"
-         y="243.25624"
-         id="tspan17">字占
+         id="tspan16">空格来区分块，空格具有语义。
 </tspan><tspan
          x="38.41188"
+         y="243.25624"
+         id="tspan17">        占位字占位字占位字占位字占位字占位字占位</tspan><tspan
+         x="38.41188"
          y="253.83958"
-         id="tspan18">         占位字占位字</tspan></text>
+         id="tspan18">字占占位字占位字占位字占位字占位字占位字占位</tspan><tspan
+         x="38.41188"
+         y="264.42291"
+         id="tspan37">字占
+</tspan><tspan
+         x="38.41188"
+         y="275.00625"
+         id="tspan38">        占位字占位字</tspan></text>
   </g>
 </svg>

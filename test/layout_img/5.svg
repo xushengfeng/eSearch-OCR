@@ -120,81 +120,81 @@
        transform="translate(-25.816814,-67.572915)"><tspan
          x="38.41188"
          y="84.506126"
-         id="tspan1">混合布局
+         id="tspan2">混合布局
 </tspan><tspan
          x="38.41188"
          y="95.089461"
-         id="tspan19">
+         id="tspan3">
 </tspan><tspan
          x="38.41188"
          y="105.6728"
-         id="tspan20">         这是排版分析测试，分为零散布局、两栏布</tspan><tspan
+         id="tspan4">        这是排版分析测试，分为零散布局、两栏布</tspan><tspan
          x="38.41188"
          y="116.25613"
-         id="tspan21">局、网页布局和出版布局。
+         id="tspan5">局、网页布局和出版布局。
 </tspan><tspan
          x="38.41188"
          y="126.83947"
-         id="tspan22">         零散布局一般出现在屏幕上，特别是多窗口多</tspan><tspan
+         id="tspan6">        零散布局一般出现在屏幕上，特别是多窗口多</tspan><tspan
          x="38.41188"
          y="137.4228"
-         id="tspan23">组件或多区域。
+         id="tspan7">组件或多区域。
 </tspan><tspan
          x="38.41188"
          y="148.00615"
-         id="tspan24">         两栏布局在部分出版上存在，为了减少文字行</tspan><tspan
+         id="tspan8">        两栏布局在部分出版上存在，为了减少文字行</tspan><tspan
          x="38.41188"
          y="158.58949"
-         id="tspan25">宽，把文字拆成两栏。占位字占位字占位字占位字</tspan><tspan
+         id="tspan9">宽，把文字拆成两栏。占位字占位字占位字占位字</tspan><tspan
          x="38.41188"
          y="169.17283"
-         id="tspan26">占位字占位字占位字占位字占位字占位字占位字占</tspan><tspan
+         id="tspan10">占位字占位字占位字占位字占位字占位字占位字占</tspan><tspan
          x="38.41188"
          y="179.75618"
-         id="tspan27">位字占位字。
+         id="tspan11">位字占位字。
 </tspan><tspan
          x="38.41188"
          y="190.33952"
-         id="tspan28">
+         id="tspan12">
 </tspan><tspan
          x="38.41188"
          y="200.92287"
-         id="tspan29">区域二
+         id="tspan13">区域二
 </tspan><tspan
          x="38.41188"
          y="211.50621"
-         id="tspan30">
+         id="tspan14">
 </tspan><tspan
          x="38.41188"
          y="222.08955"
-         id="tspan31">         网页布局即通过空行来分段。
+         id="tspan15">        网页布局即通过空行来分段。
 </tspan><tspan
          x="38.41188"
          y="232.6729"
-         id="tspan32">         出版布局。由于以前印刷成本高，为了节省且</tspan><tspan
+         id="tspan16">        出版布局。由于以前印刷成本高，为了节省且</tspan><tspan
          x="38.41188"
          y="243.25624"
-         id="tspan33">能体现换行，一般在段首空2格。
+         id="tspan17">能体现换行，一般在段首空2格。
 </tspan><tspan
          x="38.41188"
          y="253.83958"
-         id="tspan34">         还有代码布局，这是考虑到部分编程软件使用</tspan><tspan
+         id="tspan18">        还有代码布局，这是考虑到部分编程软件使用</tspan><tspan
          x="38.41188"
          y="264.42291"
-         id="tspan35">空格来区分块，空格具有语义。
+         id="tspan40">空格来区分块，空格具有语义。
 </tspan><tspan
          x="38.41188"
          y="275.00625"
-         id="tspan36">         占位字占位字占位字占位字占位字占位字占位</tspan><tspan
+         id="tspan41">        占位字占位字占位字占位字占位字占位字占位</tspan><tspan
          x="38.41188"
          y="285.5896"
-         id="tspan37">字占占位字占位字占位字占位字占位字占位字占位</tspan><tspan
+         id="tspan42">字占占位字占位字占位字占位字占位字占位字占位</tspan><tspan
          x="38.41188"
          y="296.17294"
-         id="tspan38">字占
+         id="tspan43">字占
 </tspan><tspan
          x="38.41188"
          y="306.75629"
-         id="tspan39">         占位字占位字</tspan></text>
+         id="tspan44">        占位字占位字</tspan></text>
   </g>
 </svg>

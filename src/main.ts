@@ -1050,56 +1050,51 @@ function afAfRec(l: resultType) {
 
     const p = newColumns.map((v) => {
         const c = v.src;
-        // gap feq
-        const gs: Record<number, number> = {};
+
+        const distanceCounts: Record<number, number> = {};
         for (let i = 1; i < c.length; i++) {
             const b1 = c[i - 1].box;
             const b2 = c[i].box;
-            const gap = b2[0][1] - b1[2][1];
-            if (!gs[gap]) gs[gap] = 0;
-            gs[gap]++;
+            const dis = (b2[0][1] + b2[3][1]) / 2 - (b1[0][1] + b1[3][1]) / 2;
+            if (!distanceCounts[dis]) distanceCounts[dis] = 0;
+            distanceCounts[dis]++;
         }
-        log(gs);
 
-        let splitGap = 0;
-
-        if (Object.keys(gs).length >= 2) {
-            let maxN = Math.max(...Object.values(gs));
-            let maxGap = 0;
-            let maxGapDelta = 0;
-            if (Object.values(gs).filter((i) => i === maxN)) maxN++; // 有多个最大值就不去了
-            const gapsL = Object.keys(gs)
-                .map(Number)
-                .sort((a, b) => a - b)
-                .filter((g) => gs[g] !== maxN); // 去掉一个最大值
-            for (let i = 1; i < gapsL.length; i++) {
-                const delta = Math.abs((gs[gapsL[i]] - gs[gapsL[i - 1]]) / (gapsL[i] - gapsL[i - 1]));
-                if (delta >= maxGapDelta) {
-                    maxGap = gapsL[i];
-                    maxGapDelta = delta;
-                }
+        let d = 0;
+        let di = 0;
+        for (const [_d, i] of Object.entries(distanceCounts)) {
+            if (i > di) {
+                di = i;
+                d = Number(_d);
             }
-            splitGap = Math.max(maxGap, ((gapsL.at(0) as number) + (gapsL.at(-1) as number)) / 2);
-        } else {
-            splitGap = Number(Object.keys(gs)[0] || 0);
         }
-        log(splitGap);
-
-        // todo 相差太大也分段
+        log("d", distanceCounts, d);
 
         const ps: resultType[] = [[c[0]]];
+        let lastPara = c[0];
         for (let i = 1; i < c.length; i++) {
-            const b1 = c[i - 1].box;
-            const b2 = c[i].box;
-            const gap = b2[0][1] - b1[2][1];
-            if (gap >= splitGap) {
+            const expectY = (lastPara.box[0][1] + lastPara.box[3][1]) / 2 + d;
+            const thisLeftCenter = (c[i].box[0][1] + c[i].box[3][1]) / 2;
+            const lineHeight = c[i].box[3][1] - c[i].box[0][1];
+            // 上一行右侧不靠近外框 或 理论此行与实际有差别，即空行或行首空格
+            if (
+                Math.abs(lastPara.box[1][0] - v.outerBox[1][0]) > 2 * lineHeight ||
+                r([v.outerBox[0][0], expectY], [c[i].box[0][0], thisLeftCenter]) >
+                    (c[i].box[3][1] - c[i].box[0][1]) * 0.5
+            ) {
                 ps.push([c[i]]);
             } else {
                 const last = ps.at(-1);
                 if (!last) ps.push([c[i]]);
                 else last.push(c[i]);
             }
+
+            lastPara = c[i];
         }
+
+        // todo 识别python类代码
+        // todo 计算前缀空格和向上换行
+
         log(ps);
         return {
             src: c,
@@ -1122,12 +1117,6 @@ function afAfRec(l: resultType) {
     }
 
     const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse)) as resultType;
-
-    // 识别行首空格
-
-    // for (const i of l) {
-    //     drawBox(i.box);
-    // }
 
     return {
         columns: p,
