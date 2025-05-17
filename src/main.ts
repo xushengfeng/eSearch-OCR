@@ -13,7 +13,20 @@ import {
 } from "./untils";
 import { type Contour, findContours, minAreaRect, type Point } from "./cv";
 
-export { setOCREnv, init, x as ocr, loadImg, Det as det, Rec as rec, afAfRec as analyzeLayout, initDet, initRec };
+export {
+    setOCREnv,
+    init,
+    /** @deprecated use return obj from init */
+    x as ocr,
+    loadImg,
+    /** @deprecated use return obj from init */
+    Det as det,
+    /** @deprecated use return obj from init */
+    Rec as rec,
+    afAfRec as analyzeLayout,
+    initDet,
+    initRec,
+};
 export type initType = AsyncType<ReturnType<typeof init>>;
 
 type onProgressType = (type: "det" | "rec", total: number, count: number) => void;

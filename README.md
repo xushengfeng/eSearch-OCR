@@ -35,6 +35,15 @@ import * as ocr from "esearch-ocr";
 import * as ort from "onnxruntime-web";
 ```
 
+部分引入
+
+```javascript
+import { init } from "esearch-ocr";
+import * as ort from "onnxruntime-web";
+```
+
+node
+
 ```javascript
 const ocr = require("esearch-ocr");
 const ort = require("onnxruntime-node");
@@ -47,7 +56,7 @@ const ort = require("onnxruntime-node");
 浏览器或 Electron 示例
 
 ```javascript
-await ocr.init({
+const localOCR = await ocr.init({
     detPath: "ocr/det.onnx", // det指识别模型，如果上面提到的文字包没有，那就用中英混合的det（在ch.zip里）。
     recPath: "ocr/rec.onnx",
     dic: "abcdefg...", // 在模型压缩包中的txt文件，需要传入里面的内容而不是路径
@@ -55,27 +64,15 @@ await ocr.init({
 });
 
 const url = "data:image/png;base64,..."; // 还支持 HTMLImageElement | HTMLCanvasElement | ImageData
-ocr.ocr(url)
+localOCR
+    .ocr(url)
     .then((result) => {}) // 见下面的解释
     .catch((e) => {});
 ```
 
-或者
-
-```javascript
-const localOCR = await ocr.init({
-    detPath: "ocr/det.onnx",
-    recPath: "ocr/rec.onnx",
-    dic: "abcdefg...",
-    ort,
-});
-
-localOCR.ocr(/*像上面ocr.ocr一样调用*/);
-```
-
 这在需要多次运行 ocr 时非常有用
 
-[node.js 示例](./test/test_node.js)，需要安装`canvas`
+node.js 环境还需要设置 canvas，运行方式也不一样，见[node.js 示例](./test/test_node.js)，需要安装`canvas`
 
 [演示项目](https://github.com/xushengfeng/webocr)
 
@@ -90,8 +87,6 @@ init type
     dev?: boolean;
     imgh?: number;
     detRatio?: number; // 缩放，小于1 越小越快，但准确率也会下降一点
-    canvas?: (w: number, h: number) => any; // 用于node
-    imageData?: any; // 用于node
 }
 ```
 
@@ -105,7 +100,7 @@ type resultType = {
     style: { bg: color; text: color }; // rgb数组，表示背景颜色和文字颜色，在简单移除文字时非常有用
 }[];
 
-{
+type output = {
     src: resultType; // 每个视觉行，rec输出
     columns: {
         // 分栏，如左右分栏
@@ -114,12 +109,10 @@ type resultType = {
         parragraphs: {
             src: resultType;
             parse: resultType[0];
-        }
-        [];
-    }
-    [];
+        }[];
+    }[];
     parragraphs: resultType; // 聚合了columns的每个段落
-}
+};
 ```
 
 合并的文字可以使用
@@ -128,7 +121,7 @@ type resultType = {
 result.parragraphs.map((item) => item.text).join("\n");
 ```
 
-除了 `ocr` 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看类型提示。
+除了 `ocr` 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看类型提示。[这个文件](./test/test_import.js)给出了示例。
 
 ## 模型
 

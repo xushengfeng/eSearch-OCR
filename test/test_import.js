@@ -10,17 +10,23 @@ const lOcr = await init({
     ort: ort,
 });
 {
-    await lOcr.ocr("");
-
-    const d = await lOcr.det(await loadImg(""));
-    const r = await lOcr.rec(d);
-}
-{
+    // init后，ocr,det,rec全局生效，配置继承自init
+    // 由于共享状态，不推荐使用
     await ocr("");
 
     const d = await det(await loadImg(""));
     const r = await rec(d);
 }
+{
+    // 推荐使用显式的操作，可以有多个OCR且不干扰
+    await lOcr.ocr("");
+
+    const d = await lOcr.det(await loadImg(""));
+    const r = await lOcr.rec(d);
+}
+
+// 单独配置，与init无关
+// 在部分场景很有用，如只需要检测文字区域进行隐私保护
 {
     const di = await initDet({
         detPath: "",
