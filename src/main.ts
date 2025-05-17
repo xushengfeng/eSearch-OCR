@@ -1078,9 +1078,9 @@ function afAfRec(l: resultType) {
             const lineHeight = c[i].box[3][1] - c[i].box[0][1];
             // 上一行右侧不靠近外框 或 理论此行与实际有差别，即空行或行首空格
             if (
-                Math.abs(lastPara.box[1][0] - v.outerBox[1][0]) > 2 * lineHeight ||
+                // Math.abs(lastPara.box[1][0] - v.outerBox[1][0]) > 2 * lineHeight || // F 类型的有问题
                 r([v.outerBox[0][0], expectY], [c[i].box[0][0], thisLeftCenter]) >
-                    (c[i].box[3][1] - c[i].box[0][1]) * 0.5
+                (c[i].box[3][1] - c[i].box[0][1]) * 0.5
             ) {
                 ps.push([c[i]]);
             } else {
