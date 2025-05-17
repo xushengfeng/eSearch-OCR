@@ -213,8 +213,9 @@ async function initOCR(op: {
         ocr: async (srcimg: loadImgType) => {
             let img = await loadImg(srcimg);
 
+            let dir = 0;
             if (docCls) {
-                const dir = await docCls.docCls(img);
+                dir = await docCls.docCls(img);
                 log("dir", dir);
                 img = rotateImg(img, 360 - dir);
             }
@@ -227,7 +228,7 @@ async function initOCR(op: {
             const newMainLine = afAfRec(mainLine);
             log(mainLine, newMainLine);
             task.l("end");
-            return { src: mainLine, ...newMainLine };
+            return { src: mainLine, ...newMainLine, docDir: dir };
         },
         det: det.det,
         rec: rec.rec,
