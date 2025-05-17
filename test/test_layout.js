@@ -20,7 +20,7 @@ async function start() {
     document.body.style.flexWrap = "wrap";
     const rootPath = "../test/layout_img";
     const dir = fs.readdirSync(rootPath);
-    const only = 0;
+    const only = 0 && "3.svg";
     for (const f of dir) {
         if (f !== only && only !== 0) continue;
         const src = path.join(rootPath, f);
@@ -61,6 +61,14 @@ async function start() {
                     drawBox(p.parse.box, p.parse.text, color[i]);
                 }
             }
+
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (const [i, c] of l.columns.entries()) {
+                ctx.lineTo((c.outerBox[0][0] + c.outerBox[2][0]) / 2, (c.outerBox[0][1] + c.outerBox[2][1]) / 2);
+            }
+            ctx.stroke();
 
             function drawBox(box, id = "", color = "red") {
                 ctx.beginPath();
