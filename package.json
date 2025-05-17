@@ -40,7 +40,6 @@
     },
     "devDependencies": {
         "@biomejs/biome": "^1.8.3",
-        "onnxruntime-node": "^1.18.0",
         "typescript": "^5.4.5",
         "vite": "^5.2.11"
     }
