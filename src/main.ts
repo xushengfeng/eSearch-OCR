@@ -1060,15 +1060,32 @@ function afAfRec(l: resultType) {
             distanceCounts[dis]++;
         }
 
-        let d = 0;
-        let di = 0;
-        for (const [_d, i] of Object.entries(distanceCounts)) {
-            if (i > di) {
-                di = i;
-                d = Number(_d);
+        // 聚类
+        const avgLineHeight = average(c.map((i) => i.box[3][1] - i.box[0][1])); // todo 众数
+        const distanceGroup: number[][] = [[]];
+        for (const d of Object.keys(distanceCounts)
+            .map((i) => Number(i))
+            .sort()) {
+            const lastG = distanceGroup.at(-1)!;
+            const lastI = lastG.at(-1);
+            if (lastI !== undefined) {
+                if (Math.abs(lastI - d) < avgLineHeight * 0.5) {
+                    lastG.push(d);
+                } else {
+                    distanceGroup.push([]);
+                }
+            } else {
+                lastG.push(d);
             }
         }
-        log("d", distanceCounts, d);
+
+        const d =
+            distanceGroup
+                .map((g) => average(g))
+                .sort((a, b) => a - b)
+                .at(0) || 0;
+
+        log("d", distanceCounts, distanceGroup, d);
 
         const ps: resultType[] = [[c[0]]];
         let lastPara = c[0];
