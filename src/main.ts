@@ -1304,7 +1304,7 @@ function average2(args: [number, number][]) {
 }
 
 function rotateImg(img: ImageData, angle: number) {
-    const a = angle % 360;
+    const a = ((angle % 360) + 360) % 360;
     if (a === 0) return img;
     if (![90, 180, 270].includes(a)) throw new Error("只支持90度的旋转");
     const newData = new Uint8ClampedArray(img.height * img.width * 4);
