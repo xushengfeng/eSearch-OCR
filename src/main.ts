@@ -32,6 +32,35 @@ export {
 };
 export type initType = AsyncType<ReturnType<typeof init>>;
 
+type InitOcrBase = {
+    detPath: string;
+    recPath: string;
+    layoutPath?: string;
+    docClsPath?: string;
+    dic: string;
+    layoutDic?: string;
+    dev?: boolean;
+    log?: boolean;
+    imgh?: number;
+    detRatio?: number;
+    ort: typeof import("onnxruntime-common");
+    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
+};
+
+type InitOcrGlobal = {
+    /** @deprecated use setOCREnv instead */
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    canvas?: (w: number, h: number) => any;
+    /** @deprecated use setOCREnv instead */
+    imageData?;
+};
+
+type InitOcrCb = {
+    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
+    onDet?: (r: detResultType) => void;
+    onRec?: (index: number, result: { text: string; mean: number }) => void;
+};
+
 type onProgressType = (type: "det" | "rec", total: number, count: number) => void;
 
 type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
@@ -82,27 +111,7 @@ function logColor(...args: string[]) {
     }
 }
 
-async function init(op: {
-    detPath: string;
-    recPath: string;
-    layoutPath?: string;
-    dic: string;
-    layoutDic?: string;
-    dev?: boolean;
-    log?: boolean;
-    imgh?: number;
-    detRatio?: number;
-    ort: typeof import("onnxruntime-common");
-    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
-
-    /** @deprecated use setOCREnv instead */
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    canvas?: (w: number, h: number) => any;
-    /** @deprecated use setOCREnv instead */
-    imageData?;
-
-    onProgress?: onProgressType;
-}) {
+async function init(op: InitOcrBase & InitOcrCb & InitOcrGlobal) {
     setOCREnv(op);
     const x = await initOCR(op);
     globalOCR = x;
@@ -185,24 +194,7 @@ async function Rec(box: detResultType) {
 }
 
 /** 主要操作 */
-async function initOCR(op: {
-    detPath: string;
-    recPath: string;
-    layoutPath?: string;
-    docClsPath?: string;
-    dic: string;
-    layoutDic?: string;
-    dev?: boolean;
-    log?: boolean;
-    imgh?: number;
-    detRatio?: number;
-    ort: typeof import("onnxruntime-common");
-    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
-
-    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
-    onDet?: (r: detResultType) => void;
-    onRec?: (index: number, result: { text: string; mean: number }) => void;
-}) {
+async function initOCR(op: InitOcrBase & InitOcrCb) {
     checkNode();
 
     // @ts-ignore
