@@ -983,6 +983,11 @@ function afAfRec(l: resultType) {
         }
     }
 
+    for (const x of columns) {
+        const o = outerRect(x.map((i) => i.box));
+        drawBox(o, "", "red");
+    }
+
     const columnsInYaxis: { src: resultType; outerBox: BoxType; x: number; w: number }[][] = [];
     for (const [i, c] of columns.entries()) {
         const outer = outerRect(c.map((b) => b.box));
@@ -994,14 +999,11 @@ function afAfRec(l: resultType) {
         }
         const l = columnsInYaxis.find((oc) => {
             const r = oc.at(-1)!;
-            const minW = Math.min(r.w, w);
             const em = c.at(0)!.box[3][1] - c.at(0)!.box[0][1];
             if (
-                (Math.abs(r.outerBox[0][0] - outer[0][0]) < 3 * em ||
-                    Math.abs(r.outerBox[1][0] - outer[1][0]) < 3 * em ||
-                    Math.abs(r.x - x) < minW * 0.4) &&
+                Math.abs(r.outerBox[0][0] - outer[0][0]) < 3 * em &&
+                Math.abs(r.outerBox[1][0] - outer[1][0]) < 3 * em &&
                 Math.abs(outer[0][1] - r.outerBox[3][1]) < em * 2.1
-                // todo 与上面的合并
             )
                 return true;
             return false;
@@ -1033,6 +1035,31 @@ function afAfRec(l: resultType) {
         return a.outerBox[0][1] - b.outerBox[0][1];
     });
 
+    // 宽度相近的行都合并了，但有两中不合并的，以行20字为例子：(1)20,20,2,20,20 (2)20,20,10,10,10,10,20]
+    // 分别为段末和分栏
+    // 合并情况：中间短的行数多
+    const mergedColumns: typeof newColumns = [];
+    for (const c of newColumns) {
+        const last = mergedColumns.at(-1);
+        if (!last) {
+            mergedColumns.push(c);
+            continue;
+        }
+        const lastOuter = last.outerBox;
+        const em = c.src[0].box[3][1] - c.src[0].box[0][1];
+        if (
+            (last.src.length === 1 && Math.abs(lastOuter[0][0] - c.outerBox[0][0]) < 3 * em) || // 标题
+            (c.src.length === 1 && Math.abs(lastOuter[0][0] - c.outerBox[0][0]) < 3 * em) || // 末尾
+            (Math.abs(lastOuter[0][0] - c.outerBox[0][0]) < 3 * em &&
+                Math.abs(lastOuter[1][0] - c.outerBox[1][0]) < 3 * em) // 前面短的合并了，后面也合并上去
+        ) {
+            last.src.push(...c.src);
+            last.outerBox = outerRect(last.src.map((i) => i.box));
+        } else {
+            mergedColumns.push(c);
+        }
+    }
+
     if (dev) {
         const color: string[] = [];
         for (let h = 0; h < 360; h += Math.floor(360 / newColumns.length)) {
@@ -1047,8 +1074,9 @@ function afAfRec(l: resultType) {
     }
 
     // 长轴扩散，合并为行
+    // 合并为段落
 
-    const p = newColumns.map((v) => {
+    const p = mergedColumns.map((v) => {
         const c = v.src;
 
         const distanceCounts: Record<number, number> = {};
@@ -1119,19 +1147,6 @@ function afAfRec(l: resultType) {
             parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) as resultType[0] })),
         };
     });
-
-    if (dev) {
-        const color: string[] = [];
-        for (let h = 10; h < 360; h += Math.floor(360 / p.length)) {
-            color.push(`hsl(${h}, 100%, 50%)`);
-        }
-
-        for (const i in p) {
-            for (const b of p[i].parragraphs) {
-                drawBox(b.parse.box, b.parse.text, color[i]);
-            }
-        }
-    }
 
     const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse)) as resultType;
 
