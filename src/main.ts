@@ -1000,7 +1000,7 @@ function afAfRec(l: resultType) {
                 (Math.abs(r.outerBox[0][0] - outer[0][0]) < 3 * em ||
                     Math.abs(r.outerBox[1][0] - outer[1][0]) < 3 * em ||
                     Math.abs(r.x - x) < minW * 0.4) &&
-                Math.abs(outer[0][1] - r.outerBox[3][1]) < em * 2
+                Math.abs(outer[0][1] - r.outerBox[3][1]) < em * 2.1
                 // todo 与上面的合并
             )
                 return true;
