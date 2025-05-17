@@ -1,5 +1,6 @@
 const x = require("../");
 const fs = require("node:fs");
+const path = require("node:path");
 const ort = require("onnxruntime-node");
 
 start();
@@ -17,20 +18,22 @@ async function start() {
     });
     document.body.style.display = "flex";
     document.body.style.flexWrap = "wrap";
+    const rootPath = "../test/layout_img";
+    const dir = fs.readdirSync(rootPath);
     const only = 0;
-    for (let i = 1; i <= 5; i++) {
-        if (i !== only && only !== 0) continue;
-        const src = `../test/layout_img/${i}.svg`;
+    for (const f of dir) {
+        if (f !== only && only !== 0) continue;
+        const src = path.join(rootPath, f);
         const img = new Image();
         img.src = src;
         img.onload = async () => {
             const c = document.createElement("canvas");
-            const ratio = 0.3;
+            const ratio = 0.8;
             c.width = Math.floor(img.naturalWidth * ratio);
             c.height = Math.floor(img.naturalHeight * ratio);
             const p = document.createElement("div");
             const h = document.createElement("span");
-            h.innerText = i;
+            h.innerText = f;
             p.append(h, c);
             document.body.append(p);
             const ctx = c.getContext("2d");
