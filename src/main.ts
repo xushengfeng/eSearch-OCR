@@ -27,6 +27,8 @@ export {
     afAfRec as analyzeLayout,
     initDet,
     initRec,
+    initDocDirCls,
+    rotateImg,
 };
 export type initType = AsyncType<ReturnType<typeof init>>;
 
