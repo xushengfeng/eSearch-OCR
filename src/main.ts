@@ -33,8 +33,8 @@ type resultType = { text: string; mean: number; box: BoxType; style: { bg: color
 const task = new tLog("t");
 const task2 = new tLog("af_det");
 
-let dev = true;
-let canlog = true;
+let dev = false;
+let canlog = false;
 
 let globalOCR: AsyncType<ReturnType<typeof initOCR>> | null = null;
 
@@ -146,7 +146,7 @@ async function loadImg(src: loadImgType) {
 function checkNode() {
     try {
         newCanvas(1, 1);
-        createImageData(new Uint8ClampedArray(1), 1, 1);
+        createImageData(new Uint8ClampedArray(4), 1, 1);
     } catch (error) {
         console.log("nodejs need set canvas, please use setOCREnv to set canvas and imageData");
         throw error;
