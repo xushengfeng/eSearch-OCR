@@ -8,7 +8,7 @@ async function start() {
     const pro = document.createElement("progress");
     document.body.append(pro);
     const modelBasePath = "./m/v4/";
-    await x.init({
+    const ocr = await x.init({
         detPath: `${modelBasePath}/ppocr_det.onnx`,
         recPath: `${modelBasePath}/ppocr_rec.onnx`,
         dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
@@ -27,7 +27,7 @@ async function start() {
     pro.value = 0;
     // const src = "imgs/ch.svg";
     const src = "../c.png";
-    x.ocr(src).then((v) => {
+    ocr.ocr(src).then((v) => {
         for (const i of v.parragraphs) {
             const p = document.createElement("p");
             p.innerText = i.text;

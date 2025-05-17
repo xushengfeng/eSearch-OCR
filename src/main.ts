@@ -13,8 +13,10 @@ import {
 } from "./untils";
 import { type Contour, findContours, minAreaRect, type Point } from "./cv";
 
-export { init, x as ocr, Det as det, Rec as rec, afAfRec as analyzeLayout };
+export { setOCREnv, init, x as ocr, loadImg, Det as det, Rec as rec, afAfRec as analyzeLayout, initDet, initRec };
 export type initType = AsyncType<ReturnType<typeof init>>;
+
+type onProgressType = (type: "det" | "rec", total: number, count: number) => void;
 
 type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
 type detResultType = { box: BoxType; img: ImageData; style: { bg: color; text: color } }[];
@@ -28,22 +30,13 @@ type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
 
-let ort: typeof import("onnxruntime-common");
-
 const task = new tLog("t");
 const task2 = new tLog("af_det");
 
 let dev = true;
 let canlog = true;
-let det: SessionType;
-let rec: SessionType;
-let layout: SessionType;
-let dic: string[];
-let imgH = 48;
-let detRatio = 1;
-let layoutDic: string[];
 
-let onProgress = (type: "det" | "rec", total: number, count: number) => {};
+let globalOCR: AsyncType<ReturnType<typeof initOCR>> | null = null;
 
 function putImgDom(img: OffscreenCanvas, id?: string) {
     const canvas = document.createElement("canvas");
@@ -74,10 +67,10 @@ function logColor(...args: string[]) {
 }
 
 async function init(op: {
-    detPath?: string;
-    recPath?: string;
+    detPath: string;
+    recPath: string;
     layoutPath?: string;
-    dic?: string;
+    dic: string;
     layoutDic?: string;
     dev?: boolean;
     log?: boolean;
@@ -86,37 +79,35 @@ async function init(op: {
     ort: typeof import("onnxruntime-common");
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
 
+    /** @deprecated use setOCREnv instead */
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    canvas?: (w: number, h: number) => any;
+    /** @deprecated use setOCREnv instead */
+    imageData?;
+
+    onProgress?: onProgressType;
+}) {
+    setOCREnv(op);
+    const x = await initOCR(op);
+    globalOCR = x;
+    return x;
+}
+
+function setOCREnv(op: {
+    dev?: boolean;
+    log?: boolean;
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     canvas?: (w: number, h: number) => any;
     imageData?;
-    cv?;
-
-    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
 }) {
-    ort = op.ort;
     dev = Boolean(op.dev);
     canlog = dev || Boolean(op.log);
     if (!dev) {
         task.l = () => {};
         task2.l = () => {};
     }
-    if (op.detPath) det = await ort.InferenceSession.create(op.detPath, op.ortOption);
-    if (op.recPath) rec = await ort.InferenceSession.create(op.recPath, op.ortOption);
-    if (op.layoutPath) layout = await ort.InferenceSession.create(op.layoutPath, op.ortOption);
-    dic = op.dic?.split(/\r\n|\r|\n/) || [];
-    if (dic.at(-1) === "") {
-        // 多出的换行
-        dic[dic.length - 1] = " ";
-    } else {
-        dic.push(" ");
-    }
-    layoutDic = op.layoutDic?.split(/\r\n|\r|\n/) || [];
-    if (op.imgh) imgH = op.imgh;
-    if (op.detRatio) detRatio = op.detRatio;
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
-    if (op.onProgress) onProgress = op.onProgress;
-    return { ocr: x, det: Det, rec: Rec };
 }
 
 async function loadImg(src: loadImgType) {
@@ -152,82 +143,177 @@ async function loadImg(src: loadImgType) {
     return img;
 }
 
-/** 主要操作 */
-async function x(srcimg: loadImgType) {
-    task.l("");
-
-    const img = await loadImg(srcimg);
-
-    if (layout) {
-        const sr = await runLayout(img, ort, layout, layoutDic);
+function checkNode() {
+    try {
+        newCanvas(1, 1);
+        createImageData(new Uint8ClampedArray(1), 1, 1);
+    } catch (error) {
+        console.log("nodejs need set canvas, please use setOCREnv to set canvas and imageData");
+        throw error;
     }
-
-    const box = await Det(img);
-
-    const mainLine = await Rec(box);
-    const newMainLine = afAfRec(mainLine);
-    log(mainLine, newMainLine);
-    task.l("end");
-    return { src: mainLine, ...newMainLine };
 }
 
-async function Det(srcimg: loadImgType) {
-    const img = await loadImg(srcimg);
+async function x(i: loadImgType) {
+    if (!globalOCR) throw new Error("need init");
+    return globalOCR.ocr(i);
+}
 
-    if (dev) {
-        const srcCanvas = data2canvas(img);
-        putImgDom(srcCanvas);
-    }
-
-    task.l("pre_det");
-    const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img);
-    const { transposedData, image } = beforeDetData;
-    task.l("det");
-    onProgress("det", 1, 0);
-    const detResults = await runDet(transposedData, image, det);
-
-    task.l("aft_det");
-    const box = afterDet(
-        { data: detResults.data, width: detResults.dims[3], height: detResults.dims[2] },
-        resizeW,
-        resizeH,
-        img,
-    );
-
-    onProgress("det", 1, 1);
-
-    return box;
+async function Det(s: ImageData) {
+    if (!globalOCR) throw new Error("need init");
+    return globalOCR.det(s);
 }
 
 async function Rec(box: detResultType) {
-    const mainLine: resultType = [];
-    task.l("bf_rec");
-    const recL = beforeRec(box);
-    let runCount = 0;
-    onProgress("rec", recL.length, runCount);
-    const mainLine0: { text: string; mean: number }[] = [];
-    for (const item of recL) {
-        const { b, imgH, imgW } = item;
-        const recResults = await runRec(b, imgH, imgW, rec);
-        runCount++;
-        onProgress("rec", recL.length, runCount);
-        mainLine0.push(...afterRec(recResults, dic));
-    }
-    mainLine0.reverse();
-    task.l("rec_end");
-    for (const i in mainLine0) {
-        const b = box[mainLine0.length - Number(i) - 1].box;
-        mainLine[i] = {
-            mean: mainLine0[i].mean,
-            text: mainLine0[i].text,
-            box: b,
-            style: box[mainLine0.length - Number(i) - 1].style,
-        };
-    }
-    return mainLine.filter((x) => x.mean >= 0.5) as resultType;
+    if (!globalOCR) throw new Error("need init");
+    return globalOCR.rec(box);
 }
 
-async function runDet(transposedData: number[][][], image: ImageData, det: SessionType) {
+/** 主要操作 */
+async function initOCR(op: {
+    detPath: string;
+    recPath: string;
+    layoutPath?: string;
+    dic: string;
+    layoutDic?: string;
+    dev?: boolean;
+    log?: boolean;
+    imgh?: number;
+    detRatio?: number;
+    ort: typeof import("onnxruntime-common");
+    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
+
+    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
+}) {
+    checkNode();
+
+    const det = await initDet(op);
+    const rec = await initRec(op);
+    return {
+        ocr: async (srcimg: loadImgType) => {
+            const img = await loadImg(srcimg);
+
+            const box = await det.det(img);
+
+            const mainLine = await rec.rec(box);
+            const newMainLine = afAfRec(mainLine);
+            log(mainLine, newMainLine);
+            task.l("end");
+            return { src: mainLine, ...newMainLine };
+        },
+        det: det.det,
+        rec: rec.rec,
+    };
+}
+
+async function initDet(op: {
+    detPath: string;
+    dev?: boolean;
+    log?: boolean;
+    imgh?: number;
+    detRatio?: number;
+    ort: typeof import("onnxruntime-common");
+    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
+    onProgress?: onProgressType;
+}) {
+    checkNode();
+
+    let detRatio = 1;
+    let onProgress: onProgressType = () => {};
+
+    const det = await op.ort.InferenceSession.create(op.detPath, op.ortOption);
+    if (op.detRatio !== undefined) detRatio = op.detRatio;
+    if (op.onProgress) onProgress = op.onProgress;
+
+    async function Det(srcimg: ImageData) {
+        const img = srcimg;
+
+        if (dev) {
+            const srcCanvas = data2canvas(img);
+            putImgDom(srcCanvas);
+        }
+
+        task.l("pre_det");
+        const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img, detRatio);
+        const { transposedData, image } = beforeDetData;
+        task.l("det");
+        onProgress("det", 1, 0);
+        const detResults = await runDet(transposedData, image, det, op.ort);
+
+        task.l("aft_det");
+        const box = afterDet(
+            { data: detResults.data, width: detResults.dims[3], height: detResults.dims[2] },
+            resizeW,
+            resizeH,
+            img,
+        );
+
+        onProgress("det", 1, 1);
+        return box;
+    }
+
+    return { det: Det };
+}
+
+async function initRec(op: {
+    recPath: string;
+    dic: string;
+    imgh?: number;
+    ort: typeof import("onnxruntime-common");
+    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
+    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
+}) {
+    checkNode();
+
+    let imgh = 48;
+    let onProgress: (type: "det" | "rec", total: number, count: number) => void = () => {};
+    const rec = await op.ort.InferenceSession.create(op.recPath, op.ortOption);
+    const dic = op.dic?.split(/\r\n|\r|\n/) || [];
+    if (dic.at(-1) === "") {
+        // 多出的换行
+        dic[dic.length - 1] = " ";
+    } else {
+        dic.push(" ");
+    }
+    if (op.imgh) imgh = op.imgh;
+    if (op.onProgress) onProgress = op.onProgress;
+
+    async function Rec(box: detResultType) {
+        const mainLine: resultType = [];
+        task.l("bf_rec");
+        const recL = beforeRec(box, imgh);
+        let runCount = 0;
+        op?.onProgress?.("rec", recL.length, runCount);
+        const mainLine0: { text: string; mean: number }[] = [];
+        for (const item of recL) {
+            const { b, imgH, imgW } = item;
+            const recResults = await runRec(b, imgH, imgW, rec, op.ort);
+            runCount++;
+            op?.onProgress?.("rec", recL.length, runCount);
+            mainLine0.push(...afterRec(recResults, dic));
+        }
+        mainLine0.reverse();
+        task.l("rec_end");
+        for (const i in mainLine0) {
+            const b = box[mainLine0.length - Number(i) - 1].box;
+            mainLine[i] = {
+                mean: mainLine0[i].mean,
+                text: mainLine0[i].text,
+                box: b,
+                style: box[mainLine0.length - Number(i) - 1].style,
+            };
+        }
+        return mainLine.filter((x) => x.mean >= 0.5) as resultType;
+    }
+
+    return { rec: Rec };
+}
+
+async function runDet(
+    transposedData: number[][][],
+    image: ImageData,
+    det: SessionType,
+    ort: typeof import("onnxruntime-common"),
+) {
     const detData = Float32Array.from(transposedData.flat(3));
 
     const detTensor = new ort.Tensor("float32", detData, [1, 3, image.height, image.width]);
@@ -238,7 +324,13 @@ async function runDet(transposedData: number[][][], image: ImageData, det: Sessi
     return detResults[det.outputNames[0]];
 }
 
-async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionType) {
+async function runRec(
+    b: number[][][],
+    imgH: number,
+    imgW: number,
+    rec: SessionType,
+    ort: typeof import("onnxruntime-common"),
+) {
     const recData = Float32Array.from(b.flat(3));
 
     const recTensor = new ort.Tensor("float32", recData, [1, 3, imgH, imgW]);
@@ -249,7 +341,7 @@ async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionT
     return recResults[rec.outputNames[0]];
 }
 
-function beforeDet(srcImg: ImageData) {
+function beforeDet(srcImg: ImageData, detRatio: number) {
     const resizeH = Math.max(Math.round((srcImg.height * detRatio) / 32) * 32, 32);
     const resizeW = Math.max(Math.round((srcImg.width * detRatio) / 32) * 32, 32);
 
@@ -727,7 +819,7 @@ function getImgPix(img: ImageData, x: number, y: number) {
     return Array.from(img.data.slice(index, index + 4)) as color;
 }
 
-function beforeRec(box: { box: BoxType; img: ImageData }[]) {
+function beforeRec(box: { box: BoxType; img: ImageData }[], imgH: number) {
     const l: { b: number[][][]; imgH: number; imgW: number }[] = [];
     function resizeNormImg(img: ImageData) {
         const w = Math.floor(imgH * (img.width / img.height));
