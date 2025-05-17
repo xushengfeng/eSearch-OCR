@@ -84,6 +84,7 @@ init type
     detPath: string;
     recPath: string;
     dic: string; // 文件内容，不是路径
+    docClsPath?: string;
     dev?: boolean;
     imgh?: number;
     detRatio?: number; // 缩放，小于1 越小越快，但准确率也会下降一点

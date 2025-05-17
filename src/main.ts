@@ -1,4 +1,5 @@
 import { runLayout } from "./layout";
+import { Cls } from "./cls";
 import {
     newCanvas,
     setCanvas,
@@ -186,6 +187,7 @@ async function initOCR(op: {
     detPath: string;
     recPath: string;
     layoutPath?: string;
+    docClsPath?: string;
     dic: string;
     layoutDic?: string;
     dev?: boolean;
@@ -201,11 +203,19 @@ async function initOCR(op: {
 }) {
     checkNode();
 
+    // @ts-ignore
+    const docCls = op.docClsPath ? await initDocDirCls(op) : undefined;
     const det = await initDet(op);
     const rec = await initRec(op);
     return {
         ocr: async (srcimg: loadImgType) => {
-            const img = await loadImg(srcimg);
+            let img = await loadImg(srcimg);
+
+            if (docCls) {
+                const dir = await docCls.docCls(img);
+                log("dir", dir);
+                img = rotateImg(img, 360 - dir);
+            }
 
             const box = await det.det(img);
 
@@ -222,11 +232,21 @@ async function initOCR(op: {
     };
 }
 
+async function initDocDirCls(op: {
+    docClsPath: string;
+    ort: typeof import("onnxruntime-common");
+    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
+    onProgress?: onProgressType;
+}) {
+    const cls = await op.ort.InferenceSession.create(op.docClsPath, op.ortOption);
+    const docCls = async (img: ImageData) => {
+        return Cls(img, op.ort, cls, [0, 90, 180, 270], 224, 224);
+    };
+    return { docCls };
+}
+
 async function initDet(op: {
     detPath: string;
-    dev?: boolean;
-    log?: boolean;
-    imgh?: number;
     detRatio?: number;
     ort: typeof import("onnxruntime-common");
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
@@ -1286,6 +1306,30 @@ function average2(args: [number, number][]) {
         n += (i[0] * i[1]) / xsum;
     }
     return n;
+}
+
+function rotateImg(img: ImageData, angle: number) {
+    const a = angle % 360;
+    if (a === 0) return img;
+    if (![90, 180, 270].includes(a)) throw new Error("只支持90度的旋转");
+    const newData = new Uint8ClampedArray(img.height * img.width * 4);
+
+    for (let y = 0; y < img.height; y++) {
+        for (let x = 0; x < img.width; x++) {
+            const index = y * img.width + x;
+            const newIndex =
+                a === 90
+                    ? x * img.height + (img.height - y - 1)
+                    : a === 180
+                      ? img.width - x - 1 + (img.height - y - 1) * img.width
+                      : (img.width - x - 1) * img.height + y;
+            newData.set(img.data.slice(index * 4, index * 4 + 4), newIndex * 4);
+        }
+    }
+
+    const newWidth = a === 90 || a === 270 ? img.height : img.width;
+    const newHeight = a === 90 || a === 270 ? img.width : img.height;
+    return createImageData(newData, newWidth, newHeight);
 }
 
 function drawBox(box: BoxType, id = "", color = "red", qid?: string) {
