@@ -8,6 +8,7 @@
 
 -   文字检测
 -   文字识别
+-   文档旋转识别
 -   简单的段落合并
 -   轻量，仅需要引入 onnx，gizp 后 10kB
 -   支持浏览器(esm)、node(CommonJS) 和 Electron
@@ -84,7 +85,7 @@ init type
     detPath: string;
     recPath: string;
     dic: string; // 文件内容，不是路径
-    docClsPath?: string;
+    docClsPath?: string; // 文档旋转识别，所有文字方向应该一致，各行不同向有待开发
     dev?: boolean;
     imgh?: number;
     detRatio?: number; // 缩放，小于1 越小越快，但准确率也会下降一点
