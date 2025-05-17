@@ -1,4 +1,4 @@
-const x = require("../");
+const { initDet, analyzeLayout } = require("../");
 const fs = require("node:fs");
 const path = require("node:path");
 const ort = require("onnxruntime-node");
@@ -7,11 +7,8 @@ start();
 
 async function start() {
     const modelBasePath = "./m/v4/";
-    await x.init({
+    const det = await initDet({
         detPath: `${modelBasePath}/ppocr_det.onnx`,
-        recPath: `${modelBasePath}/ppocr_v4_rec_doc.onnx`,
-        dic: fs.readFileSync("../assets/ppocrv4_doc_dict.txt").toString(),
-        layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
         log: true,
         // dev: true,
         ort,
@@ -41,9 +38,9 @@ async function start() {
             ctx.scale(ratio, ratio);
             ctx.drawImage(img, 0, 0);
             ctx.restore();
-            const detResult = await x.det(ctx.getImageData(0, 0, c.width, c.height));
+            const detResult = await det.det(ctx.getImageData(0, 0, c.width, c.height));
             const mainLine = detResult.map((i, n) => ({ ...i, text: n.toString(), mean: 1 }));
-            const l = x.analyzeLayout(mainLine);
+            const l = analyzeLayout(mainLine);
 
             const color = [];
             for (let h = 10; h < 360; h += Math.floor(360 / l.columns.length)) {

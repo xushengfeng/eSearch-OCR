@@ -1,4 +1,4 @@
-const x = require("../");
+const { init, setOCREnv } = require("../");
 const fs = require("node:fs");
 const ort = require("onnxruntime-node");
 
@@ -10,14 +10,14 @@ async function start() {
     const detPath = "./m/v4/ppocr_det.onnx";
     const recPath = "./m/v4/ppocr_rec.onnx";
     const dicPath = "../assets/ppocr_keys_v1.txt";
-    const imgPath = "imgs/bg1.svg";
+    const imgPath = "imgs/long_small.svg";
 
-    x.setOCREnv({
+    setOCREnv({
         canvas: (w, h) => createCanvas(w, h),
         imageData: createImageData,
     });
 
-    const localOCR = await x.init({
+    const localOCR = await init({
         detPath: detPath,
         recPath: recPath,
         dic: fs.readFileSync(dicPath).toString(),
@@ -28,8 +28,7 @@ async function start() {
     const canvas = createCanvas(img.width, img.height);
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0);
-    localOCR.ocr(ctx.getImageData(0, 0, img.width, img.height)).then((v) => {
-        const tl = v.parragraphs.map((i) => i.text);
-        console.log(tl.join("\n"));
-    });
+    const ocrResult = await localOCR.ocr(ctx.getImageData(0, 0, img.width, img.height));
+    const tl = ocrResult.parragraphs.map((i) => i.text);
+    console.log(tl.join("\n"));
 }

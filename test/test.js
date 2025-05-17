@@ -1,4 +1,4 @@
-const x = require("../");
+const { init } = require("../");
 const fs = require("node:fs");
 const ort = require("onnxruntime-node");
 
@@ -8,7 +8,7 @@ async function start() {
     const pro = document.createElement("progress");
     document.body.append(pro);
     const modelBasePath = "./m/v4/";
-    const ocr = await x.init({
+    const localOcr = await init({
         detPath: `${modelBasePath}/ppocr_det.onnx`,
         recPath: `${modelBasePath}/ppocr_rec.onnx`,
         dic: fs.readFileSync("../assets/ppocr_keys_v1.txt").toString(),
@@ -27,11 +27,10 @@ async function start() {
     pro.value = 0;
     // const src = "imgs/ch.svg";
     const src = "../c.png";
-    ocr.ocr(src).then((v) => {
-        for (const i of v.parragraphs) {
-            const p = document.createElement("p");
-            p.innerText = i.text;
-            document.body.append(p);
-        }
-    });
+    const ocrResult = await localOcr.ocr(src);
+    for (const i of ocrResult.parragraphs) {
+        const p = document.createElement("p");
+        p.innerText = i.text;
+        document.body.append(p);
+    }
 }
