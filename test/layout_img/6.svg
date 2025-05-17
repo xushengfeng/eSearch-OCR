@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.1 (93de688d07, 2025-03-30)"
+   sodipodi:docname="6.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.79212693"
+     inkscape:cx="314.34356"
+     inkscape:cy="8.8369676"
+     inkscape:window-width="1920"
+     inkscape:window-height="1020"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <rect
+       x="83.078673"
+       y="979.64098"
+       width="626.40358"
+       height="97.206644"
+       id="rect9" />
+    <rect
+       x="81.22296"
+       y="831.93738"
+       width="464.14418"
+       height="171.68966"
+       id="rect8" />
+    <rect
+       x="77.542602"
+       y="669.08469"
+       width="157.92001"
+       height="190.62601"
+       id="rect7" />
+    <rect
+       x="75.558349"
+       y="453.2102"
+       width="321.29205"
+       height="138.86664"
+       id="rect6" />
+    <rect
+       x="73.734649"
+       y="270.81787"
+       width="374.87513"
+       height="163.06983"
+       id="rect5" />
+    <rect
+       x="72.139257"
+       y="65.043593"
+       width="411.29369"
+       height="144.96766"
+       id="rect3" />
+    <rect
+       x="83.618389"
+       y="801.20603"
+       width="412.05124"
+       height="75.041713"
+       id="rect4" />
+    <rect
+       x="121.9769"
+       y="202.50144"
+       width="637.24738"
+       height="698.68864"
+       id="rect1" />
+    <rect
+       x="121.9769"
+       y="202.50143"
+       width="652.60706"
+       height="1039.3464"
+       id="rect1-7" />
+  </defs>
+  <g
+     inkscape:label="图层 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#ffffff;stroke-width:4.83932;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1"
+       id="rect2"
+       width="210"
+       height="297"
+       x="0"
+       y="0" />
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text1"
+       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect3);display:inline"
+       x="-110.41801"
+       y="0"><tspan
+         x="72.138672"
+         y="96.242969"
+         id="tspan1">单行测试</tspan></text>
+  </g>
+</svg>
