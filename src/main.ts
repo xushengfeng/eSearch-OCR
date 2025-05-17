@@ -1133,12 +1133,11 @@ function afAfRec(l: resultType) {
         for (let i = 1; i < c.length; i++) {
             const expectY = Box.blockCenter(lastPara.box) + d;
             const thisLeftCenter = Box.blockCenter(c[i].box);
-            const lineHeight = Box.blockSize(c[i].box);
+            const em = Box.blockSize(c[i].box);
             // 上一行右侧不靠近外框 或 理论此行与实际有差别，即空行或行首空格
             if (
-                // Math.abs(lastPara.box[1][0] - v.outerBox[1][0]) > 2 * lineHeight || // F 类型的有问题
-                r([Box.inlineStart(v.outerBox), expectY], [Box.inlineStart(c[i].box), thisLeftCenter]) >
-                lineHeight * 0.5
+                Box.inlineEndDis(lastPara.box, v.outerBox) > 2 * em ||
+                r([Box.inlineStart(v.outerBox), expectY], [Box.inlineStart(c[i].box), thisLeftCenter]) > em * 0.5
             ) {
                 ps.push([c[i]]);
             } else {
