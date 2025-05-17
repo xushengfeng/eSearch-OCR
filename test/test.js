@@ -23,10 +23,16 @@ async function start() {
                 pro.value = 1;
             }
         },
+        onDet: (d) => {
+            console.log("det", d);
+        },
+        onRec: (i, r) => {
+            console.log("r", r);
+        },
     });
     pro.value = 0;
-    // const src = "imgs/ch.svg";
-    const src = "../c.png";
+    const src = "imgs/ch.svg";
+    // const src = "../c.png";
     const ocrResult = await localOcr.ocr(src);
     for (const i of ocrResult.parragraphs) {
         const p = document.createElement("p");

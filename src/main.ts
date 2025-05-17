@@ -196,6 +196,8 @@ async function initOCR(op: {
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
 
     onProgress?: (type: "det" | "rec", total: number, count: number) => void;
+    onDet?: (r: detResultType) => void;
+    onRec?: (index: number, result: { text: string; mean: number }) => void;
 }) {
     checkNode();
 
@@ -206,6 +208,8 @@ async function initOCR(op: {
             const img = await loadImg(srcimg);
 
             const box = await det.det(img);
+
+            if (op.onDet) op.onDet(box);
 
             const mainLine = await rec.rec(box);
             const newMainLine = afAfRec(mainLine);
@@ -274,6 +278,7 @@ async function initRec(op: {
     ort: typeof import("onnxruntime-common");
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
     onProgress?: (type: "det" | "rec", total: number, count: number) => void;
+    onRec?: (index: number, result: { text: string; mean: number }) => void;
 }) {
     checkNode();
 
@@ -297,24 +302,22 @@ async function initRec(op: {
         let runCount = 0;
         op?.onProgress?.("rec", recL.length, runCount);
         const mainLine0: { text: string; mean: number }[] = [];
-        for (const item of recL) {
+        for (const [index, item] of recL.entries()) {
             const { b, imgH, imgW } = item;
             const recResults = await runRec(b, imgH, imgW, rec, op.ort);
+            const result = afterRec(recResults, dic)[0];
+            mainLine.push({
+                text: result.text,
+                mean: result.mean,
+                box: box[index].box,
+                style: box[index].style,
+            });
+            op?.onRec?.(index, result);
             runCount++;
             op?.onProgress?.("rec", recL.length, runCount);
             mainLine0.push(...afterRec(recResults, dic));
         }
-        mainLine0.reverse();
         task.l("rec_end");
-        for (const i in mainLine0) {
-            const b = box[mainLine0.length - Number(i) - 1].box;
-            mainLine[i] = {
-                mean: mainLine0[i].mean,
-                text: mainLine0[i].text,
-                box: b,
-                style: box[mainLine0.length - Number(i) - 1].style,
-            };
-        }
         return mainLine.filter((x) => x.mean >= 0.5) as resultType;
     }
 
