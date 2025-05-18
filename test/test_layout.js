@@ -25,7 +25,7 @@ async function start() {
         img.src = src;
         img.onload = async () => {
             const c = document.createElement("canvas");
-            const ratio = 0.8;
+            const ratio = 0.3;
             c.width = Math.floor(img.naturalWidth * ratio);
             c.height = Math.floor(img.naturalHeight * ratio);
             const p = document.createElement("div");
