@@ -75,6 +75,12 @@ type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
 
+type ReadingDirPart = "lr" | "rl" | "tb" | "bt";
+type ReadingDir = {
+    block: ReadingDirPart;
+    inline: ReadingDirPart;
+};
+
 const task = new tLog("t");
 const task2 = new tLog("af_det");
 
@@ -945,10 +951,17 @@ function afAfRec(l: resultType) {
 
     // 假定阅读方向都是统一的
     // 假定横平竖直
-    // 假定阅读顺序为标准的顺序
+
+    const dirs: ReadingDir[] = [
+        { block: "tb", inline: "lr" },
+        { block: "rl", inline: "tb" },
+    ];
+    const dir: ReadingDir = { block: "tb", inline: "lr" };
 
     const Box = {
-        inlineStart: (b: BoxType) => b[0][0],
+        centerP: (p1: pointType, p2: pointType): pointType => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
+        p2v: (p1: pointType, p2: pointType): pointType => [p1[0] - p2[0], p1[1] - p2[1]],
+        inlineStart: (b: BoxType) => b[0][0], // todo 中点
         inlineEnd: (b: BoxType) => b[1][0],
         blockStart: (b: BoxType) => b[0][1],
         blockEnd: (b: BoxType) => b[3][1],
@@ -961,6 +974,37 @@ function afAfRec(l: resultType) {
         inlineCenter: (b: BoxType) => (b[2][0] + b[0][0]) / 2, // 这里考虑了倾斜
         blockCenter: (b: BoxType) => (b[2][1] + b[0][1]) / 2,
     };
+
+    function averLineAngles(a: number[]) {
+        let iav = 0;
+        for (const i of a) {
+            const a1 = i > 180 ? i - 180 : i;
+            const a2 = a1 - 180;
+            iav = (iav + (Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1)) / 2;
+        }
+        return iav;
+    }
+    function lineAngleNear(a1: number, a2: number) {
+        if (Math.abs(a1 - a2) < 45) return true;
+        if (Math.abs(a1 - (a2 - 180)) < 45) return true;
+        return false;
+    }
+    function dir2xy(d: ReadingDirPart) {
+        if (d === "lr" || d === "rl") return "x";
+        return "y";
+    }
+    function smallest(l: number[], f: (a: number) => number) {
+        let min = Number.POSITIVE_INFINITY;
+        let minIndex = -1;
+        for (let i = 0; i < l.length; i++) {
+            const v = f(l[i]);
+            if (v < min) {
+                min = v;
+                minIndex = i;
+            }
+        }
+        return l[minIndex];
+    }
 
     function r(point: pointType, point2: pointType) {
         return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
@@ -1020,15 +1064,6 @@ function afAfRec(l: resultType) {
         columns[nearest].push(b);
     }
 
-    function boxA(b: BoxType | undefined) {
-        if (b) {
-            const w = b[1][0] - b[0][0];
-            const h = b[3][1] - b[0][1];
-            return { w, h };
-        }
-        return undefined;
-    }
-
     function joinResult(p: resultType) {
         const cjkv = /\p{Ideographic}/u;
         const cjkf = /[。，！？；：“”‘’《》、【】（）…—]/;
@@ -1052,6 +1087,52 @@ function afAfRec(l: resultType) {
     }
 
     // 获取角度 竖排 横排
+
+    /** 以x轴为正方向，图形学坐标 */
+    const rAngle = {
+        inline: 0,
+        block: 90,
+    };
+    const inlineAngles = l.map((i) => {
+        const b = i.box;
+        const w = Box.inlineSize(b);
+        const h = Box.blockSize(b);
+        let v = { x: 0, y: 0 };
+        if (w < h) {
+            const p = Box.p2v(Box.centerP(b[2], b[3]), Box.centerP(b[0], b[1]));
+            v = { x: p[0], y: p[1] };
+        } else {
+            const p = Box.p2v(Box.centerP(b[1], b[2]), Box.centerP(b[0], b[3]));
+            v = { x: p[0], y: p[1] };
+        }
+        const a = normalAngle(Math.atan2(v.y, v.x) * (180 / Math.PI));
+        return { b, a };
+    });
+    const iav = normalAngle(averLineAngles(inlineAngles.map((i) => i.a)));
+    const inlineangle = normalAngle(averLineAngles(inlineAngles.flatMap((i) => (lineAngleNear(i.a, iav) ? i.a : []))));
+
+    const blockangle = normalAngle(inlineangle + 90);
+
+    const inlineDir = lineAngleNear(inlineangle, 0) ? "x" : "y";
+    const blockDir = lineAngleNear(blockangle, 90) ? "y" : "x";
+    const fdir = dirs.find((d) => inlineDir === dir2xy(d.inline) && blockDir === dir2xy(d.block)) ?? dirs.at(0);
+    if (fdir) {
+        dir.block = fdir.block;
+        dir.inline = fdir.inline;
+    }
+
+    const tipAngle: Record<ReadingDirPart, number> = {
+        lr: 0,
+        rl: 180,
+        tb: 90,
+        bt: 270,
+    };
+    rAngle.inline = smallest([inlineangle, inlineangle - 180, inlineangle + 180], (a) =>
+        Math.abs(a - tipAngle[dir.inline]),
+    );
+    rAngle.block = smallest([blockangle, blockangle - 180, blockangle + 180], (a) => Math.abs(a - tipAngle[dir.block]));
+
+    log("dir", dir, rAngle, inlineangle, blockangle);
 
     // 短轴扩散，合并为段
 
@@ -1303,8 +1384,15 @@ function average2(args: [number, number][]) {
     return n;
 }
 
+/**
+ * 0-360
+ */
+function normalAngle(angle: number) {
+    return ((angle % 360) + 360) % 360;
+}
+
 function rotateImg(img: ImageData, angle: number) {
-    const a = ((angle % 360) + 360) % 360;
+    const a = normalAngle(angle);
     if (a === 0) return img;
     if (![90, 180, 270].includes(a)) throw new Error("只支持90度的旋转");
     const newData = new Uint8ClampedArray(img.height * img.width * 4);
