@@ -968,10 +968,12 @@ function afAfRec(l: resultType) {
         block: [0, 1] as VectorType,
     };
 
+    const Point = {
+        center: (p1: pointType, p2: pointType): pointType => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
+    };
+
     const Box = {
-        centerP: (p1: pointType, p2: pointType): pointType => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
-        p2v: (p1: pointType, p2: pointType): pointType => [p1[0] - p2[0], p1[1] - p2[1]],
-        inlineStart: (b: BoxType) => b[0][0], // todo 中点
+        inlineStart: (b: BoxType) => b[0][0],
         inlineEnd: (b: BoxType) => b[1][0],
         blockStart: (b: BoxType) => b[0][1],
         blockEnd: (b: BoxType) => b[3][1],
@@ -983,11 +985,13 @@ function afAfRec(l: resultType) {
         blockGap: (newB: BoxType, oldB: BoxType) => Math.abs(newB[0][1] - oldB[3][1]),
         inlineCenter: (b: BoxType) => (b[2][0] + b[0][0]) / 2, // 这里考虑了倾斜
         blockCenter: (b: BoxType) => (b[2][1] + b[0][1]) / 2,
+        center: (b: BoxType) => Point.center(b[0], b[2]),
     };
 
     type VectorType = [number, number];
 
     const Vector = {
+        fromPonts: (p1: pointType, p2: pointType): pointType => [p1[0] - p2[0], p1[1] - p2[1]],
         dotMup: (a: VectorType, b: VectorType) => a[0] * b[0] + a[1] * b[1],
         numMup: (a: VectorType, b: number) => [a[0] * b, a[1] * b] as VectorType,
         add: (a: VectorType, b: VectorType) => [a[0] + b[0], a[1] + b[1]] as VectorType,
@@ -1133,14 +1137,14 @@ function afAfRec(l: resultType) {
     };
     const inlineAngles = l.map((i) => {
         const b = i.box;
-        const w = Box.inlineSize(b);
-        const h = Box.blockSize(b);
+        const w = b[1][0] - b[0][0];
+        const h = b[3][1] - b[0][1];
         let v = { x: 0, y: 0 };
         if (w < h) {
-            const p = Box.p2v(Box.centerP(b[2], b[3]), Box.centerP(b[0], b[1]));
+            const p = Vector.fromPonts(Point.center(b[2], b[3]), Point.center(b[0], b[1]));
             v = { x: p[0], y: p[1] };
         } else {
-            const p = Box.p2v(Box.centerP(b[1], b[2]), Box.centerP(b[0], b[3]));
+            const p = Vector.fromPonts(Point.center(b[1], b[2]), Point.center(b[0], b[3]));
             v = { x: p[0], y: p[1] };
         }
         const a = normalAngle(Math.atan2(v.y, v.x) * (180 / Math.PI));
