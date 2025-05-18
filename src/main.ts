@@ -970,21 +970,39 @@ function afAfRec(l: resultType) {
 
     const Point = {
         center: (p1: pointType, p2: pointType): pointType => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
+        disByV: (p1: pointType, p2: pointType, type: "block" | "inline") => {
+            if (type === "block") {
+                return Math.abs(Vector.dotMup(p1, baseVector.block) - Vector.dotMup(p2, baseVector.block));
+            }
+            return Math.abs(Vector.dotMup(p1, baseVector.inline) - Vector.dotMup(p2, baseVector.inline));
+        },
+        compare: (a: pointType, b: pointType, type: "block" | "inline") => {
+            if (type === "block") {
+                return Vector.dotMup(a, baseVector.block) - Vector.dotMup(b, baseVector.block);
+            }
+            return Vector.dotMup(a, baseVector.inline) - Vector.dotMup(b, baseVector.inline);
+        },
+        toInline: (p: pointType) => {
+            return Vector.dotMup(p, baseVector.inline);
+        },
+        toBlock: (p: pointType) => {
+            return Vector.dotMup(p, baseVector.block);
+        },
     };
 
     const Box = {
-        inlineStart: (b: BoxType) => b[0][0],
-        inlineEnd: (b: BoxType) => b[1][0],
-        blockStart: (b: BoxType) => b[0][1],
-        blockEnd: (b: BoxType) => b[3][1],
+        inlineStart: (b: BoxType) => Point.center(b[0], b[3]),
+        inlineEnd: (b: BoxType) => Point.center(b[1], b[2]),
+        blockStart: (b: BoxType) => Point.center(b[0], b[1]),
+        blockEnd: (b: BoxType) => Point.center(b[2], b[3]),
         inlineSize: (b: BoxType) => b[1][0] - b[0][0],
         blockSize: (b: BoxType) => b[3][1] - b[0][1],
-        dis1: (a: number, b: number) => Math.abs(a - b),
-        inlineStartDis: (a: BoxType, b: BoxType) => Math.abs(a[0][0] - b[0][0]),
-        inlineEndDis: (a: BoxType, b: BoxType) => Math.abs(a[1][0] - b[1][0]),
-        blockGap: (newB: BoxType, oldB: BoxType) => Math.abs(newB[0][1] - oldB[3][1]),
-        inlineCenter: (b: BoxType) => (b[2][0] + b[0][0]) / 2, // 这里考虑了倾斜
+        inlineStartDis: (a: BoxType, b: BoxType) => Point.disByV(a[0], b[0], "inline"),
+        inlineEndDis: (a: BoxType, b: BoxType) => Point.disByV(a[1], b[1], "inline"),
+        blockGap: (newB: BoxType, oldB: BoxType) => Point.disByV(newB[0], oldB[3], "block"),
+        inlineCenter: (b: BoxType) => (b[2][0] + b[0][0]) / 2,
         blockCenter: (b: BoxType) => (b[2][1] + b[0][1]) / 2,
+        inlineStartCenter: (b: BoxType) => Box.inlineStart(b),
         center: (b: BoxType) => Point.center(b[0], b[2]),
     };
 
@@ -1095,7 +1113,7 @@ function afAfRec(l: resultType) {
             // 行之间也不要离太远
             (Box.inlineStartDis(b.box, last.box) < 3 * em ||
                 Box.inlineEndDis(b.box, last.box) < 3 * em ||
-                Box.dis1(Box.inlineCenter(b.box), Box.inlineCenter(last.box)) < minW * 0.4) &&
+                Point.disByV(Box.center(b.box), Box.center(last.box), "inline") < minW * 0.4) &&
             Box.blockGap(b.box, last.box) < em * 1.1
         ) {
         } else {
@@ -1218,7 +1236,7 @@ function afAfRec(l: resultType) {
 
     // 短轴扩散，合并为段
 
-    const newL_ = logicL.sort((a, b) => Box.blockStart(a.box) - Box.blockStart(b.box));
+    const newL_ = logicL.sort((a, b) => Point.compare(Box.blockStart(a.box), Box.blockStart(b.box), "block"));
     const newLZ: resultType[0][][] = [];
     // 合并行
     for (const j of newL_) {
@@ -1250,14 +1268,14 @@ function afAfRec(l: resultType) {
         }
 
         const em = average(l.map((i) => Box.blockSize(i.box)));
-        l.sort((a, b) => Box.inlineStart(a.box) - Box.inlineStart(b.box));
+        l.sort((a, b) => Point.compare(Box.inlineStart(a.box), Box.inlineStart(b.box), "inline"));
 
         let last = l.at(0)!;
 
         for (const this_ of l.slice(1)) {
-            const lastBoxInlineEnd = Box.inlineEnd(last.box) ?? Number.NEGATIVE_INFINITY;
+            const lastBoxInlineEnd = Box.inlineEnd(last.box);
             const thisInlineStart = Box.inlineStart(this_.box);
-            if (thisInlineStart - lastBoxInlineEnd > em) {
+            if (Point.toInline(thisInlineStart) - Point.toInline(lastBoxInlineEnd) > em) {
                 newL.push(last);
                 last = this_;
             } else {
@@ -1287,8 +1305,8 @@ function afAfRec(l: resultType) {
         for (const j in newL) {
             const b = newL[j];
             if (!b) continue;
-            if (Box.blockStart(b.box) > i) break;
-            if (Box.blockStart(b.box) <= i && i <= Box.blockEnd(b.box)) {
+            if (Point.toBlock(Box.blockStart(b.box)) > i) break;
+            if (Point.toBlock(Box.blockStart(b.box)) <= i && i <= Point.toBlock(Box.blockEnd(b.box))) {
                 pushColumn(b);
                 newL[j] = null;
             }
@@ -1323,7 +1341,7 @@ function afAfRec(l: resultType) {
     }
 
     for (const y of columnsInYaxis) {
-        y.sort((a, b) => Box.blockStart(a.outerBox) - Box.blockStart(b.outerBox));
+        y.sort((a, b) => Point.compare(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block"));
     }
 
     const newColumns: { src: resultType; outerBox: BoxType }[] = [];
@@ -1336,10 +1354,10 @@ function afAfRec(l: resultType) {
 
     newColumns.sort((a, b) => {
         const em = a.src.at(0) ? Box.blockSize(a.src.at(0)!.box) : 2;
-        if (Box.dis1(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox)) < em) {
-            return Box.inlineStart(a.outerBox) - Box.inlineStart(b.outerBox);
+        if (Point.disByV(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block") < em) {
+            return Point.compare(Box.inlineStart(a.outerBox), Box.inlineStart(b.outerBox), "inline");
         }
-        return Box.blockStart(a.outerBox) - Box.blockStart(b.outerBox);
+        return Point.compare(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block");
     });
 
     // 宽度相近的行都合并了，但有两中不合并的，以行20字为例子：(1)20,20,2,20,20 (2)20,20,10,10,10,10,20]
@@ -1389,13 +1407,13 @@ function afAfRec(l: resultType) {
         for (let i = 1; i < c.length; i++) {
             const b1 = c[i - 1].box;
             const b2 = c[i].box;
-            const dis = Box.blockCenter(b2) - Box.blockCenter(b1);
+            const dis = Point.disByV(Box.center(b2), Box.center(b1), "block");
             if (!distanceCounts[dis]) distanceCounts[dis] = 0;
             distanceCounts[dis]++;
         }
 
         // 聚类
-        const avgLineHeight = average(c.map((i) => i.box[3][1] - i.box[0][1])); // todo 众数
+        const avgLineHeight = average(c.map((i) => Box.blockSize(i.box))); // todo 众数
         const distanceGroup: number[][] = [[]];
         for (const d of Object.keys(distanceCounts)
             .map((i) => Number(i))
@@ -1424,14 +1442,14 @@ function afAfRec(l: resultType) {
         const ps: resultType[] = [[c[0]]];
         let lastPara = c[0];
         for (let i = 1; i < c.length; i++) {
-            const expectY = Box.blockCenter(lastPara.box) + d;
-            const thisLeftCenter = Box.blockCenter(c[i].box);
+            const expect = Vector.add(
+                Vector.add(Box.inlineStartCenter(lastPara.box), Vector.numMup(baseVector.block, d)),
+                Vector.numMup(baseVector.inline, -Box.inlineStartDis(lastPara.box, v.outerBox)),
+            );
+            const thisLeftCenter = Box.inlineStartCenter(c[i].box);
             const em = Box.blockSize(c[i].box);
             // 上一行右侧不靠近外框 或 理论此行与实际有差别，即空行或行首空格
-            if (
-                Box.inlineEndDis(lastPara.box, v.outerBox) > 2 * em ||
-                r([Box.inlineStart(v.outerBox), expectY], [Box.inlineStart(c[i].box), thisLeftCenter]) > em * 0.5
-            ) {
+            if (Box.inlineEndDis(lastPara.box, v.outerBox) > 2 * em || r(expect, thisLeftCenter) > em * 0.5) {
                 ps.push([c[i]]);
             } else {
                 const last = ps.at(-1);

@@ -1,4 +1,4 @@
-const { initDet, analyzeLayout } = require("../");
+const { initDet, analyzeLayout, setOCREnv } = require("../");
 const fs = require("node:fs");
 const path = require("node:path");
 const ort = require("onnxruntime-node");
@@ -7,17 +7,19 @@ start();
 
 async function start() {
     const modelBasePath = "./m/v4/";
-    const det = await initDet({
-        detPath: `${modelBasePath}/ppocr_det.onnx`,
+    setOCREnv({
         log: true,
         // dev: true,
+    });
+    const det = await initDet({
+        detPath: `${modelBasePath}/ppocr_det.onnx`,
         ort,
     });
     document.body.style.display = "flex";
     document.body.style.flexWrap = "wrap";
     const rootPath = "../test/layout_img";
     const dir = fs.readdirSync(rootPath);
-    const only = 0 && "3.svg";
+    const only = "7.svg";
     for (const f of dir) {
         if (f !== only && only !== 0) continue;
         const src = path.join(rootPath, f);
@@ -25,7 +27,7 @@ async function start() {
         img.src = src;
         img.onload = async () => {
             const c = document.createElement("canvas");
-            const ratio = 0.3;
+            const ratio = 0.8;
             c.width = Math.floor(img.naturalWidth * ratio);
             c.height = Math.floor(img.naturalHeight * ratio);
             const p = document.createElement("div");
@@ -79,6 +81,11 @@ async function start() {
                 ctx.strokeStyle = "black";
                 ctx.strokeText(id, box[0][0], box[0][1]);
             }
+
+            window.drawPoint = (p) => {
+                ctx.fillStyle = "blue";
+                ctx.fillRect(p[0], p[1], 4, 4);
+            };
         };
     }
 }
