@@ -959,8 +959,13 @@ function afAfRec(l: resultType) {
     const dir: ReadingDir = { block: "tb", inline: "lr" };
 
     const dirVector = {
-        inline: [1, 0],
-        block: [0, 1],
+        inline: [1, 0] as VectorType,
+        block: [0, 1] as VectorType,
+    };
+
+    const baseVector = {
+        inline: [1, 0] as VectorType,
+        block: [0, 1] as VectorType,
     };
 
     const Box = {
@@ -984,6 +989,8 @@ function afAfRec(l: resultType) {
 
     const Vector = {
         dotMup: (a: VectorType, b: VectorType) => a[0] * b[0] + a[1] * b[1],
+        numMup: (a: VectorType, b: number) => [a[0] * b, a[1] * b] as VectorType,
+        add: (a: VectorType, b: VectorType) => [a[0] + b[0], a[1] + b[1]] as VectorType,
     };
 
     function averLineAngles(a: number[]) {
@@ -1004,7 +1011,7 @@ function afAfRec(l: resultType) {
         if (d === "lr" || d === "rl") return "x";
         return "y";
     }
-    function smallest(l: number[], f: (a: number) => number) {
+    function smallest<I>(l: I[], f: (a: I) => number) {
         let min = Number.POSITIVE_INFINITY;
         let minIndex = -1;
         for (let i = 0; i < l.length; i++) {
@@ -1042,18 +1049,18 @@ function afAfRec(l: resultType) {
     }
 
     function outerRect(boxes: BoxType[]) {
-        const [p0, p1, p2, p3] = structuredClone(boxes[0]);
-        for (const b of boxes) {
-            p0[0] = Math.min(p0[0], b[0][0]);
-            p0[1] = Math.min(p0[1], b[0][1]);
-            p1[0] = Math.max(p1[0], b[1][0]);
-            p1[1] = Math.min(p1[1], b[1][1]);
-            p2[0] = Math.max(p2[0], b[2][0]);
-            p2[1] = Math.max(p2[1], b[2][1]);
-            p3[0] = Math.min(p3[0], b[3][0]);
-            p3[1] = Math.max(p3[1], b[3][1]);
-        }
-        return [p0, p1, p2, p3] as BoxType;
+        const points = boxes.flatMap((i) => i.map((i) => i));
+        const x1 = Math.min(...points.map((p) => Vector.dotMup(p, baseVector.inline)));
+        const x2 = Math.max(...points.map((p) => Vector.dotMup(p, baseVector.inline)));
+        const y1 = Math.min(...points.map((p) => Vector.dotMup(p, baseVector.block)));
+        const y2 = Math.max(...points.map((p) => Vector.dotMup(p, baseVector.block)));
+
+        const o = Vector.add(Vector.numMup(baseVector.inline, x1), Vector.numMup(baseVector.block, y1));
+
+        const w = Vector.numMup(baseVector.inline, x2 - x1);
+        const h = Vector.numMup(baseVector.block, y2 - y1);
+
+        return [o, Vector.add(o, w), Vector.add(Vector.add(o, w), h), Vector.add(o, h)] as BoxType;
     }
 
     function pushColumn(b: resultType[0]) {
@@ -1199,6 +1206,11 @@ function afAfRec(l: resultType) {
             box: newBox,
         };
     });
+
+    // 不考虑整体旋转，只考虑倾斜
+    baseVector.inline = xyT(dirVector.inline);
+    baseVector.block = xyT(dirVector.block);
+    log("相对坐标系", baseVector);
 
     // 短轴扩散，合并为段
 
