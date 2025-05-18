@@ -39,6 +39,7 @@ type InitOcrBase = {
     docClsPath?: string;
     dic: string;
     layoutDic?: string;
+    docDirs?: ReadingDir[];
     dev?: boolean;
     log?: boolean;
     imgh?: number;
@@ -223,7 +224,7 @@ async function initOCR(op: InitOcrBase & InitOcrCb) {
             if (op.onDet) op.onDet(box);
 
             const mainLine = await rec.rec(box);
-            const newMainLine = afAfRec(mainLine);
+            const newMainLine = afAfRec(mainLine, { docDirs: op.docDirs });
             log(mainLine, newMainLine);
             task.l("end");
             return { src: mainLine, ...newMainLine, docDir: dir };
@@ -946,13 +947,12 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 }
 
 /** 排版分析 */
-function afAfRec(l: resultType) {
+function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
     log(l);
 
     // 假定阅读方向都是统一的
-    // 假定横平竖直
 
-    const dirs: ReadingDir[] = [
+    const dirs: ReadingDir[] = op?.docDirs ?? [
         { block: "tb", inline: "lr" },
         { block: "rl", inline: "tb" },
     ];
@@ -1491,9 +1491,26 @@ function afAfRec(l: resultType) {
 
     const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse)) as resultType;
 
+    let angle = 0;
+    if (dir.inline === "lr") {
+        angle = rAngle.inline;
+    }
+    if (dir.inline === "rl") {
+        angle = rAngle.inline - 180;
+    }
+    if (dir.block === "lr") {
+        angle = rAngle.block;
+    }
+    if (dir.block === "rl") {
+        angle = rAngle.block - 180;
+    }
+    log("angle", angle);
+
     return {
         columns: p,
         parragraphs: pss,
+        readingDir: dir,
+        angle: { reading: rAngle, angle },
     };
 }
 
