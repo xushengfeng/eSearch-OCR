@@ -9,7 +9,7 @@
 -   文字检测
 -   文字识别
 -   文档旋转识别
--   简单的段落合并
+-   排版分析识别分栏、段落、阅读方向
 -   轻量，仅需要引入 onnx，gizp 后 10kB
 -   支持浏览器(esm)、node(CommonJS) 和 Electron
 -   完善的类型提示
@@ -88,6 +88,7 @@ init type
     recPath: string;
     dic: string; // 文件内容，不是路径
     docClsPath?: string; // 文档旋转识别，所有文字方向应该一致，各行不同向有待开发
+    docDirs?: ReadingDir[]; // 可限定文档阅读方向的识别范围，默认为常规方向和竖排方向
     dev?: boolean;
     imgh?: number;
     detRatio?: number; // 缩放，小于1 越小越快，但准确率也会下降一点
@@ -104,6 +105,8 @@ type resultType = {
     style: { bg: color; text: color }; // rgb数组，表示背景颜色和文字颜色，在简单移除文字时非常有用
 }[];
 
+type ReadingDirPart = "lr" | "rl" | "tb" | "bt";
+
 type output = {
     src: resultType; // 每个视觉行，rec输出
     columns: {
@@ -116,6 +119,14 @@ type output = {
         }[];
     }[];
     parragraphs: resultType; // 聚合了columns的每个段落
+    readingDir: {
+        inline: ReadingDirPart; // 行内的阅读方向
+        block: ReadingDirPart; // 行的排版方向
+    };
+    angle: {
+        reading: { inline: number; block: number }; // 阅读方向的具体角度
+        angle: number; // 整体旋转角，如果小于1°可忽略
+    };
 };
 ```
 
@@ -126,6 +137,10 @@ result.parragraphs.map((item) => item.text).join("\n");
 ```
 
 除了 `ocr` 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看类型提示。[这个文件](./test/test_import.js)给出了示例。
+
+对于竖排文字，如古籍等，在 cls 时会进行旋转。如果明确了输入，可以不用 cls。
+
+支持识别竖排文字排版段落。
 
 ## 模型
 
