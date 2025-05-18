@@ -958,6 +958,11 @@ function afAfRec(l: resultType) {
     ];
     const dir: ReadingDir = { block: "tb", inline: "lr" };
 
+    const dirVector = {
+        inline: [1, 0],
+        block: [0, 1],
+    };
+
     const Box = {
         centerP: (p1: pointType, p2: pointType): pointType => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
         p2v: (p1: pointType, p2: pointType): pointType => [p1[0] - p2[0], p1[1] - p2[1]],
@@ -973,6 +978,12 @@ function afAfRec(l: resultType) {
         blockGap: (newB: BoxType, oldB: BoxType) => Math.abs(newB[0][1] - oldB[3][1]),
         inlineCenter: (b: BoxType) => (b[2][0] + b[0][0]) / 2, // 这里考虑了倾斜
         blockCenter: (b: BoxType) => (b[2][1] + b[0][1]) / 2,
+    };
+
+    type VectorType = [number, number];
+
+    const Vector = {
+        dotMup: (a: VectorType, b: VectorType) => a[0] * b[0] + a[1] * b[1],
     };
 
     function averLineAngles(a: number[]) {
@@ -1004,6 +1015,26 @@ function afAfRec(l: resultType) {
             }
         }
         return l[minIndex];
+    }
+
+    const tipV: Record<ReadingDirPart, VectorType> = {
+        lr: [1, 0],
+        rl: [-1, 0],
+        tb: [0, 1],
+        bt: [0, -1],
+    };
+
+    /** 坐标系变换 */
+    function transXY(old: ReadingDir, target: ReadingDir) {
+        const oX = tipV[old.inline];
+        const oY = tipV[old.block];
+        const tX = tipV[target.inline];
+        const tY = tipV[target.block];
+        const tInOX = [Vector.dotMup(tX, oX), Vector.dotMup(tX, oY)] as VectorType;
+        const tInOY = [Vector.dotMup(tY, oX), Vector.dotMup(tY, oY)] as VectorType;
+        return (p: pointType) => {
+            return [Vector.dotMup(p, tInOX), Vector.dotMup(p, tInOY)] as pointType;
+        };
     }
 
     function r(point: pointType, point2: pointType) {
@@ -1132,11 +1163,46 @@ function afAfRec(l: resultType) {
     );
     rAngle.block = smallest([blockangle, blockangle - 180, blockangle + 180], (a) => Math.abs(a - tipAngle[dir.block]));
 
-    log("dir", dir, rAngle, inlineangle, blockangle);
+    dirVector.inline = [Math.cos(rAngle.inline * (Math.PI / 180)), Math.sin(rAngle.inline * (Math.PI / 180))];
+    dirVector.block = [Math.cos(rAngle.block * (Math.PI / 180)), Math.sin(rAngle.block * (Math.PI / 180))];
+
+    log("dir", dir, rAngle, dirVector, inlineangle, blockangle);
+
+    // 按照阅读方向，把box内部点重新排序
+    const reOrderMapX = [
+        [dir.inline[0], dir.block[0]],
+        [dir.inline[1], dir.block[0]],
+        [dir.inline[1], dir.block[1]],
+        [dir.inline[0], dir.block[1]],
+    ];
+    const reOrderMap = reOrderMapX.map(
+        ([i, b]) =>
+            ({
+                lt: 0,
+                rt: 1,
+                rb: 2,
+                lb: 3,
+            })[i === "l" || i === "r" ? i + b : b + i],
+    ) as number[];
+    const xyT = transXY({ inline: "lr", block: "tb" }, dir);
+    const logicL = l.map((i) => {
+        const b = structuredClone(i.box);
+        const newBox = [b[reOrderMap[0]], b[reOrderMap[1]], b[reOrderMap[2]], b[reOrderMap[3]]] as BoxType;
+        for (const x of newBox) {
+            const [a, b] = xyT(x);
+            x[0] = a;
+            x[1] = b;
+        }
+
+        return {
+            ...i,
+            box: newBox,
+        };
+    });
 
     // 短轴扩散，合并为段
 
-    const newL_ = structuredClone(l).sort((a, b) => Box.blockStart(a.box) - Box.blockStart(b.box));
+    const newL_ = logicL.sort((a, b) => Box.blockStart(a.box) - Box.blockStart(b.box));
     const newLZ: resultType[0][][] = [];
     // 合并行
     for (const j of newL_) {
@@ -1193,8 +1259,15 @@ function afAfRec(l: resultType) {
     // 按很细的粒度去分栏
     const columns: resultType[] = [];
 
-    const maxY = newL.reduce((a, b) => Math.max(a, Math.max(b?.box[2][1] ?? 0, b?.box[3][1] ?? 0)), 0);
-    for (let i = 0; i <= maxY; i++) {
+    const minY = newL.reduce(
+        (a, b) => Math.min(a, Math.min(b?.box[0][1] ?? 0, b?.box[1][1] ?? 0)),
+        Number.POSITIVE_INFINITY,
+    );
+    const maxY = newL.reduce(
+        (a, b) => Math.max(a, Math.max(b?.box[2][1] ?? 0, b?.box[3][1] ?? 0)),
+        Number.NEGATIVE_INFINITY,
+    );
+    for (let i = minY; i <= maxY; i++) {
         for (const j in newL) {
             const b = newL[j];
             if (!b) continue;
@@ -1355,6 +1428,24 @@ function afAfRec(l: resultType) {
 
         // todo 识别python类代码
         // todo 计算前缀空格和向上换行
+
+        const xyT = transXY(dir, { inline: "lr", block: "tb" });
+
+        for (const x of c) {
+            for (const p of x.box) {
+                const [a, b] = xyT(p);
+                p[0] = a;
+                p[1] = b;
+            }
+        }
+
+        const vo = v.outerBox;
+        for (const p of vo) {
+            const [a, b] = xyT(p);
+            p[0] = a;
+            p[1] = b;
+        }
+        // todo reorder
 
         log(ps);
         return {
