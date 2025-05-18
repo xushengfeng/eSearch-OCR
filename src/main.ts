@@ -867,7 +867,12 @@ function beforeRec(box: { box: BoxType; img: ImageData }[], imgH: number) {
     }
 
     for (const r of box) {
-        const reImg = resizeNormImg(r.img);
+        let img = r.img;
+        // 模型只支持输入横的图片
+        if (img.width < img.height) {
+            img = rotateImg(img, -90);
+        }
+        const reImg = resizeNormImg(img);
         l.push({ b: toPaddleInput(reImg.data, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]), imgH: reImg.h, imgW: reImg.w });
     }
     log(l);
