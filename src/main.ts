@@ -952,8 +952,13 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 }
 
 /** 排版分析 */
-function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
+function afAfRec(
+    l: resultType,
+    op?: { docDirs?: ReadingDir[]; columnsTip?: { box: BoxType; type: "auto" | "table" | "raw" | "raw-blank" }[] },
+) {
     log(l);
+
+    type columnType = "none" | "auto" | "table" | "raw" | "raw-blank";
 
     // 假定阅读方向都是统一的
 
@@ -972,6 +977,31 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
         inline: [1, 0] as VectorType,
         block: [0, 1] as VectorType,
     };
+
+    const colTip: { box: BoxType; type: columnType }[] = [
+        {
+            box: [
+                [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY],
+                [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY],
+                [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+                [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+            ],
+            type: "none",
+        },
+    ]; // todo 变换
+    const defaultColId = 0;
+
+    function findColId(b: BoxType) {
+        const c = Box.center(b);
+        for (let id = colTip.length - 1; id >= 0; id--) {
+            const item = colTip[id];
+            const box = item.box;
+            if (c[0] >= box[0][0] && c[0] <= box[1][0] && c[1] >= box[0][1] && c[1] <= box[3][1]) {
+                return id;
+            }
+        }
+        return defaultColId;
+    }
 
     const Point = {
         center: (p1: pointType, p2: pointType): pointType => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
@@ -1120,7 +1150,7 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
         let nearest: number | null = null;
         let _jl = Number.POSITIVE_INFINITY;
         for (const i in columns) {
-            const last = columns[i].at(-1);
+            const last = columns[i].src.at(-1);
             if (!last) continue;
             const jl = r(b.box[0], last.box[0]);
             if (jl < _jl) {
@@ -1129,11 +1159,11 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
             }
         }
         if (nearest === null) {
-            columns.push([b]);
+            columns.push({ src: [b] });
             return;
         }
 
-        const last = columns[nearest].at(-1) as resultType[0]; // 前面已经遍历过了，有-1的才能赋值到nearest
+        const last = columns[nearest].src.at(-1) as resultType[0]; // 前面已经遍历过了，有-1的才能赋值到nearest
         const thisW = Box.inlineSize(b.box);
         const lastW = Box.inlineSize(last.box);
         const minW = Math.min(thisW, lastW);
@@ -1148,11 +1178,11 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
             Box.blockGap(b.box, last.box) < em * 1.1
         ) {
         } else {
-            columns.push([b]);
+            columns.push({ src: [b] });
             return;
         }
 
-        columns[nearest].push(b);
+        columns[nearest].src.push(b);
     }
 
     function joinResult(p: resultType) {
@@ -1175,6 +1205,10 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
             res.text += i.text;
         }
         return res;
+    }
+
+    if (op?.columnsTip) {
+        for (const i of op.columnsTip) colTip.push(i);
     }
 
     // 获取角度 竖排 横排
@@ -1265,96 +1299,119 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
     baseVector.block = xyT(dirVector.block);
     log("相对坐标系", baseVector);
 
-    // 短轴扩散，合并为段
-
+    // 分析那些是同一水平的
     const newL_ = logicL.sort((a, b) => Point.compare(Box.blockStart(a.box), Box.blockStart(b.box), "block"));
-    const newLZ: resultType[0][][] = [];
-    // 合并行
+    const newLZ: { line: { src: resultType[0]; colId: number }[] }[] = [];
     for (const j of newL_) {
-        const last = newLZ.at(-1)?.at(-1);
+        const colId = findColId(j.box);
+        const last = newLZ.at(-1)?.line.at(-1);
         if (!last) {
-            newLZ.push([j]);
+            newLZ.push({ line: [{ src: j, colId }] });
             continue;
         }
         const thisCy = Box.blockCenter(j.box);
-        const lastCy = Box.blockCenter(last.box);
+        const lastCy = Box.blockCenter(last.src.box);
+        // todo 逻辑计算
         if (Math.abs(thisCy - lastCy) < 0.5 * Box.blockSize(j.box)) {
             const lLast = newLZ.at(-1);
             if (!lLast) {
-                newLZ.push([j]);
+                newLZ.push({ line: [{ src: j, colId }] });
             } else {
-                lLast.push(j);
+                lLast.line.push({ src: j, colId });
             }
         } else {
-            newLZ.push([j]);
+            newLZ.push({ line: [{ src: j, colId }] });
         }
     }
 
     // 根据距离，合并或保持拆分
-    const newL: (resultType[0] | null)[] = [];
+    // 有些近，是同一行；有些远，但在水平线上，说明是其他栏的
+    const newL: { src: resultType[0]; colId: number; used: boolean }[] = [];
     for (const l of newLZ) {
-        if (l.length === 1) {
-            newL.push(l.at(0)!);
+        if (l.line.length === 1) {
+            newL.push({ src: l.line[0].src, colId: l.line[0].colId, used: false });
             continue;
         }
 
-        const em = average(l.map((i) => Box.blockSize(i.box)));
-        l.sort((a, b) => Point.compare(Box.inlineStart(a.box), Box.inlineStart(b.box), "inline"));
+        const em = average(l.line.map((i) => Box.blockSize(i.src.box)));
+        l.line.sort((a, b) => Point.compare(Box.inlineStart(a.src.box), Box.inlineStart(b.src.box), "inline"));
 
-        let last = l.at(0)!;
+        let last = l.line.at(0)!;
 
-        for (const this_ of l.slice(1)) {
-            const lastBoxInlineEnd = Box.inlineEnd(last.box);
-            const thisInlineStart = Box.inlineStart(this_.box);
-            if (Point.toInline(thisInlineStart) - Point.toInline(lastBoxInlineEnd) > em) {
-                newL.push(last);
+        for (const this_ of l.line.slice(1)) {
+            const lastBoxInlineEnd = Box.inlineEnd(last.src.box);
+            const thisInlineStart = Box.inlineStart(this_.src.box);
+            if (
+                colTip[this_.colId].type === "table" ||
+                this_.colId !== last.colId ||
+                Point.toInline(thisInlineStart) - Point.toInline(lastBoxInlineEnd) > em
+            ) {
+                newL.push({ ...last, used: false });
                 last = this_;
             } else {
-                last.text += this_.text;
-                last.mean = (last.mean + this_.mean) / 2;
-                last.box = outerRect([last.box, this_.box]);
+                last.src.text += this_.src.text;
+                last.src.mean = (last.src.mean + this_.src.mean) / 2;
+                last.src.box = outerRect([last.src.box, this_.src.box]);
             }
         }
-        newL.push(last);
+        newL.push({ ...last, used: false });
     }
 
     // todo 分割线为边界
     // 分栏
 
     // 按很细的粒度去分栏
-    const columns: resultType[] = [];
+    const columns: { src: resultType }[] = [];
+    const defaultNewL: typeof newL = [];
+    const noDefaultColumns: { src: resultType; type: columnType; colId: number }[] = [];
 
-    const minY = newL.reduce(
-        (a, b) => Math.min(a, Math.min(b?.box[0][1] ?? 0, b?.box[1][1] ?? 0)),
-        Number.POSITIVE_INFINITY,
-    );
-    const maxY = newL.reduce(
-        (a, b) => Math.max(a, Math.max(b?.box[2][1] ?? 0, b?.box[3][1] ?? 0)),
-        Number.NEGATIVE_INFINITY,
-    );
-    for (let i = minY; i <= maxY; i++) {
-        for (const j in newL) {
-            const b = newL[j];
-            if (!b) continue;
-            if (Point.toBlock(Box.blockStart(b.box)) > i) break;
-            if (Point.toBlock(Box.blockStart(b.box)) <= i && i <= Point.toBlock(Box.blockEnd(b.box))) {
-                pushColumn(b);
-                newL[j] = null;
+    for (const l of newL) {
+        if (l.colId === defaultColId) {
+            defaultNewL.push(l);
+        } else {
+            const col = noDefaultColumns.find((i) => i.colId === l.colId);
+            if (col) {
+                col.src.push(l.src);
+            } else {
+                noDefaultColumns.push({ src: [l.src], type: colTip[l.colId].type, colId: l.colId });
             }
         }
     }
 
-    const columnsInYaxis: { src: resultType; outerBox: BoxType; x: number; w: number }[][] = [];
-    for (const [i, c] of columns.entries()) {
+    const minY = defaultNewL.reduce(
+        (a, b) => Math.min(a, Math.min(b.src.box[0][1] ?? 0, b.src.box[1][1] ?? 0)),
+        Number.POSITIVE_INFINITY,
+    );
+    const maxY = defaultNewL.reduce(
+        (a, b) => Math.max(a, Math.max(b.src.box[2][1] ?? 0, b.src.box[3][1] ?? 0)),
+        Number.NEGATIVE_INFINITY,
+    );
+    for (let i = minY; i <= maxY; i++) {
+        for (const b of defaultNewL) {
+            if (b.used) continue;
+            if (Point.toBlock(Box.blockStart(b.src.box)) > i) break;
+            if (Point.toBlock(Box.blockStart(b.src.box)) <= i && i <= Point.toBlock(Box.blockEnd(b.src.box))) {
+                pushColumn(b.src);
+                b.used = true;
+            }
+        }
+    }
+
+    // 合并栏，合并上面细粒度的
+    const columnsInYaxis: {
+        smallCol: { src: resultType; outerBox: BoxType; x: number; w: number }[];
+    }[] = [];
+    for (const [i, col] of columns.entries()) {
+        const c = col.src;
         const outer = outerRect(c.map((b) => b.box));
         const x = Box.blockCenter(outer);
         const w = Box.inlineSize(outer);
         if (i === 0) {
-            columnsInYaxis.push([{ src: c, outerBox: outer, x, w }]);
+            columnsInYaxis.push({ smallCol: [{ src: c, outerBox: outer, x, w }] });
             continue;
         }
         const l = columnsInYaxis.find((oc) => {
-            const r = oc.at(-1)!;
+            const r = oc.smallCol.at(-1)!;
             const em = Box.blockSize(c.at(0)!.box);
             if (
                 Box.inlineStartDis(r.outerBox, outer) < 3 * em &&
@@ -1365,24 +1422,36 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
             return false;
         });
         if (l) {
-            l.push({ src: c, outerBox: outer, x, w });
+            l.smallCol.push({ src: c, outerBox: outer, x, w });
         } else {
-            columnsInYaxis.push([{ src: c, outerBox: outer, x, w }]);
+            columnsInYaxis.push({ smallCol: [{ src: c, outerBox: outer, x, w }] });
         }
     }
 
     for (const y of columnsInYaxis) {
-        y.sort((a, b) => Point.compare(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block"));
+        y.smallCol.sort((a, b) => Point.compare(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block"));
     }
 
-    const newColumns: { src: resultType; outerBox: BoxType }[] = [];
+    for (const c of noDefaultColumns) {
+        c.src.sort((a, b) => Point.compare(Box.blockStart(a.box), Box.blockStart(b.box), "block"));
+    }
+
+    // columnsInYaxis新的表达形式，结构没变
+    const newColumns: { src: resultType; outerBox: BoxType; type: columnType }[] = [];
 
     for (const c of columnsInYaxis) {
-        const o = outerRect(c.map((i) => i.outerBox));
-        const s = c.flatMap((i) => i.src);
-        newColumns.push({ src: s, outerBox: o });
+        const o = outerRect(c.smallCol.map((i) => i.outerBox));
+        const s = c.smallCol.flatMap((i) => i.src);
+        newColumns.push({ src: s, outerBox: o, type: "none" });
+    }
+    for (const c of noDefaultColumns) {
+        const o = outerRect(c.src.map((i) => i.box));
+        const s = c.src;
+        newColumns.push({ src: s, outerBox: o, type: c.type });
     }
 
+    // 重新排序
+    // 先按block排序，block相近的inline排序
     newColumns.sort((a, b) => {
         const em = a.src.at(0) ? Box.blockSize(a.src.at(0)!.box) : 2;
         if (Point.disByV(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block") < em) {
@@ -1398,6 +1467,10 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
     for (const c of newColumns) {
         const last = mergedColumns.at(-1);
         if (!last) {
+            mergedColumns.push(c);
+            continue;
+        }
+        if (last.type !== "none") {
             mergedColumns.push(c);
             continue;
         }
@@ -1428,76 +1501,85 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
         }
     }
 
-    // 长轴扩散，合并为行
     // 合并为段落
 
-    const p = mergedColumns.map((v) => {
-        const c = v.src;
+    const p = mergedColumns.map((col) => {
+        const c = col.src;
 
-        const distanceCounts: Record<number, number> = {};
-        for (let i = 1; i < c.length; i++) {
-            const b1 = c[i - 1].box;
-            const b2 = c[i].box;
-            const dis = Point.disByV(Box.center(b2), Box.center(b1), "block");
-            if (!distanceCounts[dis]) distanceCounts[dis] = 0;
-            distanceCounts[dis]++;
-        }
+        const ps: resultType[] = [];
 
-        // 聚类
-        const avgLineHeight = average(c.map((i) => Box.blockSize(i.box))); // todo 众数
-        const distanceGroup: number[][] = [[]];
-        for (const d of Object.keys(distanceCounts)
-            .map((i) => Number(i))
-            .sort()) {
-            const lastG = distanceGroup.at(-1)!;
-            const lastI = lastG.at(-1);
-            if (lastI !== undefined) {
-                if (Math.abs(lastI - d) < avgLineHeight * 0.5) {
-                    lastG.push(d);
+        if (col.type === "auto" || col.type === "none") {
+            const distanceCounts: Record<number, number> = {};
+            for (let i = 1; i < c.length; i++) {
+                const b1 = c[i - 1].box;
+                const b2 = c[i].box;
+                const dis = Point.disByV(Box.center(b2), Box.center(b1), "block");
+                if (!distanceCounts[dis]) distanceCounts[dis] = 0;
+                distanceCounts[dis]++;
+            }
+
+            // 聚类
+            const avgLineHeight = average(c.map((i) => Box.blockSize(i.box))); // todo 众数
+            const distanceGroup: number[][] = [[]];
+            for (const d of Object.keys(distanceCounts)
+                .map((i) => Number(i))
+                .sort()) {
+                const lastG = distanceGroup.at(-1)!;
+                const lastI = lastG.at(-1);
+                if (lastI !== undefined) {
+                    if (Math.abs(lastI - d) < avgLineHeight * 0.5) {
+                        lastG.push(d);
+                    } else {
+                        distanceGroup.push([]);
+                    }
                 } else {
-                    distanceGroup.push([]);
+                    lastG.push(d);
                 }
-            } else {
-                lastG.push(d);
-            }
-        }
-
-        const d =
-            distanceGroup
-                .map((g) => average(g))
-                .sort((a, b) => a - b)
-                .at(0) || 0;
-
-        log("d", distanceCounts, distanceGroup, d);
-
-        const ps: resultType[] = [[c[0]]];
-        let lastPara = c[0];
-        for (let i = 1; i < c.length; i++) {
-            const expect = Vector.add(
-                Vector.add(Box.inlineStartCenter(lastPara.box), Vector.numMup(baseVector.block, d)),
-                Vector.numMup(baseVector.inline, -Box.inlineStartDis(lastPara.box, v.outerBox)),
-            );
-            const thisLeftCenter = Box.inlineStartCenter(c[i].box);
-            const em = Box.blockSize(c[i].box);
-            // 上一行右侧不靠近外框 或 理论此行与实际有差别，即空行或行首空格
-            if (Box.inlineEndDis(lastPara.box, v.outerBox) > 2 * em || r(expect, thisLeftCenter) > em * 0.5) {
-                ps.push([c[i]]);
-            } else {
-                const last = ps.at(-1);
-                if (!last) ps.push([c[i]]);
-                else last.push(c[i]);
             }
 
-            lastPara = c[i];
+            const d =
+                distanceGroup
+                    .map((g) => average(g))
+                    .sort((a, b) => a - b)
+                    .at(0) || 0;
+
+            log("d", distanceCounts, distanceGroup, d);
+
+            ps.push([c[0]]);
+            let lastPara = c[0];
+            for (let i = 1; i < c.length; i++) {
+                const expect = Vector.add(
+                    Vector.add(Box.inlineStartCenter(lastPara.box), Vector.numMup(baseVector.block, d)),
+                    Vector.numMup(baseVector.inline, -Box.inlineStartDis(lastPara.box, col.outerBox)),
+                );
+                const thisLeftCenter = Box.inlineStartCenter(c[i].box);
+                const em = Box.blockSize(c[i].box);
+                // 上一行右侧不靠近外框 或 理论此行与实际有差别，即空行或行首空格
+                if (Box.inlineEndDis(lastPara.box, col.outerBox) > 2 * em || r(expect, thisLeftCenter) > em * 0.5) {
+                    ps.push([c[i]]);
+                } else {
+                    const last = ps.at(-1);
+                    if (!last) ps.push([c[i]]);
+                    else last.push(c[i]);
+                }
+
+                lastPara = c[i];
+            }
+        } else if (col.type === "table") {
+            ps.push(c);
+        } else if (col.type === "raw") {
+            ps.push(c);
+        } else if (col.type === "raw-blank") {
+            // todo 识别python类代码
+            ps.push(c);
         }
 
-        // todo 识别python类代码
         // todo 计算前缀空格和向上换行
 
         const xyT = transBox(dir, { inline: "lr", block: "tb" });
 
         for (const x of c) xyT(x.box); // ps引用了c，所以只变换c
-        xyT(v.outerBox);
+        xyT(col.outerBox);
 
         const backOrderMap: number[] = [];
         for (const [i, j] of reOrderMap.entries()) {
@@ -1508,12 +1590,12 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
         for (const x of c) {
             x.box = backOrder(x.box);
         }
-        v.outerBox = backOrder(v.outerBox);
+        col.outerBox = backOrder(col.outerBox);
 
         log(ps);
         return {
             src: c,
-            outerBox: v.outerBox,
+            outerBox: col.outerBox,
             parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) as resultType[0] })),
         };
     });
