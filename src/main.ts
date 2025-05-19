@@ -954,7 +954,19 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 function afAfRec(
     l: resultType,
     op?: { docDirs?: ReadingDir[]; columnsTip?: { box: BoxType; type: "auto" | "table" | "raw" | "raw-blank" }[] },
-) {
+): {
+    columns: {
+        src: resultType;
+        outerBox: BoxType;
+        parragraphs: {
+            src: resultType;
+            parse: resultType[0];
+        }[];
+    }[];
+    parragraphs: resultType;
+    readingDir: ReadingDir;
+    angle: { reading: { inline: number; block: number }; angle: number };
+} {
     log(l);
 
     type columnType = "none" | "auto" | "table" | "raw" | "raw-blank";
@@ -976,6 +988,15 @@ function afAfRec(
         inline: [1, 0] as VectorType,
         block: [0, 1] as VectorType,
     };
+
+    if (l.length === 0) {
+        return {
+            columns: [],
+            parragraphs: [],
+            readingDir: dir,
+            angle: { reading: { inline: 0, block: 90 }, angle: 0 },
+        };
+    }
 
     const colTip: { box: BoxType; type: columnType }[] = [
         {
@@ -1203,7 +1224,7 @@ function afAfRec(
                 res.text += " ";
             res.text += i.text;
         }
-        return res;
+        return res satisfies resultType[0];
     }
 
     function sortCol(cs: { src: resultType; outerBox: BoxType }[]) {
@@ -1530,6 +1551,8 @@ function afAfRec(
 
     // 合并为段落
 
+    const rexyT = transBox(dir, { inline: "lr", block: "tb" });
+
     const p = mergedColumns2.map((col) => {
         const c = col.src;
 
@@ -1603,10 +1626,8 @@ function afAfRec(
 
         // todo 计算前缀空格和向上换行
 
-        const xyT = transBox(dir, { inline: "lr", block: "tb" });
-
-        for (const x of c) xyT(x.box); // ps引用了c，所以只变换c
-        xyT(col.outerBox);
+        for (const x of c) rexyT(x.box); // ps引用了c，所以只变换c
+        rexyT(col.outerBox);
 
         const backOrderMap: number[] = [];
         for (const [i, j] of reOrderMap.entries()) {
@@ -1623,11 +1644,11 @@ function afAfRec(
         return {
             src: c,
             outerBox: col.outerBox,
-            parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) as resultType[0] })),
+            parragraphs: ps.map((p) => ({ src: p, parse: joinResult(p) })),
         };
     });
 
-    const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse)) as resultType;
+    const pss = p.flatMap((v) => v.parragraphs.map((p) => p.parse)) satisfies resultType;
 
     let angle = 0;
     if (dir.inline === "lr") {
