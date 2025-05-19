@@ -1320,10 +1320,9 @@ function afAfRec(
             newLZ.push({ line: [{ src: j, colId }] });
             continue;
         }
-        const thisCy = Box.blockCenter(j.box);
-        const lastCy = Box.blockCenter(last.src.box);
-        // todo 逻辑计算
-        if (Math.abs(thisCy - lastCy) < 0.5 * Box.blockSize(j.box)) {
+        const thisC = Box.center(j.box);
+        const lastC = Box.center(last.src.box);
+        if (Point.disByV(thisC, lastC, "block") < 0.5 * Box.blockSize(j.box)) {
             const lLast = newLZ.at(-1);
             if (!lLast) {
                 newLZ.push({ line: [{ src: j, colId }] });
