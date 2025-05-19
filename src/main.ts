@@ -1488,6 +1488,8 @@ function afAfRec(
         }
     }
 
+    let sortedColChanged = false;
+
     // 合并交错的栏
     const mergedColumns2: ((typeof mergedColumns)[0] & { reCal: boolean })[] = [];
     for (const _c of mergedColumns) {
@@ -1505,6 +1507,7 @@ function afAfRec(
         ) {
             last.src.push(...c.src);
             last.reCal = true;
+            sortedColChanged = true;
         } else {
             mergedColumns2.push(c);
         }
@@ -1516,13 +1519,14 @@ function afAfRec(
         c.outerBox = outerRect(c.src.map((i) => i.box));
     }
 
+    if (noDefaultColumns.length) sortedColChanged = true;
     for (const c of noDefaultColumns) {
         const o = outerRect(c.src.map((i) => i.box));
         const s = c.src;
         mergedColumns2.push({ src: s, outerBox: o, type: c.type, reCal: false });
     }
 
-    sortCol(mergedColumns2);
+    if (sortedColChanged) sortCol(mergedColumns2);
 
     if (dev) {
         const color: string[] = [];
