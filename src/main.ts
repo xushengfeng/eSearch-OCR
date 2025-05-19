@@ -1207,6 +1207,18 @@ function afAfRec(
         return res;
     }
 
+    function sortCol(cs: { src: resultType; outerBox: BoxType }[]) {
+        // 重新排序
+        // 先按block排序，block相近的inline排序
+        cs.sort((a, b) => {
+            const em = a.src.at(0) ? Box.blockSize(a.src.at(0)!.box) : 2;
+            if (Point.disByV(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block") < em) {
+                return Point.compare(Box.inlineStart(a.outerBox), Box.inlineStart(b.outerBox), "inline");
+            }
+            return Point.compare(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block");
+        });
+    }
+
     if (op?.columnsTip) {
         for (const i of op.columnsTip) colTip.push(i);
     }
@@ -1413,6 +1425,7 @@ function afAfRec(
         const l = columnsInYaxis.find((oc) => {
             const r = oc.smallCol.at(-1)!;
             const em = Box.blockSize(c.at(0)!.box);
+            // 这里还是很严格，所以需要下面的标题合并、末尾合并、和交错合并
             if (
                 Box.inlineStartDis(r.outerBox, outer) < 3 * em &&
                 Box.inlineEndDis(r.outerBox, outer) < 3 * em &&
@@ -1444,23 +1457,10 @@ function afAfRec(
         const s = c.smallCol.flatMap((i) => i.src);
         newColumns.push({ src: s, outerBox: o, type: "none" });
     }
-    for (const c of noDefaultColumns) {
-        const o = outerRect(c.src.map((i) => i.box));
-        const s = c.src;
-        newColumns.push({ src: s, outerBox: o, type: c.type });
-    }
 
-    // 重新排序
-    // 先按block排序，block相近的inline排序
-    newColumns.sort((a, b) => {
-        const em = a.src.at(0) ? Box.blockSize(a.src.at(0)!.box) : 2;
-        if (Point.disByV(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block") < em) {
-            return Point.compare(Box.inlineStart(a.outerBox), Box.inlineStart(b.outerBox), "inline");
-        }
-        return Point.compare(Box.blockStart(a.outerBox), Box.blockStart(b.outerBox), "block");
-    });
+    sortCol(newColumns);
 
-    // 宽度相近的行都合并了，但有两中不合并的，以行20字为例子：(1)20,20,2,20,20 (2)20,20,10,10,10,10,20]
+    // 宽度相近的行都合并了，但有两种不合并的，以行20字为例子：(1)20,20,2,20,20 (2)20,20,10,10,10,10,20]
     // 分别为段末和分栏
     // 合并情况：中间短的行数多
     const mergedColumns: typeof newColumns = [];
@@ -1488,6 +1488,42 @@ function afAfRec(
         }
     }
 
+    // 合并交错的栏
+    const mergedColumns2: ((typeof mergedColumns)[0] & { reCal: boolean })[] = [];
+    for (const _c of mergedColumns) {
+        const last = mergedColumns2.at(-1);
+        const c = { ..._c, reCal: false };
+        if (!last) {
+            mergedColumns2.push(c);
+            continue;
+        }
+        const em = Box.blockSize(c.src.at(0)!.box);
+        if (
+            Point.compare(Box.blockEnd(c.outerBox), Box.blockEnd(last.outerBox), "block") < 0 &&
+            (Box.inlineStartDis(last.outerBox, c.outerBox) < 3 * em ||
+                Box.inlineEndDis(last.outerBox, c.outerBox) < 3 * em)
+        ) {
+            last.src.push(...c.src);
+            last.reCal = true;
+        } else {
+            mergedColumns2.push(c);
+        }
+    }
+
+    for (const c of mergedColumns2) {
+        if (!c.reCal) continue;
+        c.src.sort((a, b) => Point.compare(Box.blockStart(a.box), Box.blockStart(b.box), "block"));
+        c.outerBox = outerRect(c.src.map((i) => i.box));
+    }
+
+    for (const c of noDefaultColumns) {
+        const o = outerRect(c.src.map((i) => i.box));
+        const s = c.src;
+        mergedColumns2.push({ src: s, outerBox: o, type: c.type, reCal: false });
+    }
+
+    sortCol(mergedColumns2);
+
     if (dev) {
         const color: string[] = [];
         for (let h = 0; h < 360; h += Math.floor(360 / newColumns.length)) {
@@ -1503,7 +1539,7 @@ function afAfRec(
 
     // 合并为段落
 
-    const p = mergedColumns.map((col) => {
+    const p = mergedColumns2.map((col) => {
         const c = col.src;
 
         const ps: resultType[] = [];
@@ -1668,12 +1704,17 @@ function rotateImg(img: ImageData, angle: number) {
     return createImageData(newData, newWidth, newHeight);
 }
 
-function drawBox(box: BoxType, id = "", color = "red", qid?: string) {
+const color: string[] = [];
+for (let h = 0; h < 360; h += Math.floor(360 / 8)) {
+    color.push(`hsl(${h}, 100%, 50%)`);
+}
+
+function drawBox(box: BoxType, id = "", _color?: string, qid?: string, cid?: number) {
     if (!dev) return;
     const canvas = document.querySelector(qid ? `#${qid}` : "canvas") as HTMLCanvasElement;
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     ctx.beginPath();
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = _color ?? color[(cid ?? 0) % color.length];
     ctx.moveTo(box[0][0], box[0][1]);
     ctx.lineTo(box[1][0], box[1][1]);
     ctx.lineTo(box[2][0], box[2][1]);
