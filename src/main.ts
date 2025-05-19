@@ -1263,10 +1263,12 @@ function afAfRec(
         tb: 90,
         bt: 270,
     };
-    rAngle.inline = smallest([inlineangle, inlineangle - 180, inlineangle + 180], (a) =>
+    rAngle.inline = smallest([inlineangle, inlineangle - 360, inlineangle - 180, inlineangle + 180], (a) =>
         Math.abs(a - tipAngle[dir.inline]),
     );
-    rAngle.block = smallest([blockangle, blockangle - 180, blockangle + 180], (a) => Math.abs(a - tipAngle[dir.block]));
+    rAngle.block = smallest([blockangle, blockangle - 360, blockangle - 180, blockangle + 180], (a) =>
+        Math.abs(a - tipAngle[dir.block]),
+    );
 
     dirVector.inline = [Math.cos(rAngle.inline * (Math.PI / 180)), Math.sin(rAngle.inline * (Math.PI / 180))];
     dirVector.block = [Math.cos(rAngle.block * (Math.PI / 180)), Math.sin(rAngle.block * (Math.PI / 180))];
