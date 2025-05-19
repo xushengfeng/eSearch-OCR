@@ -1,4 +1,3 @@
-import { runLayout } from "./layout";
 import { Cls } from "./cls";
 import {
     newCanvas,
@@ -322,7 +321,7 @@ async function initRec(op: {
         task.l("bf_rec");
         const recL = beforeRec(box, imgh);
         let runCount = 0;
-        op?.onProgress?.("rec", recL.length, runCount);
+        onProgress("rec", recL.length, runCount);
         const mainLine0: { text: string; mean: number }[] = [];
         for (const [index, item] of recL.entries()) {
             const { b, imgH, imgW } = item;
@@ -336,7 +335,7 @@ async function initRec(op: {
             });
             op?.onRec?.(index, result);
             runCount++;
-            op?.onProgress?.("rec", recL.length, runCount);
+            onProgress("rec", recL.length, runCount);
             mainLine0.push(...afterRec(recResults, dic));
         }
         task.l("rec_end");
@@ -1527,19 +1526,6 @@ function afAfRec(
     }
 
     if (sortedColChanged) sortCol(mergedColumns2);
-
-    if (dev) {
-        const color: string[] = [];
-        for (let h = 0; h < 360; h += Math.floor(360 / newColumns.length)) {
-            color.push(`hsl(${h}, 100%, 50%)`);
-        }
-
-        for (const i in newColumns) {
-            for (const b of newColumns[i].src) {
-                // drawBox(b.box, b.text, color[i]);
-            }
-        }
-    }
 
     // 合并为段落
 
