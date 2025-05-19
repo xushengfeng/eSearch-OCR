@@ -19,7 +19,7 @@ async function start() {
     document.body.style.flexWrap = "wrap";
     const rootPath = "../test/layout_img";
     const dir = fs.readdirSync(rootPath);
-    const only = "7.svg";
+    const only = 0 && "7.svg";
     for (const f of dir) {
         if (f !== only && only !== 0) continue;
         const src = path.join(rootPath, f);
@@ -43,6 +43,8 @@ async function start() {
             const detResult = await det.det(ctx.getImageData(0, 0, c.width, c.height));
             const mainLine = detResult.map((i, n) => ({ ...i, text: n.toString(), mean: 1 }));
             const l = analyzeLayout(mainLine);
+
+            console.log("result", l);
 
             const color = [];
             for (let h = 10; h < 360; h += Math.floor(360 / l.columns.length)) {

@@ -1071,6 +1071,32 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
         };
     }
 
+    function transBox(old: ReadingDir, target: ReadingDir) {
+        const t = transXY(old, target);
+        return (b: BoxType) => {
+            for (const p of b) {
+                const [a, b] = t(p);
+                p[0] = a;
+                p[1] = b;
+            }
+        };
+    }
+
+    function reOrderBox(map: number[]) {
+        return (b: BoxType) => {
+            const newB: BoxType = [
+                [0, 0],
+                [0, 0],
+                [0, 0],
+                [0, 0],
+            ];
+            for (let i = 0; i < map.length; i++) {
+                newB[i] = b[map[i]];
+            }
+            return newB;
+        };
+    }
+
     function r(point: pointType, point2: pointType) {
         return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
     }
@@ -1219,9 +1245,9 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
             })[i === "l" || i === "r" ? i + b : b + i],
     ) as number[];
     const xyT = transXY({ inline: "lr", block: "tb" }, dir);
+    const reOrderBoxT = reOrderBox(reOrderMap);
     const logicL = l.map((i) => {
-        const b = structuredClone(i.box);
-        const newBox = [b[reOrderMap[0]], b[reOrderMap[1]], b[reOrderMap[2]], b[reOrderMap[3]]] as BoxType;
+        const newBox = reOrderBoxT(i.box);
         for (const x of newBox) {
             const [a, b] = xyT(x);
             x[0] = a;
@@ -1468,23 +1494,21 @@ function afAfRec(l: resultType, op?: { docDirs?: ReadingDir[] }) {
         // todo 识别python类代码
         // todo 计算前缀空格和向上换行
 
-        const xyT = transXY(dir, { inline: "lr", block: "tb" });
+        const xyT = transBox(dir, { inline: "lr", block: "tb" });
+
+        for (const x of c) xyT(x.box); // ps引用了c，所以只变换c
+        xyT(v.outerBox);
+
+        const backOrderMap: number[] = [];
+        for (const [i, j] of reOrderMap.entries()) {
+            backOrderMap[j] = i;
+        }
+        const backOrder = reOrderBox(backOrderMap);
 
         for (const x of c) {
-            for (const p of x.box) {
-                const [a, b] = xyT(p);
-                p[0] = a;
-                p[1] = b;
-            }
+            x.box = backOrder(x.box);
         }
-
-        const vo = v.outerBox;
-        for (const p of vo) {
-            const [a, b] = xyT(p);
-            p[0] = a;
-            p[1] = b;
-        }
-        // todo reorder
+        v.outerBox = backOrder(v.outerBox);
 
         log(ps);
         return {
