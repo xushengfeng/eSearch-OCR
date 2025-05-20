@@ -1123,12 +1123,15 @@ function afAfRec(
 
     function transBox(old: ReadingDir, target: ReadingDir) {
         const t = transXY(old, target);
-        return (b: BoxType) => {
-            for (const p of b) {
-                const [a, b] = t(p);
-                p[0] = a;
-                p[1] = b;
-            }
+        return {
+            b: (b: BoxType) => {
+                for (const p of b) {
+                    const [a, b] = t(p);
+                    p[0] = a;
+                    p[1] = b;
+                }
+            },
+            p: t,
         };
     }
 
@@ -1240,7 +1243,7 @@ function afAfRec(
     }
 
     if (op?.columnsTip) {
-        for (const i of op.columnsTip) colTip.push(i);
+        for (const i of op.columnsTip) colTip.push(structuredClone(i));
     }
 
     // 获取角度 竖排 横排
@@ -1312,25 +1315,25 @@ function afAfRec(
                 lb: 3,
             })[i === "l" || i === "r" ? i + b : b + i],
     ) as number[];
-    const xyT = transXY({ inline: "lr", block: "tb" }, dir);
+    const xyT = transBox({ inline: "lr", block: "tb" }, dir);
     const reOrderBoxT = reOrderBox(reOrderMap);
     const logicL = l.map((i) => {
         const newBox = reOrderBoxT(i.box);
-        for (const x of newBox) {
-            const [a, b] = xyT(x);
-            x[0] = a;
-            x[1] = b;
-        }
+        xyT.b(newBox);
 
         return {
             ...i,
             box: newBox,
         };
     });
+    for (const i of colTip) {
+        i.box = reOrderBoxT(i.box);
+        xyT.b(i.box);
+    }
 
     // 不考虑整体旋转，只考虑倾斜
-    baseVector.inline = xyT(dirVector.inline);
-    baseVector.block = xyT(dirVector.block);
+    baseVector.inline = xyT.p(dirVector.inline);
+    baseVector.block = xyT.p(dirVector.block);
     log("相对坐标系", baseVector);
 
     // 分析那些是同一水平的
@@ -1626,8 +1629,8 @@ function afAfRec(
 
         // todo 计算前缀空格和向上换行
 
-        for (const x of c) rexyT(x.box); // ps引用了c，所以只变换c
-        rexyT(col.outerBox);
+        for (const x of c) rexyT.b(x.box); // ps引用了c，所以只变换c
+        rexyT.b(col.outerBox);
 
         const backOrderMap: number[] = [];
         for (const [i, j] of reOrderMap.entries()) {
