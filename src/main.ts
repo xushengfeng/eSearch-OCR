@@ -1011,7 +1011,7 @@ function afAfRec(
             ],
             type: "none",
         },
-    ]; // todo 变换
+    ];
     const defaultColId = 0;
 
     function findColId(b: BoxType) {
@@ -1075,10 +1075,13 @@ function afAfRec(
 
     function averLineAngles(a: number[]) {
         let iav = 0;
+        let n = 0;
         for (const i of a) {
             const a1 = i > 180 ? i - 180 : i;
             const a2 = a1 - 180;
-            iav = (iav + (Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1)) / 2;
+            const a = Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1;
+            iav = (iav * n + a) / (n + 1);
+            n++;
         }
         return iav;
     }
