@@ -1076,19 +1076,26 @@ function afAfRec(
     function averLineAngles(a: number[]) {
         let iav = 0;
         let n = 0;
+        const l: number[] = [];
         for (const i of a) {
             const a1 = i > 180 ? i - 180 : i;
             const a2 = a1 - 180;
             const a = Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1;
+            l.push(a);
             iav = (iav * n + a) / (n + 1);
             n++;
         }
-        return iav;
+        return { av: iav, l };
     }
     function lineAngleNear(a1: number, a2: number) {
         if (Math.abs(a1 - a2) < 45) return true;
         if (Math.abs(a1 - (a2 - 180)) < 45) return true;
         return false;
+    }
+    function median(l: number[]) {
+        l.sort((a, b) => a - b);
+        const mid = Math.floor(l.length / 2);
+        return l.length % 2 === 0 ? (l[mid - 1] + l[mid]) / 2 : l[mid];
     }
     function dir2xy(d: ReadingDirPart) {
         if (d === "lr" || d === "rl") return "x";
@@ -1272,10 +1279,15 @@ function afAfRec(
             v = { x: p[0], y: p[1] };
         }
         const a = normalAngle(Math.atan2(v.y, v.x) * (180 / Math.PI));
-        return { b, a };
+        return a;
     });
-    const iav = normalAngle(averLineAngles(inlineAngles.map((i) => i.a)));
-    const inlineangle = normalAngle(averLineAngles(inlineAngles.flatMap((i) => (lineAngleNear(i.a, iav) ? i.a : []))));
+    const firstAngleAnalysis = averLineAngles(inlineAngles);
+    // 排除正交的
+    const filterAngles = inlineAngles.filter((i) => lineAngleNear(i, firstAngleAnalysis.av));
+    const md = median(filterAngles);
+    const MAD = median(filterAngles.map((i) => Math.abs(i - md)));
+    const filterAngles1 = filterAngles.filter((i) => Math.abs((i - md) / (MAD * 1.4826)) < 2);
+    const inlineangle = normalAngle(averLineAngles(filterAngles1).av);
 
     const blockangle = normalAngle(inlineangle + 90);
 
