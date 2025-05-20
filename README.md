@@ -23,6 +23,8 @@
 
 模型文字： 中（简体）英混合、中文繁体、英文、韩文、日文、泰卢固文、卡纳达文、泰米尔文、拉丁文、阿拉伯字母、斯拉夫字母、梵文字母。
 
+中英混合 v4 为`ch.zip`，中英混合 v4_doc 为`ch_v4_doc.zip`
+
 文档方向识别模型[Releases 8.1.0](https://github.com/xushengfeng/eSearch-OCR/releases/tag/8.1.0)
 
 ## 使用
