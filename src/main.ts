@@ -31,6 +31,8 @@ export {
 };
 export type initType = AsyncType<ReturnType<typeof init>>;
 
+type ColumnsTip = { box: BoxType; type: "auto" | "ignore" | "table" | "raw" | "raw-blank" }[];
+
 type InitOcrBase = {
     detPath: string;
     recPath: string;
@@ -39,6 +41,7 @@ type InitOcrBase = {
     dic: string;
     layoutDic?: string;
     docDirs?: ReadingDir[];
+    columnsTip?: ColumnsTip;
     dev?: boolean;
     log?: boolean;
     imgh?: number;
@@ -223,7 +226,7 @@ async function initOCR(op: InitOcrBase & InitOcrCb) {
             if (op.onDet) op.onDet(box);
 
             const mainLine = await rec.rec(box);
-            const newMainLine = afAfRec(mainLine, { docDirs: op.docDirs });
+            const newMainLine = afAfRec(mainLine, { docDirs: op.docDirs, columnsTip: op.columnsTip });
             log(mainLine, newMainLine);
             task.l("end");
             return { src: mainLine, ...newMainLine, docDir: dir };
@@ -953,7 +956,7 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
 /** 排版分析 */
 function afAfRec(
     l: resultType,
-    op?: { docDirs?: ReadingDir[]; columnsTip?: { box: BoxType; type: "auto" | "table" | "raw" | "raw-blank" }[] },
+    op?: { docDirs?: ReadingDir[]; columnsTip?: ColumnsTip },
 ): {
     columns: {
         src: resultType;
@@ -969,7 +972,7 @@ function afAfRec(
 } {
     log(l);
 
-    type columnType = "none" | "auto" | "table" | "raw" | "raw-blank";
+    type columnType = "none" | ColumnsTip[0]["type"];
 
     // 假定阅读方向都是统一的
 
