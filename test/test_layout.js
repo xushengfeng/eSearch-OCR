@@ -12,7 +12,7 @@ async function start() {
         // dev: true,
     });
     const det = await initDet({
-        detPath: `${modelBasePath}/ppocr_det.onnx`,
+        input: `${modelBasePath}/ppocr_det.onnx`,
         ort,
     });
     document.body.style.display = "flex";
@@ -83,6 +83,8 @@ async function start() {
                 ctx.strokeStyle = "black";
                 ctx.strokeText(id, box[0][0], box[0][1]);
             }
+
+            window.db = drawBox;
 
             window.drawPoint = (p) => {
                 ctx.fillStyle = "blue";

@@ -29,13 +29,13 @@ const lOcr = await init({
 // 在部分场景很有用，如只需要检测文字区域进行隐私保护
 {
     const di = await initDet({
-        detPath: "",
+        input: "",
         ort: ort,
     });
     const ri = await initRec({
         ort: ort,
-        dic: "",
-        recPath: "",
+        decodeDic: "",
+        input: "",
     });
     const d = await di.det(await loadImg(""));
     const r = await ri.rec(d);

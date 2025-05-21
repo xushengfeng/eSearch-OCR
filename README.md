@@ -62,9 +62,13 @@ const ort = require("onnxruntime-node");
 
 ```javascript
 const localOCR = await ocr.init({
-    detPath: "ocr/det.onnx", // det指识别模型，如果上面提到的文字包没有，那就用中英混合的det（在ch.zip里）。
-    recPath: "ocr/rec.onnx",
-    dic: "abcdefg...", // 在模型压缩包中的txt文件，需要传入里面的内容而不是路径
+    det: {
+        input: "ocr/det.onnx", // det指识别模型，如果上面提到的文字包没有，那就用中英混合的det（在ch.zip里）。
+    },
+    rec: {
+        input: "ocr/rec.onnx",
+        decodeDic: "abcdefg...", // 在模型压缩包中的txt文件，需要传入里面的内容而不是路径
+    },
     ort,
 });
 
@@ -84,17 +88,29 @@ node.js 环境还需要设置 canvas，运行方式也不一样，见[node.js �
 init type
 
 ```typescript
-{
+type init = {
     ort: typeof import("onnxruntime-web");
-    detPath: string;
-    recPath: string;
-    dic: string; // 文件内容，不是路径
-    docClsPath?: string; // 文档旋转识别，所有文字方向应该一致，各行不同向有待开发
-    docDirs?: ReadingDir[]; // 可限定文档阅读方向的识别范围，默认为常规方向和竖排方向
+    det: {
+        input: string | ArrayBufferLike | Uint8Array;
+        ratio?: number; // 缩放，小于1 越小越快，但准确率也会下降一点
+        on?: (r: detResultType) => void;
+    };
+    rec: {
+        input: string | ArrayBufferLike | Uint8Array;
+        decodeDic: string; // 字典文件内容，不是路径
+        imgh?: number;
+        on?: (index: number, result: { text: string; mean: number }, total: number) => void;
+    };
+    docCls?: {
+        input: string | ArrayBufferLike | Uint8Array; // 文档旋转识别，所有文字方向应该一致，各行不同向有待开发
+    };
+    analyzeLayout?: {
+        docDirs?: ReadingDir[]; // 可限定文档阅读方向的识别范围，默认为常规方向和竖排方向
+        columnsTip?: ColumnsTip;
+    };
     dev?: boolean;
-    imgh?: number;
-    detRatio?: number; // 缩放，小于1 越小越快，但准确率也会下降一点
-}
+};
+// 更多类型请查看代码或提示
 ```
 
 对于返回的值

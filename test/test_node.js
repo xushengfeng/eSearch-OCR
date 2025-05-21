@@ -18,9 +18,13 @@ async function start() {
     });
 
     const localOCR = await init({
-        detPath: detPath,
-        recPath: recPath,
-        dic: fs.readFileSync(dicPath).toString(),
+        det: {
+            input: fs.readFileSync(detPath).buffer, // 可以直接传入path或buffer
+        },
+        rec: {
+            input: recPath,
+            decodeDic: fs.readFileSync(dicPath).toString(),
+        },
         ort,
     });
     const img = await loadImage(imgPath);
