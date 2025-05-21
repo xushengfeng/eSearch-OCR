@@ -49,7 +49,7 @@ type InitRecBase = {
     input: string | ArrayBufferLike | Uint8Array;
     decodeDic: string;
     imgh?: number;
-    on?: (index: number, result: { text: string; mean: number }) => void;
+    on?: (index: number, result: { text: string; mean: number }, total: number) => void;
 };
 
 type InitDocClsBase = {
@@ -131,9 +131,86 @@ function logColor(...args: string[]) {
     }
 }
 
-async function init(op: InitOcrBase & InitOcrGlobal) {
+async function init(
+    op:
+        | InitOcrBase
+        | ({
+              /** @deprecated use det.input */
+              detPath: string;
+              /** @deprecated use det.input */
+              recPath: string;
+              /** @deprecated use det.input */
+              layoutPath?: string;
+              /** @deprecated use det.input */
+              docClsPath?: string;
+              /** @deprecated use det.input */
+              dic: string;
+              /** @deprecated use det.input */
+              layoutDic?: string;
+              /** @deprecated use det.input */
+              docDirs?: ReadingDir[];
+              /** @deprecated use det.input */
+              columnsTip?: ColumnsTip;
+              dev?: boolean;
+              log?: boolean;
+              /** @deprecated use det.input */
+              imgh?: number;
+              /** @deprecated use det.input */
+              detRatio?: number;
+              /** @deprecated use det.input */
+              onProgress?: (type: "det" | "rec", total: number, count: number) => void;
+              /** @deprecated use det.input */
+              onDet?: (r: detResultType) => void;
+              /** @deprecated use det.input */
+              onRec?: (index: number, result: { text: string; mean: number }) => void;
+          } & InitOcrGlobal &
+              OrtOption),
+) {
+    // 兼容老版本
     setOCREnv(op);
-    const x = await initOCR(op);
+    const xop: InitOcrBase = {
+        det:
+            "det" in op
+                ? op.det
+                : {
+                      input: op.detPath,
+                      ratio: op.detRatio,
+                      on: async (r) => {
+                          if (op.onDet) op.onDet(r);
+                          if (op.onProgress) op.onProgress("det", 1, 1);
+                      },
+                  },
+        rec:
+            "rec" in op
+                ? op.rec
+                : {
+                      input: op.recPath,
+                      decodeDic: op.dic,
+                      imgh: op.imgh,
+                      on: async (index, result, t) => {
+                          if (op.onRec) op.onRec(index, result);
+                          if (op.onProgress) op.onProgress("rec", t, index + 1);
+                      },
+                  },
+        docCls:
+            "rec" in op
+                ? op.docCls
+                : op.docClsPath
+                  ? {
+                        input: op.docClsPath,
+                    }
+                  : undefined,
+        analyzeLayout:
+            "rec" in op
+                ? op.analyzeLayout
+                : {
+                      columnsTip: op.columnsTip,
+                      docDirs: op.docDirs,
+                  },
+        ...op,
+    };
+
+    const x = await initOCR(xop);
     globalOCR = x;
     return x;
 }
@@ -337,7 +414,7 @@ async function initRec(op: InitRecBase & OrtOption) {
                 box: box[index].box,
                 style: box[index].style,
             });
-            op?.on?.(index, result);
+            op?.on?.(index, result, box.length);
             runCount++;
             mainLine0.push(...afterRec(recResults, dic));
         }
