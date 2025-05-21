@@ -30,25 +30,44 @@ export {
     rotateImg,
 };
 export type initType = AsyncType<ReturnType<typeof init>>;
+export type { OrtOption, InitOcrBase, InitOcrGlobal, detResultType, resultType, loadImgType };
 
 type ColumnsTip = { box: BoxType; type: "auto" | "ignore" | "table" | "raw" | "raw-blank" }[];
 
-type InitOcrBase = {
-    detPath: string;
-    recPath: string;
-    layoutPath?: string;
-    docClsPath?: string;
-    dic: string;
-    layoutDic?: string;
-    docDirs?: ReadingDir[];
-    columnsTip?: ColumnsTip;
-    dev?: boolean;
-    log?: boolean;
-    imgh?: number;
-    detRatio?: number;
+type OrtOption = {
     ort: typeof import("onnxruntime-common");
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
 };
+
+type InitDetBase = {
+    input: string | ArrayBufferLike | Uint8Array;
+    ratio?: number;
+    on?: (r: detResultType) => void;
+};
+
+type InitRecBase = {
+    input: string | ArrayBufferLike | Uint8Array;
+    decodeDic: string;
+    imgh?: number;
+    on?: (index: number, result: { text: string; mean: number }) => void;
+};
+
+type InitDocClsBase = {
+    input: string | ArrayBufferLike | Uint8Array;
+};
+
+type InitOcrBase = {
+    det: InitDetBase;
+    rec: InitRecBase;
+    docCls?: InitDocClsBase;
+    analyzeLayout?: {
+        docDirs?: ReadingDir[];
+        columnsTip?: ColumnsTip;
+    };
+    dev?: boolean;
+    log?: boolean;
+    detRatio?: number;
+} & OrtOption;
 
 type InitOcrGlobal = {
     /** @deprecated use setOCREnv instead */
@@ -57,14 +76,6 @@ type InitOcrGlobal = {
     /** @deprecated use setOCREnv instead */
     imageData?;
 };
-
-type InitOcrCb = {
-    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
-    onDet?: (r: detResultType) => void;
-    onRec?: (index: number, result: { text: string; mean: number }) => void;
-};
-
-type onProgressType = (type: "det" | "rec", total: number, count: number) => void;
 
 type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
 type detResultType = { box: BoxType; img: ImageData; style: { bg: color; text: color } }[];
@@ -120,7 +131,7 @@ function logColor(...args: string[]) {
     }
 }
 
-async function init(op: InitOcrBase & InitOcrCb & InitOcrGlobal) {
+async function init(op: InitOcrBase & InitOcrGlobal) {
     setOCREnv(op);
     const x = await initOCR(op);
     globalOCR = x;
@@ -203,13 +214,17 @@ async function Rec(box: detResultType) {
 }
 
 /** 主要操作 */
-async function initOCR(op: InitOcrBase & InitOcrCb) {
+async function initOCR(op: InitOcrBase) {
     checkNode();
 
-    // @ts-ignore
-    const docCls = op.docClsPath ? await initDocDirCls(op) : undefined;
-    const det = await initDet(op);
-    const rec = await initRec(op);
+    const ortO: OrtOption = {
+        ort: op.ort,
+        ortOption: op.ortOption,
+    };
+
+    const docCls = op.docCls ? await initDocDirCls({ ...op.docCls, ...ortO }) : undefined;
+    const det = await initDet({ ...op.det, ...ortO });
+    const rec = await initRec({ ...op.rec, ...ortO });
     return {
         ocr: async (srcimg: loadImgType) => {
             let img = await loadImg(srcimg);
@@ -223,10 +238,10 @@ async function initOCR(op: InitOcrBase & InitOcrCb) {
 
             const box = await det.det(img);
 
-            if (op.onDet) op.onDet(box);
+            if (op.det.on) op.det.on(box);
 
             const mainLine = await rec.rec(box);
-            const newMainLine = afAfRec(mainLine, { docDirs: op.docDirs, columnsTip: op.columnsTip });
+            const newMainLine = afAfRec(mainLine, op.analyzeLayout);
             log(mainLine, newMainLine);
             task.l("end");
             return { src: mainLine, ...newMainLine, docDir: dir };
@@ -236,34 +251,32 @@ async function initOCR(op: InitOcrBase & InitOcrCb) {
     };
 }
 
-async function initDocDirCls(op: {
-    docClsPath: string;
-    ort: typeof import("onnxruntime-common");
-    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
-    onProgress?: onProgressType;
-}) {
-    const cls = await op.ort.InferenceSession.create(op.docClsPath, op.ortOption);
+function initOrtModel(
+    ort: OrtOption["ort"],
+    input: string | ArrayBufferLike | Uint32Array,
+    ortOptions?: OrtOption["ortOption"],
+) {
+    if (typeof input === "string") {
+        return ort.InferenceSession.create(input, ortOptions);
+    }
+    return ort.InferenceSession.create(input, ortOptions);
+}
+
+async function initDocDirCls(op: InitDocClsBase & OrtOption) {
+    const cls = await initOrtModel(op.ort, op.input, op.ortOption);
     const docCls = async (img: ImageData) => {
         return Cls(img, op.ort, cls, [0, 90, 180, 270], 224, 224);
     };
     return { docCls };
 }
 
-async function initDet(op: {
-    detPath: string;
-    detRatio?: number;
-    ort: typeof import("onnxruntime-common");
-    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
-    onProgress?: onProgressType;
-}) {
+async function initDet(op: InitDetBase & OrtOption) {
     checkNode();
 
     let detRatio = 1;
-    let onProgress: onProgressType = () => {};
 
-    const det = await op.ort.InferenceSession.create(op.detPath, op.ortOption);
-    if (op.detRatio !== undefined) detRatio = op.detRatio;
-    if (op.onProgress) onProgress = op.onProgress;
+    const det = await initOrtModel(op.ort, op.input, op.ortOption);
+    if (op.ratio !== undefined) detRatio = op.ratio;
 
     async function Det(srcimg: ImageData) {
         const img = srcimg;
@@ -277,7 +290,6 @@ async function initDet(op: {
         const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img, detRatio);
         const { transposedData, image } = beforeDetData;
         task.l("det");
-        onProgress("det", 1, 0);
         const detResults = await runDet(transposedData, image, det, op.ort);
 
         task.l("aft_det");
@@ -287,29 +299,20 @@ async function initDet(op: {
             resizeH,
             img,
         );
+        op?.on?.(box);
 
-        onProgress("det", 1, 1);
         return box;
     }
 
     return { det: Det };
 }
 
-async function initRec(op: {
-    recPath: string;
-    dic: string;
-    imgh?: number;
-    ort: typeof import("onnxruntime-common");
-    ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
-    onProgress?: (type: "det" | "rec", total: number, count: number) => void;
-    onRec?: (index: number, result: { text: string; mean: number }) => void;
-}) {
+async function initRec(op: InitRecBase & OrtOption) {
     checkNode();
 
     let imgh = 48;
-    let onProgress: (type: "det" | "rec", total: number, count: number) => void = () => {};
-    const rec = await op.ort.InferenceSession.create(op.recPath, op.ortOption);
-    const dic = op.dic?.split(/\r\n|\r|\n/) || [];
+    const rec = await initOrtModel(op.ort, op.input, op.ortOption);
+    const dic = op.decodeDic.split(/\r\n|\r|\n/) || [];
     if (dic.at(-1) === "") {
         // 多出的换行
         dic[dic.length - 1] = " ";
@@ -317,14 +320,12 @@ async function initRec(op: {
         dic.push(" ");
     }
     if (op.imgh) imgh = op.imgh;
-    if (op.onProgress) onProgress = op.onProgress;
 
     async function Rec(box: detResultType) {
         const mainLine: resultType = [];
         task.l("bf_rec");
         const recL = beforeRec(box, imgh);
         let runCount = 0;
-        onProgress("rec", recL.length, runCount);
         const mainLine0: { text: string; mean: number }[] = [];
         for (const [index, item] of recL.entries()) {
             const { b, imgH, imgW } = item;
@@ -336,9 +337,8 @@ async function initRec(op: {
                 box: box[index].box,
                 style: box[index].style,
             });
-            op?.onRec?.(index, result);
+            op?.on?.(index, result);
             runCount++;
-            onProgress("rec", recL.length, runCount);
             mainLine0.push(...afterRec(recResults, dic));
         }
         task.l("rec_end");
@@ -348,12 +348,7 @@ async function initRec(op: {
     return { rec: Rec };
 }
 
-async function runDet(
-    transposedData: number[][][],
-    image: ImageData,
-    det: SessionType,
-    ort: typeof import("onnxruntime-common"),
-) {
+async function runDet(transposedData: number[][][], image: ImageData, det: SessionType, ort: OrtOption["ort"]) {
     const detData = Float32Array.from(transposedData.flat(3));
 
     const detTensor = new ort.Tensor("float32", detData, [1, 3, image.height, image.width]);
@@ -364,13 +359,7 @@ async function runDet(
     return detResults[det.outputNames[0]];
 }
 
-async function runRec(
-    b: number[][][],
-    imgH: number,
-    imgW: number,
-    rec: SessionType,
-    ort: typeof import("onnxruntime-common"),
-) {
+async function runRec(b: number[][][], imgH: number, imgW: number, rec: SessionType, ort: OrtOption["ort"]) {
     const recData = Float32Array.from(b.flat(3));
 
     const recTensor = new ort.Tensor("float32", recData, [1, 3, imgH, imgW]);

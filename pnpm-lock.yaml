@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       onnxruntime-common:
-        specifier: ^1.18.0
-        version: 1.18.0
+        specifier: ^1.22.0
+        version: 1.22.0
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.8.3
@@ -368,8 +368,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  onnxruntime-common@1.18.0:
-    resolution: {integrity: sha512-lufrSzX6QdKrktAELG5x5VkBpapbCeS3dQwrXbN0eD9rHvU0yAWl7Ztju9FvgAKWvwd/teEKJNj3OwM6eTZh3Q==}
+  onnxruntime-common@1.22.0:
+    resolution: {integrity: sha512-vcuaNWgtF2dGQu/EP5P8UI5rEPEYqXG2sPPe5j9lg2TY/biJF8eWklTMwlDO08iuXq48xJo0awqIpK5mPG+IxA==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -651,7 +651,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  onnxruntime-common@1.18.0: {}
+  onnxruntime-common@1.22.0: {}
 
   picocolors@1.1.1: {}
 

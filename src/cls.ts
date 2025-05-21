@@ -1,5 +1,6 @@
+import type { OrtOption } from "./main";
 import { resizeImg, type SessionType, toPaddleInput } from "./untils";
-type ortType = typeof import("onnxruntime-common");
+type ortType = OrtOption["ort"];
 
 export { Cls };
 
