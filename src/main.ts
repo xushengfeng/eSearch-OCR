@@ -137,31 +137,31 @@ async function init(
         | ({
               /** @deprecated use det.input */
               detPath: string;
-              /** @deprecated use det.input */
+              /** @deprecated use rec.input */
               recPath: string;
-              /** @deprecated use det.input */
+              /** @deprecated */
               layoutPath?: string;
-              /** @deprecated use det.input */
+              /** @deprecated use docCls.input */
               docClsPath?: string;
-              /** @deprecated use det.input */
+              /** @deprecated use rec.decodeDic */
               dic: string;
-              /** @deprecated use det.input */
+              /** @deprecated */
               layoutDic?: string;
-              /** @deprecated use det.input */
+              /** @deprecated use analyzeLayout.docDirs */
               docDirs?: ReadingDir[];
-              /** @deprecated use det.input */
+              /** @deprecated use analyzeLayout.columnsTip */
               columnsTip?: ColumnsTip;
               dev?: boolean;
               log?: boolean;
-              /** @deprecated use det.input */
+              /** @deprecated use rec.imgh */
               imgh?: number;
-              /** @deprecated use det.input */
+              /** @deprecated use det.ratio */
               detRatio?: number;
-              /** @deprecated use det.input */
+              /** @deprecated use det.on and rec.on */
               onProgress?: (type: "det" | "rec", total: number, count: number) => void;
-              /** @deprecated use det.input */
+              /** @deprecated use det.on */
               onDet?: (r: detResultType) => void;
-              /** @deprecated use det.input */
+              /** @deprecated use rec.on */
               onRec?: (index: number, result: { text: string; mean: number }) => void;
           } & InitOcrGlobal &
               OrtOption),
