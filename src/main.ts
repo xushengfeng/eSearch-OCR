@@ -315,8 +315,6 @@ async function initOCR(op: InitOcrBase) {
 
             const box = await det.det(img);
 
-            if (op.det.on) op.det.on(box);
-
             const mainLine = await rec.rec(box);
             const newMainLine = afAfRec(mainLine, op.analyzeLayout);
             log(mainLine, newMainLine);
