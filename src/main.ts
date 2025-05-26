@@ -251,11 +251,11 @@ async function loadImg(src: loadImgType) {
         img = src;
     }
     if (img instanceof HTMLImageElement) {
-        const canvas = newCanvas(img.width, img.height);
+        const canvas = newCanvas(img.naturalWidth, img.naturalHeight);
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("canvas context is null");
         ctx.drawImage(img, 0, 0);
-        img = ctx.getImageData(0, 0, img.width, img.height);
+        img = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
     }
     if (img instanceof HTMLCanvasElement) {
         const ctx = img.getContext("2d");
