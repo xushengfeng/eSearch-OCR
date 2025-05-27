@@ -1456,10 +1456,10 @@ function afAfRec(
 
     // 根据距离，合并或保持拆分
     // 有些近，是同一行；有些远，但在水平线上，说明是其他栏的
-    const newL: { src: resultType[0]; colId: number; used: boolean }[] = [];
+    const newL: { src: resultType[0]; colId: number }[] = [];
     for (const l of newLZ) {
         if (l.line.length === 1) {
-            newL.push({ src: l.line[0].src, colId: l.line[0].colId, used: false });
+            newL.push({ src: l.line[0].src, colId: l.line[0].colId });
             continue;
         }
 
@@ -1476,7 +1476,7 @@ function afAfRec(
                 this_.colId !== last.colId ||
                 Point.toInline(thisInlineStart) - Point.toInline(lastBoxInlineEnd) > em
             ) {
-                newL.push({ ...last, used: false });
+                newL.push({ ...last });
                 last = this_;
             } else {
                 last.src.text += this_.src.text;
@@ -1484,7 +1484,7 @@ function afAfRec(
                 last.src.box = outerRect([last.src.box, this_.src.box]);
             }
         }
-        newL.push({ ...last, used: false });
+        newL.push({ ...last });
     }
 
     // todo 分割线为边界
@@ -1508,23 +1508,9 @@ function afAfRec(
         }
     }
 
-    const minY = defaultNewL.reduce(
-        (a, b) => Math.min(a, Math.min(b.src.box[0][1] ?? 0, b.src.box[1][1] ?? 0)),
-        Number.POSITIVE_INFINITY,
-    );
-    const maxY = defaultNewL.reduce(
-        (a, b) => Math.max(a, Math.max(b.src.box[2][1] ?? 0, b.src.box[3][1] ?? 0)),
-        Number.NEGATIVE_INFINITY,
-    );
-    for (let i = minY; i <= maxY; i++) {
-        for (const b of defaultNewL) {
-            if (b.used) continue;
-            if (Point.toBlock(Box.blockStart(b.src.box)) > i) break;
-            if (Point.toBlock(Box.blockStart(b.src.box)) <= i && i <= Point.toBlock(Box.blockEnd(b.src.box))) {
-                pushColumn(b.src);
-                b.used = true;
-            }
-        }
+    defaultNewL.sort((a, b) => Point.compare(Box.blockStart(a.src.box), Box.blockStart(b.src.box), "block"));
+    for (const b of defaultNewL) {
+        pushColumn(b.src);
     }
 
     // 合并栏，合并上面细粒度的
