@@ -1153,10 +1153,10 @@ function afAfRec(
         let iav = 0;
         let n = 0;
         const l: number[] = [];
-        for (const i of a) {
+        for (const [index, i] of a.entries()) {
             const a1 = i > 180 ? i - 180 : i;
             const a2 = a1 - 180;
-            const a = Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1;
+            const a = index === 0 ? a1 : Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1;
             l.push(a);
             iav = (iav * n + a) / (n + 1);
             n++;
