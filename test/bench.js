@@ -26,17 +26,21 @@ async function load(src) {
 async function start() {
     const detRatio = 0.75;
     const ocr = await x.init({
-        detPath: "./m/v4/ppocr_det.onnx",
-        recPath: "./m/v4/ppocr_v4_rec_doc.onnx",
-        dic: fs.readFileSync("../assets/ppocrv4_doc_dict.txt").toString(),
-        layoutDic: "text\ntitle\nfigure\nfigure_caption\ntable\ntable_caption\nheader\nfooter\nreference\nequation",
-        detRatio,
-        ort,
-        onProgress: (t, a, n) => {
-            if (t === "rec") {
-                console.log(n / a);
-            }
+        rec: {
+            input: "./m/v5/ppocr_v5_mobile_rec.onnx",
+            decodeDic: fs.readFileSync("../assets/ppocrv5_dict.txt").toString(),
+            optimize: {
+                space: false,
+            },
+            on: (i, _, a) => {
+                console.log((i + 1) / a);
+            },
         },
+        det: {
+            input: "./m/v5/ppocr_v5_mobile_det.onnx",
+            ratio: detRatio,
+        },
+        ort,
     });
 
     const r = [];
@@ -104,7 +108,7 @@ async function start() {
         type: "node",
         provider: "cpu",
         detRatio,
-        models: { rec: "v4_doc" },
+        models: { rec: "v5_mobile" },
         r,
     };
     fs.writeFileSync("log.json", JSON.stringify(log, null, 2));
