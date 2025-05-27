@@ -100,6 +100,9 @@ type init = {
         decodeDic: string; // 字典文件内容，不是路径
         imgh?: number;
         on?: (index: number, result: { text: string; mean: number }, total: number) => void;
+        optimize?: {
+            space?: boolean; // v3 v4识别时英文空格不理想，但v5得到了改善，默认为true，需要传入false来关闭
+        };
     };
     docCls?: {
         input: string | ArrayBufferLike | Uint8Array; // 文档旋转识别，所有文字方向应该一致，各行不同向有待开发
@@ -112,6 +115,9 @@ type init = {
 };
 // 更多类型请查看代码或提示
 ```
+
+> [!NOTE]
+> 对 v5 模型，需要在 rec.optimize.space 明确传入 false，否则会加很多空格
 
 对于返回的值
 
