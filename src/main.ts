@@ -50,6 +50,9 @@ type InitRecBase = {
     decodeDic: string;
     imgh?: number;
     on?: (index: number, result: { text: string; mean: number }, total: number) => void;
+    optimize?: {
+        space?: boolean;
+    };
 };
 
 type InitDocClsBase = {
@@ -395,6 +398,7 @@ async function initRec(op: InitRecBase & OrtOption) {
         dic.push(" ");
     }
     if (op.imgh) imgh = op.imgh;
+    const opmSpace = op.optimize?.space === undefined ? true : op.optimize.space;
 
     async function Rec(box: detResultType) {
         const mainLine: resultType = [];
@@ -405,7 +409,7 @@ async function initRec(op: InitRecBase & OrtOption) {
         for (const [index, item] of recL.entries()) {
             const { b, imgH, imgW } = item;
             const recResults = await runRec(b, imgH, imgW, rec, op.ort);
-            const result = afterRec(recResults, dic)[0];
+            const result = afterRec(recResults, dic, { opm: { space: opmSpace } })[0];
             mainLine.push({
                 text: result.text,
                 mean: result.mean,
@@ -414,7 +418,7 @@ async function initRec(op: InitRecBase & OrtOption) {
             });
             op?.on?.(index, result, box.length);
             runCount++;
-            mainLine0.push(...afterRec(recResults, dic));
+            mainLine0.push(...afterRec(recResults, dic, { opm: { space: opmSpace } }));
         }
         task.l("rec_end");
         return mainLine.filter((x) => x.mean >= 0.5) as resultType;
@@ -945,7 +949,15 @@ function beforeRec(box: { box: BoxType; img: ImageData }[], imgH: number) {
     return l;
 }
 
-function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[]) {
+function afterRec(
+    data: AsyncType<ReturnType<typeof runRec>>,
+    character: string[],
+    op: {
+        opm: {
+            space: boolean;
+        };
+    },
+) {
     const predLen = data.dims[2];
     const line: { text: string; mean: number }[] = [];
     let ml = data.dims[0] - 1;
@@ -977,9 +989,11 @@ function afterRec(data: AsyncType<ReturnType<typeof runRec>>, character: string[
                     tmpSecondI = j;
                 }
             }
-            if (tmpIdx === 0 && getChar(tmpSecondI) === " " && tmpSecond > 0.001) {
-                tmpMax = tmpSecond;
-                tmpIdx = tmpSecondI;
+            if (op.opm.space) {
+                if (tmpIdx === 0 && getChar(tmpSecondI) === " " && tmpSecond > 0.001) {
+                    tmpMax = tmpSecond;
+                    tmpIdx = tmpSecondI;
+                }
             }
 
             predsProb.push(tmpMax);
