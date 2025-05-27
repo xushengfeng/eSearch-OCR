@@ -405,7 +405,6 @@ async function initRec(op: InitRecBase & OrtOption) {
         task.l("bf_rec");
         const recL = beforeRec(box, imgh);
         let runCount = 0;
-        const mainLine0: { text: string; mean: number }[] = [];
         for (const [index, item] of recL.entries()) {
             const { b, imgH, imgW } = item;
             const recResults = await runRec(b, imgH, imgW, rec, op.ort);
@@ -418,7 +417,6 @@ async function initRec(op: InitRecBase & OrtOption) {
             });
             op?.on?.(index, result, box.length);
             runCount++;
-            mainLine0.push(...afterRec(recResults, dic, { opm: { space: opmSpace } }));
         }
         task.l("rec_end");
         return mainLine.filter((x) => x.mean >= 0.5) as resultType;
