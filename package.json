@@ -1,6 +1,6 @@
 {
     "name": "esearch-ocr",
-    "version": "8.4.3",
+    "version": "8.4.4",
     "description": "paddleocr models run on onnx",
     "main": "./dist/esearch-ocr.umd.cjs",
     "module": "./dist/esearch-ocr.js",
