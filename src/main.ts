@@ -1166,6 +1166,7 @@ function afAfRec(
     function lineAngleNear(a1: number, a2: number) {
         if (Math.abs(a1 - a2) < 45) return true;
         if (Math.abs(a1 - (a2 - 180)) < 45) return true;
+        if (Math.abs(a1 - 180 - a2) < 45) return true;
         return false;
     }
     function median(l: number[]) {
@@ -1364,6 +1365,8 @@ function afAfRec(
     const MAD = median(filterAngles.map((i) => Math.abs(i - md)));
     const filterAngles1 = filterAngles.filter((i) => Math.abs((i - md) / (MAD * 1.4826)) < 2);
     const inlineangle = normalAngle(averLineAngles(filterAngles1).av);
+
+    log("dir0", inlineAngles, firstAngleAnalysis, filterAngles, filterAngles1, inlineangle);
 
     const blockangle = normalAngle(inlineangle + 90);
 

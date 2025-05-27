@@ -6,20 +6,22 @@ const ort = require("onnxruntime-node");
 start();
 
 async function start() {
-    const modelBasePath = "./m/v4/";
+    const modelBasePath = "./m/v5/";
+    const only = 0 && "9.svg";
+
     setOCREnv({
         log: true,
-        // dev: true,
+        dev: only !== 0,
     });
     const det = await initDet({
-        input: `${modelBasePath}/ppocr_det.onnx`,
+        input: `${modelBasePath}/ppocr_v5_mobile_det.onnx`,
+        ratio: 0.75,
         ort,
     });
     document.body.style.display = "flex";
     document.body.style.flexWrap = "wrap";
     const rootPath = "../test/layout_img";
     const dir = fs.readdirSync(rootPath);
-    const only = 0 && "7.svg";
     for (const f of dir) {
         if (f !== only && only !== 0) continue;
         const src = path.join(rootPath, f);

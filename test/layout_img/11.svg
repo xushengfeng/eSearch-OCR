@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   sodipodi:docname="11.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.79212693"
+     inkscape:cx="314.97477"
+     inkscape:cy="564.3035"
+     inkscape:window-width="1920"
+     inkscape:window-height="1020"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <rect
+       x="41.65999"
+       y="192.59497"
+       width="50.573603"
+       height="155.83404"
+       id="rect10" />
+    <rect
+       x="83.078673"
+       y="979.64098"
+       width="626.40358"
+       height="97.206644"
+       id="rect9" />
+    <rect
+       x="81.22296"
+       y="831.93738"
+       width="464.14418"
+       height="171.68966"
+       id="rect8" />
+    <rect
+       x="77.542602"
+       y="669.08469"
+       width="157.92001"
+       height="190.62601"
+       id="rect7" />
+    <rect
+       x="75.558349"
+       y="453.2102"
+       width="321.29205"
+       height="138.86664"
+       id="rect6" />
+    <rect
+       x="73.734649"
+       y="270.81787"
+       width="374.87513"
+       height="163.06983"
+       id="rect5" />
+    <rect
+       x="72.139257"
+       y="65.043593"
+       width="681.45242"
+       height="1012.2529"
+       id="rect3" />
+    <rect
+       x="83.618389"
+       y="801.20603"
+       width="412.05124"
+       height="75.041713"
+       id="rect4" />
+    <rect
+       x="121.9769"
+       y="202.50144"
+       width="637.24738"
+       height="698.68864"
+       id="rect1" />
+    <rect
+       x="121.9769"
+       y="202.50143"
+       width="652.60706"
+       height="1039.3464"
+       id="rect1-7" />
+  </defs>
+  <g
+     inkscape:label="图层 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#ffffff;stroke-width:4.83932;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1"
+       id="rect2"
+       width="210"
+       height="297"
+       x="0"
+       y="0" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26414462,-0.01523022,0.01523022,0.26414462,-8.3714646,6.263774)"
+       id="text1"
+       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;writing-mode:tb-rl;direction:ltr;white-space:pre;shape-inside:url(#rect3);display:inline"
+       x="-110.41801"
+       y="0"><tspan
+         x="733.5918"
+         y="65.042969"
+         id="tspan1">这是排版分析测试，分为零散布局、两栏布局、网页布局和出版布局。
+</tspan><tspan
+         x="693.5918"
+         y="65.042969"
+         id="tspan10">
+</tspan><tspan
+         x="653.5918"
+         y="65.042969"
+         id="tspan27">零散布局一般出现在屏幕上，特别是多窗口多组件或多区域。
+</tspan><tspan
+         x="613.5918"
+         y="65.042969"
+         id="tspan28">
+</tspan><tspan
+         x="573.5918"
+         y="65.042969"
+         id="tspan29">两栏布局在部分出版上存在，为了减少文字行宽，把文字拆成两栏。占</tspan><tspan
+         x="533.5918"
+         y="65.042969"
+         id="tspan30">位字占位字占位字占位字占位字占位字占位字占位字占位字占位字占位</tspan><tspan
+         x="493.5918"
+         y="65.042969"
+         id="tspan31">字占位字占位字。
+</tspan><tspan
+         x="453.5918"
+         y="65.042969"
+         id="tspan32">
+</tspan><tspan
+         x="413.5918"
+         y="65.042969"
+         id="tspan33">网页布局即通过空行来分段。
+</tspan><tspan
+         x="373.5918"
+         y="65.042969"
+         id="tspan34">
+</tspan><tspan
+         x="333.5918"
+         y="65.042969"
+         id="tspan35">出版布局。由于以前印刷成本高，为了节省且能体现换行，一般在段首</tspan><tspan
+         x="293.5918"
+         y="65.042969"
+         id="tspan36">空2格。
+</tspan><tspan
+         x="253.5918"
+         y="65.042969"
+         id="tspan37">
+</tspan><tspan
+         x="213.5918"
+         y="65.042969"
+         id="tspan38">还有代码布局，这是考虑到部分编程软件使用空格来区分块，空格具有</tspan><tspan
+         x="173.5918"
+         y="65.042969"
+         id="tspan39">语义。
+</tspan><tspan
+         x="133.5918"
+         y="65.042969"
+         id="tspan40">
+</tspan><tspan
+         x="93.591797"
+         y="65.042969"
+         id="tspan41">占位字占位字占位字占位字占位字占位字占位字占
+</tspan><tspan
+         x="53.591797"
+         y="65.042969"
+         id="tspan42">
+</tspan><tspan
+         x="-20"
+         y="0"
+         id="tspan45"><tspan
+           dy="0 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32"
+           id="tspan43">占位字占位字占位字占位字占位字占位字占位字占</tspan><tspan
+           dy="32"
+           id="tspan44">
+</tspan></tspan><tspan
+         x="-60"
+         y="0"
+         id="tspan46">
+</tspan><tspan
+         x="-100"
+         y="0"
+         id="tspan48"><tspan
+           dy="0 32 32 32 32 32"
+           id="tspan47">占位字占位字</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text2"
+       style="line-height:1.25;font-family:sans-serif;font-size:8px;text-orientation:auto;writing-mode:tb-rl;white-space:pre;shape-inside:url(#rect10)" />
+  </g>
+</svg>
