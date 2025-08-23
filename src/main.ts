@@ -117,7 +117,7 @@ function putImgDom(img: OffscreenCanvas, id?: string) {
     } catch (error) {}
 }
 
-let createImageData = (data: Uint8ClampedArray, w: number, h: number) => {
+let createImageData = (data: Uint8ClampedArray<ArrayBuffer>, w: number, h: number) => {
     return new ImageData(data, w, h);
 };
 
@@ -331,10 +331,16 @@ async function initOCR(op: InitOcrBase) {
 
 function initOrtModel(
     ort: OrtOption["ort"],
-    input: string | ArrayBufferLike | Uint32Array,
+    input: string | ArrayBufferLike | Uint8Array,
     ortOptions?: OrtOption["ortOption"],
 ) {
     if (typeof input === "string") {
+        return ort.InferenceSession.create(input, ortOptions);
+    }
+    if (input instanceof ArrayBuffer) {
+        return ort.InferenceSession.create(input, ortOptions);
+    }
+    if (input instanceof SharedArrayBuffer) {
         return ort.InferenceSession.create(input, ortOptions);
     }
     return ort.InferenceSession.create(input, ortOptions);
