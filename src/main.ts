@@ -28,6 +28,7 @@ export {
     initRec,
     initDocDirCls,
     rotateImg,
+    warpDet,
 };
 export type initType = AsyncType<ReturnType<typeof init>>;
 export type { OrtOption, InitOcrBase, InitOcrGlobal, detResultType, resultType, loadImgType };
@@ -404,6 +405,23 @@ async function initDet(op: InitDetBase & OrtOption) {
     }
 
     return { det: Det };
+}
+
+function warpDet(srcimg: ImageData) {
+    const img = srcimg;
+    const x: detResultType = [
+        {
+            box: [
+                [0, 0],
+                [img.width, 0],
+                [img.width, img.height],
+                [0, img.height],
+            ],
+            img: img,
+            style: { bg: [255, 255, 255], text: [0, 0, 0] },
+        },
+    ];
+    return x;
 }
 
 async function initRec(op: InitRecBase & OrtOption) {
