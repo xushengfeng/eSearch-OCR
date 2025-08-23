@@ -1,4 +1,4 @@
-const { init } = require("../");
+const { init, loadImg, warpDet } = require("../");
 const fs = require("node:fs");
 const ort = require("onnxruntime-node");
 
@@ -32,4 +32,7 @@ async function start() {
         p.innerText = i.text;
         document.body.append(p);
     }
+    const d = await localOcr.det(await loadImg(src));
+    const r = await localOcr.recRaw(d);
+    console.log(r);
 }
