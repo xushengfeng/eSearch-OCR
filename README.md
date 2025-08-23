@@ -105,6 +105,10 @@ type init = {
         optimize?: {
             space?: boolean; // v3 v4识别时英文空格不理想，但v5得到了改善，默认为true，需要传入false来关闭
         };
+        multiChar?: { // 使用recRaw时，输出每个字的多个候选
+            topK?: number;
+            threshold?: number;
+        };
     };
     docCls?: {
         input: string | ArrayBufferLike | Uint8Array; // 文档旋转识别，所有文字方向应该一致，各行不同向有待开发
@@ -162,7 +166,7 @@ type output = {
 result.parragraphs.map((item) => item.text).join("\n");
 ```
 
-除了 `ocr` 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看类型提示。[这个文件](./test/test_import.js)给出了示例。
+除了 `ocr` 函数，还有`det`函数，可单独运行，检测文字坐标；`rec`函数，可单独运行，检测文字内容。具体定义可看类型提示。[这个文件](./test/test_example.js)给出了示例。
 
 对于竖排文字，如古籍等，在 cls 时会进行旋转。如果明确了输入，可以不用 cls。
 

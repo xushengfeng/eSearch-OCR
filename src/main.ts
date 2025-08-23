@@ -33,48 +33,90 @@ export {
 export type initType = AsyncType<ReturnType<typeof init>>;
 export type { OrtOption, InitOcrBase, InitOcrGlobal, detResultType, resultType, loadImgType };
 
-type ColumnsTip = { box: BoxType; type: "auto" | "ignore" | "table" | "raw" | "raw-blank" }[];
+type ColumnsTip = {
+    box: BoxType;
+    type: "auto" | "ignore" | "table" | "raw" | "raw-blank";
+}[];
 
 type OrtOption = {
+    /**
+     * onnxruntime ort
+     *
+     * you should import manually
+     * ```
+     * const ort = require("onnxruntime-node")
+     * // or
+     * import ort from "onnxruntime-web"
+     * ```
+     */
     ort: typeof import("onnxruntime-common");
     ortOption?: import("onnxruntime-common").InferenceSession.SessionOptions;
 };
 
 type InitDetBase = {
+    /**
+     * .onnx file
+     * path or binary
+     */
     input: string | ArrayBufferLike | Uint8Array;
+    /** can zoom img into smaller size in order to fast, but too small makes the recognition worse */
     ratio?: number;
+    /** when finished */
     on?: (r: detResultType) => void;
 };
 
 type InitRecBase = {
+    /**
+     * .onnx file
+     * path or binary
+     */
     input: string | ArrayBufferLike | Uint8Array;
+    /** content instead of path */
     decodeDic: string;
+    /** model setting, some model is fixed */
     imgh?: number;
+    /**
+     * when one item finished
+     * `index` of input det result
+     * when index + 1 === total all done
+     */
     on?: (index: number, result: CharType[], total: number) => void;
     optimize?: {
+        /** some models lose spaces when recognizing English, this option optimizes it */
         space?: boolean;
     };
+    /** when using `recRaw`, multiple candidates are given for each char */
     multiChar?: {
+        /** max */
         topK?: number;
+        /** ignore some candidates to improve performance */
         threshold?: number;
     };
 };
 
 type InitDocClsBase = {
+    /**
+     * .onnx file
+     * path or binary
+     */
     input: string | ArrayBufferLike | Uint8Array;
 };
 
 type InitOcrBase = {
+    /** detect */
     det: InitDetBase;
+    /** recognise */
     rec: InitRecBase;
+    /** document direction detection */
     docCls?: InitDocClsBase;
     analyzeLayout?: {
+        /** limit the range of text reading directions, default (top to bottom, left to right) and (right to left, top to bottom) */
         docDirs?: ReadingDir[];
+        /** prompt position and type of columns */
         columnsTip?: ColumnsTip;
     };
     dev?: boolean;
     log?: boolean;
-    detRatio?: number;
 } & OrtOption;
 
 type InitOcrGlobal = {
@@ -95,7 +137,13 @@ type detDataType = {
 type pointType = [number, number];
 type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
-type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
+type resultType = {
+    text: string;
+    mean: number;
+    /** ↖ ↗ ↘ ↙ */
+    box: BoxType;
+    style: { bg: color; text: color };
+}[];
 type CharType = { t: string; mean: number }[];
 type resultType1<Char extends CharType> = {
     text: Char[];
