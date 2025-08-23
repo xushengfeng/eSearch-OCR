@@ -49,9 +49,13 @@ type InitRecBase = {
     input: string | ArrayBufferLike | Uint8Array;
     decodeDic: string;
     imgh?: number;
-    on?: (index: number, result: { text: string; mean: number }, total: number) => void;
+    on?: (index: number, result: CharType[], total: number) => void;
     optimize?: {
         space?: boolean;
+    };
+    multiChar?: {
+        topK?: number;
+        threshold?: number;
     };
 };
 
@@ -91,6 +95,12 @@ type pointType = [number, number];
 type BoxType = [pointType, pointType, pointType, pointType];
 type pointsType = pointType[];
 type resultType = { text: string; mean: number; box: BoxType; style: { bg: color; text: color } }[];
+type CharType = { t: string; mean: number }[];
+type resultType1<Char extends CharType> = {
+    text: Char[];
+    box: BoxType;
+    style: { bg: color; text: color };
+}[];
 
 type ReadingDirPart = "lr" | "rl" | "tb" | "bt";
 type ReadingDir = {
@@ -191,7 +201,11 @@ async function init(
                       decodeDic: op.dic,
                       imgh: op.imgh,
                       on: async (index, result, t) => {
-                          if (op.onRec) op.onRec(index, result);
+                          if (op.onRec)
+                              op.onRec(index, {
+                                  text: result.map((i) => i[0].t).join(""),
+                                  mean: result.map((i) => i[0].mean).reduce((a, b) => a + b, 0) / result.length,
+                              });
                           if (op.onProgress) op.onProgress("rec", t, index + 1);
                       },
                   },
@@ -326,6 +340,7 @@ async function initOCR(op: InitOcrBase) {
         },
         det: det.det,
         rec: rec.rec,
+        recRaw: rec.rawRec,
     };
 }
 
@@ -406,18 +421,19 @@ async function initRec(op: InitRecBase & OrtOption) {
     if (op.imgh) imgh = op.imgh;
     const opmSpace = op.optimize?.space === undefined ? true : op.optimize.space;
 
-    async function Rec(box: detResultType) {
-        const mainLine: resultType = [];
+    async function rawRec(box: detResultType, oop?: InitRecBase["multiChar"]) {
+        const mainLine: resultType1<CharType> = [];
         task.l("bf_rec");
         const recL = beforeRec(box, imgh);
         let runCount = 0;
+        const topK = oop?.topK || op.multiChar?.topK || 2;
+        const threshold = oop?.threshold || op.multiChar?.threshold || 0.00001;
         for (const [index, item] of recL.entries()) {
             const { b, imgH, imgW } = item;
             const recResults = await runRec(b, imgH, imgW, rec, op.ort);
-            const result = afterRec(recResults, dic, { opm: { space: opmSpace } })[0];
+            const result = afterRec(recResults, dic, { topK, threshold })[0];
             mainLine.push({
-                text: result.text,
-                mean: result.mean,
+                text: result,
                 box: box[index].box,
                 style: box[index].style,
             });
@@ -425,10 +441,38 @@ async function initRec(op: InitRecBase & OrtOption) {
             runCount++;
         }
         task.l("rec_end");
-        return mainLine.filter((x) => x.mean >= 0.5) as resultType;
+        return mainLine;
+    }
+    async function Rec(box: detResultType): Promise<resultType> {
+        const mainLine: resultType = [];
+        const l = await rawRec(box, { topK: 2, threshold: 0.00001 });
+        for (const x of l) {
+            const l: CharType[0][] = x.text.map((i) => {
+                if (opmSpace) {
+                    if (i[0].t === "" && i[1].t === " " && i[1].mean > 0.001) {
+                        return i[1];
+                    }
+                    return i[0];
+                }
+                return i[0];
+            });
+            const text = l
+                .map((i) => i.t)
+                .join("")
+                .trim();
+            const mean = l.map((i) => i.mean).reduce((a, b) => a + b, 0) / l.length;
+            if (mean < 0.5) continue;
+            mainLine.push({
+                text: text,
+                mean: mean,
+                box: x.box,
+                style: x.style,
+            });
+        }
+        return mainLine;
     }
 
-    return { rec: Rec };
+    return { rec: Rec, rawRec: rawRec };
 }
 
 async function runDet(transposedData: number[][][], image: ImageData, det: SessionType, ort: OrtOption["ort"]) {
@@ -957,80 +1001,59 @@ function afterRec(
     data: AsyncType<ReturnType<typeof runRec>>,
     character: string[],
     op: {
-        opm: {
-            space: boolean;
-        };
+        topK: number;
+        threshold: number;
     },
 ) {
     const predLen = data.dims[2];
-    const line: { text: string; mean: number }[] = [];
+    const line: CharType[][] = [];
     let ml = data.dims[0] - 1;
+    const topK = op.topK;
+    const threshold = op.threshold;
 
     function getChar(i: number) {
         return character.at(i - 1) ?? "";
     }
 
     for (let l = 0; l < data.data.length; l += predLen * data.dims[1]) {
-        const predsIdx: number[] = [];
-        const predsProb: number[] = [];
+        const ll: { t: number; v: number }[][] = [];
 
         for (let i = l; i < l + predLen * data.dims[1]; i += predLen) {
             const tmpArr = data.data.slice(i, i + predLen) as Float32Array;
-
-            let tmpMax = Number.NEGATIVE_INFINITY;
-            let tmpIdx = -1;
-            let tmpSecond = Number.NEGATIVE_INFINITY;
-            let tmpSecondI = -1;
+            const l: { t: number; v: number }[] = [];
 
             for (let j = 0; j < tmpArr.length; j++) {
                 const currentValue = tmpArr[j];
-                if (currentValue > tmpMax) {
-                    tmpSecond = tmpMax;
-                    tmpMax = currentValue;
-                    tmpIdx = j;
-                } else if (currentValue > tmpSecond && currentValue < tmpMax) {
-                    tmpSecond = currentValue;
-                    tmpSecondI = j;
+                if (currentValue < threshold) continue;
+                if (!(l.length === topK && currentValue <= l.at(-1)!.v)) {
+                    const i = l.findIndex((i) => i.v > currentValue);
+                    if (i === -1) {
+                        l.unshift({ t: j, v: currentValue });
+                    } else {
+                        l.splice(i + 1, 0, { t: j, v: currentValue });
+                    }
                 }
+                if (l.length > topK) l.pop();
             }
-            if (op.opm.space) {
-                if (tmpIdx === 0 && getChar(tmpSecondI) === " " && tmpSecond > 0.001) {
-                    tmpMax = tmpSecond;
-                    tmpIdx = tmpSecondI;
-                }
-            }
-
-            predsProb.push(tmpMax);
-            predsIdx.push(tmpIdx);
+            ll.push(l);
         }
-        line[ml] = decode(predsIdx, predsProb);
+        line[ml] = rm(ll);
         ml--;
     }
-    function decode(textIndex: number[], textProb: number[]) {
-        const charList: string[] = [];
-        const confList: number[] = [];
+    function rm(xl: { t: number; v: number }[][]) {
+        const charList: CharType[] = [];
         const isRemoveDuplicate = true;
-        for (let idx = 0; idx < textIndex.length; idx++) {
-            if (textIndex[idx] === 0) continue;
+        for (let idx = 0; idx < xl.length; idx++) {
+            // 这里都是取[0]作为判断，不好说有没有自定义空间
+            if (xl[idx][0].t === 0) continue;
             if (isRemoveDuplicate) {
-                if (idx > 0 && textIndex[idx - 1] === textIndex[idx]) {
+                if (idx > 0 && xl[idx - 1][0].t === xl[idx][0].t) {
                     continue;
                 }
             }
-            charList.push(getChar(textIndex[idx]));
-            confList.push(textProb[idx]);
+            charList.push(xl[idx].map((i) => ({ t: getChar(i.t), mean: i.v })));
         }
-        let text = "";
-        let mean = 0;
-        if (charList.length) {
-            text = charList.join("").trim();
-            let sum = 0;
-            for (const item of confList) {
-                sum += item;
-            }
-            mean = sum / confList.length;
-        }
-        return { text, mean };
+        return charList;
     }
     return line;
 }
@@ -1055,6 +1078,7 @@ function afAfRec(
     log(l);
 
     type columnType = "none" | ColumnsTip[0]["type"];
+    type resultItem = resultType[0];
 
     // 假定阅读方向都是统一的
 
@@ -1265,7 +1289,7 @@ function afAfRec(
         return [o, Vector.add(o, w), Vector.add(Vector.add(o, w), h), Vector.add(o, h)] as BoxType;
     }
 
-    function pushColumn(b: resultType[0]) {
+    function pushColumn(b: resultItem) {
         let nearest: number | null = null;
         let _jl = Number.POSITIVE_INFINITY;
         for (const i in columns) {
@@ -1282,7 +1306,7 @@ function afAfRec(
             return;
         }
 
-        const last = columns[nearest].src.at(-1) as resultType[0]; // 前面已经遍历过了，有-1的才能赋值到nearest
+        const last = columns[nearest].src.at(-1)!; // 前面已经遍历过了，有-1的才能赋值到nearest
         const thisW = Box.inlineSize(b.box);
         const lastW = Box.inlineSize(last.box);
         const minW = Math.min(thisW, lastW);
@@ -1307,7 +1331,7 @@ function afAfRec(
     function joinResult(p: resultType) {
         const cjkv = /\p{Ideographic}/u;
         const cjkf = /[。，！？；：“”‘’《》、【】（）…—]/;
-        const res: resultType[0] = {
+        const res: resultItem = {
             box: outerRect(p.map((i) => i.box)),
             text: "",
             mean: average2(p.map((i) => [i.mean, i.text.length])),
@@ -1323,7 +1347,7 @@ function afAfRec(
                 res.text += " ";
             res.text += i.text;
         }
-        return res satisfies resultType[0];
+        return res satisfies resultItem;
     }
 
     function sortCol(cs: { src: resultType; outerBox: BoxType }[]) {
@@ -1441,7 +1465,7 @@ function afAfRec(
 
     // 分析那些是同一水平的
     const newL_ = logicL.sort((a, b) => Point.compare(Box.blockStart(a.box), Box.blockStart(b.box), "block"));
-    const newLZ: { line: { src: resultType[0]; colId: number }[] }[] = [];
+    const newLZ: { line: { src: resultItem; colId: number }[] }[] = [];
     for (const j of newL_) {
         const colId = findColId(j.box);
         const last = newLZ.at(-1)?.line.at(-1);
@@ -1465,7 +1489,7 @@ function afAfRec(
 
     // 根据距离，合并或保持拆分
     // 有些近，是同一行；有些远，但在水平线上，说明是其他栏的
-    const newL: { src: resultType[0]; colId: number }[] = [];
+    const newL: { src: resultItem; colId: number }[] = [];
     for (const l of newLZ) {
         if (l.line.length === 1) {
             newL.push({ src: l.line[0].src, colId: l.line[0].colId });
@@ -1489,7 +1513,7 @@ function afAfRec(
                 last = this_;
             } else {
                 last.src.text += this_.src.text;
-                last.src.mean = (last.src.mean + this_.src.mean) / 2;
+                last.src.mean = (last.src.mean + this_.src.mean) / 2; // todo fix
                 last.src.box = outerRect([last.src.box, this_.src.box]);
             }
         }
