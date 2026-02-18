@@ -6,14 +6,14 @@
 
 ## 特性
 
--   文字检测
--   文字识别
--   文档旋转识别
--   排版分析识别分栏、段落、阅读方向
--   轻量，仅需要引入 onnx，gizp 后 10kB
--   支持浏览器(esm)、node(CommonJS) 和 Electron
--   完善的类型提示
--   可简单分析背景色和文字颜色
+- 文字检测
+- 文字识别
+- 文档旋转识别
+- 排版分析识别分栏、段落、阅读方向
+- 轻量，仅需要引入 onnx，gizp 后 10kB
+- 支持浏览器(esm)、node(CommonJS) 和 Electron
+- 完善的类型提示
+- 可简单分析背景色和文字颜色
 
 [PaddleOCR License](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.4/LICENSE)
 
@@ -23,11 +23,24 @@
 
 现已支持 v5 版本模型。
 
-模型文字： 中（简体）英混合、中文繁体、英文、韩文、日文、泰卢固文、卡纳达文、泰米尔文、拉丁文、阿拉伯字母、斯拉夫字母、梵文字母。
+模型文字：
 
-中英混合 v4 为`ch.zip`，中英混合 v4_doc 为`ch_v4_doc.zip`
+- 中（简体）英混合（[v5 移动版](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ppocr_v5_mobile.zip)、[v5 服务器版](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ppocr_v5_server.zip)、[v4](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ch.zip)、[v4高精度版](ttps://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ch_v4_doc.zip)）
+- [中文繁体](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/chinese_cht.zip)
+- [英文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/en.zip)
+- [韩文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/korean.zip)
+- [日文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/japan.zip)
+- [泰卢固文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/te.zip)
+- [卡纳达文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ka.zip)
+- [泰米尔文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ta.zip)
+- [拉丁文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/latin.zip)
+- [阿拉伯字母](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/arabic.zip)
+- [斯拉夫字母](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/cyrillic.zip)
+- [梵文字母](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/devanagari.zip)
 
-文档方向识别模型[Releases 8.1.0](https://github.com/xushengfeng/eSearch-OCR/releases/tag/8.1.0)
+det文字检测模型在中英混合的压缩包里面，为`det.onnx`，如果其他语言有检测模型那就用那个模型的，否则用中英混合的
+
+[文档方向识别模型](https://github.com/xushengfeng/eSearch-OCR/releases/download/8.1.0/doc_cls.onnx)
 
 ## 使用
 
@@ -105,7 +118,8 @@ type init = {
         optimize?: {
             space?: boolean; // v3 v4识别时英文空格不理想，但v5得到了改善，默认为true，需要传入false来关闭
         };
-        multiChar?: { // 使用recRaw时，输出每个字的多个候选
+        multiChar?: {
+            // 使用recRaw时，输出每个字的多个候选
             topK?: number;
             threshold?: number;
         };
