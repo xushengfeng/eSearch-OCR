@@ -21,10 +21,11 @@
 
 部分模型已打包：[Releases 4.0.0](https://github.com/xushengfeng/eSearch-OCR/releases/tag/4.0.0)，由 paddleOCR 官方的模型转换而来。
 
-现已支持 v5 版本模型。
+现已支持 v5 v6 版本模型。
 
 模型文字：
 
+- [v6 tiny](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ppocr_v6_tiny.zip)、[v6 small](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ppocr_v6_small.zip)、[v6 medium](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ppocr_v6_medium.zip)
 - 中（简体）英混合（[v5 移动版](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ppocr_v5_mobile.zip)、[v5 服务器版](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ppocr_v5_server.zip)、[v4](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ch.zip)、[v4高精度版](ttps://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/ch_v4_doc.zip)）
 - [中文繁体](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/chinese_cht.zip)
 - [英文](https://github.com/xushengfeng/eSearch-OCR/releases/download/4.0.0/en.zip)
@@ -195,3 +196,5 @@ result.parragraphs.map((item) => item.text).join("\n");
 ## 调试
 
 使用 Electron 来调试，既有可视化也要`onnxruntime-node`的本地性能。
+
+在`test`文件夹下安装依赖，由于我在开发时直接使用了系统`electron`命令，如果是非ArchLinux用户，还需要安装`electron`，然后通过`npx electron main.js`运行。记得修改模型路径。
