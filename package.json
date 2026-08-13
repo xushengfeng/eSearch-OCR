@@ -17,6 +17,7 @@
         }
     },
     "homepage": "https://github.com/xushengfeng/eSearch-OCR",
+    "repository": {"url": "https://github.com/xushengfeng/eSearch-OCR"},
     "type": "module",
     "types": "./dist/main.d.ts",
     "scripts": {
