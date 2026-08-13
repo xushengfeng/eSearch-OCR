@@ -6,21 +6,35 @@
     "module": "./dist/esearch-ocr.js",
     "exports": {
         ".": {
-            "import": "./dist/esearch-ocr.js",
-            "require": "./dist/esearch-ocr.umd.cjs"
+            "import": {
+                "types": "./dist/main.d.ts",
+                "default": "./dist/esearch-ocr.js"
+            },
+            "require": {
+                "types": "./dist/main.d.ts",
+                "default": "./dist/esearch-ocr.umd.cjs"
+            }
         }
     },
     "homepage": "https://github.com/xushengfeng/eSearch-OCR",
     "type": "module",
-    "types": "./src/main.ts",
+    "types": "./dist/main.d.ts",
     "scripts": {
         "test": "vite ",
         "dev": "vite --host 0.0.0.0",
         "build": "vite build",
         "preview": "vite preview"
     },
-    "files": ["src/", "dist/", "package.json", "README.md"],
-    "keywords": ["ocr", "paddleocr", "onnx"],
+    "files": [
+        "dist/",
+        "package.json",
+        "README.md"
+    ],
+    "keywords": [
+        "ocr",
+        "paddleocr",
+        "onnx"
+    ],
     "author": {
         "name": "xsf",
         "email": "xushengfeng_zg@163.com"
@@ -32,6 +46,7 @@
     "devDependencies": {
         "@biomejs/biome": "^1.8.3",
         "typescript": "^5.8.3",
-        "vite": "^6.3.5"
+        "vite": "^6.3.5",
+        "vite-plugin-dts": "^5.0.3"
     }
 }
