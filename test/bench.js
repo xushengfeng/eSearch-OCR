@@ -50,6 +50,9 @@ async function start() {
             ratio: detRatio,
         },
         ort,
+        ortOption: {
+            executionProviders: ["webgpu"],
+        },
     });
 
     const r = [];
@@ -113,11 +116,11 @@ async function start() {
     }
 
     log[new Date().getTime()] = {
-        onnx: "1.19.2",
+        onnx: "1.29.0",
         type: "node",
-        provider: "cpu",
+        provider: "webgpu",
         detRatio,
-        models: { rec: "v5_mobile" },
+        models: { rec: "v6_small" },
         r,
     };
     fs.writeFileSync("log.json", JSON.stringify(log, null, 2));
