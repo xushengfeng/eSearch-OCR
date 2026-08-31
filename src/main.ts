@@ -677,7 +677,7 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
         task2.l("crop");
 
-        const c = getRotateCropImage(srcData, box);
+        const c = getRotateCropImage(srcData, box1);
 
         task2.l("match best");
 
