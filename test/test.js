@@ -1,18 +1,26 @@
 const { init, loadImg, warpDet } = require("../");
 const fs = require("node:fs");
 const ort = require("onnxruntime-node");
+const { getModelPath, checkAndWarn } = require("./model_paths");
 
 start();
 
 async function start() {
     const pro = document.createElement("progress");
     document.body.append(pro);
-    const modelBasePath = "./m/v5/";
+
+    const version = "v6_small";
+    if (!checkAndWarn(version)) {
+        console.log("请先下载模型文件，参考上面的下载地址");
+        return;
+    }
+
+    const paths = getModelPath(version);
     const localOcr = await init({
-        det: { input: `${modelBasePath}/ppocr_v5_mobile_det.onnx` },
+        det: { input: paths.det },
         rec: {
-            input: `${modelBasePath}/ppocr_v5_mobile_rec.onnx`,
-            decodeDic: fs.readFileSync("../assets/ppocrv5_dict.txt").toString(),
+            input: paths.rec,
+            decodeDic: fs.readFileSync(paths.dic).toString(),
             on: (i, r, t) => {
                 pro.value = (i + 1) / t;
             },

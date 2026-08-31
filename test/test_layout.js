@@ -2,11 +2,19 @@ const { initDet, analyzeLayout, setOCREnv } = require("../");
 const fs = require("node:fs");
 const path = require("node:path");
 const ort = require("onnxruntime-node");
+const { getModelPath, checkAndWarn } = require("./model_paths");
 
 start();
 
 async function start() {
-    const modelBasePath = "./m/v5/";
+    const version = "v6_small";
+    if (!checkAndWarn(version)) {
+        console.log("请先下载模型文件，参考上面的下载地址");
+        return;
+    }
+
+    const paths = getModelPath(version);
+    const modelBasePath = paths.basePath;
     const only = 0 && "9.svg";
 
     setOCREnv({
@@ -14,7 +22,7 @@ async function start() {
         dev: only !== 0,
     });
     const det = await initDet({
-        input: `${modelBasePath}/ppocr_v5_mobile_det.onnx`,
+        input: paths.det,
         ratio: 0.75,
         ort,
     });

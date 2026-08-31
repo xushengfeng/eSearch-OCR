@@ -2,12 +2,21 @@
 import { init, det, rec, ocr, loadImg, initDet, initRec, analyzeLayout, warpDet } from "../";
 // @ts-ignore
 import ort from "onnxruntime-node";
+import { getModelPath, checkAndWarn } from "./model_paths.js";
 
-const modelDir = "./"; // 根据readme下载解压
+// 检查模型是否存在，如果不存在会显示下载提醒
+const version = "v6_small";
+if (!checkAndWarn(version)) {
+    console.log("请先下载模型文件，参考上面的下载地址");
+    throw new Error("模型文件缺失");
+}
+
+const paths = getModelPath(version);
+const modelDir = paths.basePath; // 根据readme下载解压
 // 如果报错，要修改为正确的路径
-const detPath = `${modelDir}/ppocr_v5_mobile_det.onnx`; // det指识别模型，如果上面提到的文字包没有，那就用中英混合的det（在ch.zip里）
-const recPath = `${modelDir}/ppocr_v5_mobile_rec.onnx`;
-const recDic = await (await fetch(`${modelDir}/ppocrv5_dict.txt`)).text(); // 在模型压缩包中的txt文件，需要传入里面的内容而不是路径
+const detPath = paths.det; // det指识别模型，如果上面提到的文字包没有，那就用中英混合的det（在ch.zip里）
+const recPath = paths.rec;
+const recDic = await (await fetch(paths.dic)).text(); // 在模型压缩包中的txt文件，需要传入里面的内容而不是路径
 
 // 在浏览器中，可以传入 链接 | HTMLImageElement | HTMLCanvasElement | ImageData，在node中需要canvas库加载 ImageData
 const imgInput = "";

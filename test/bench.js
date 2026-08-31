@@ -2,6 +2,7 @@ const x = require("../");
 const fs = require("node:fs");
 const ort = require("onnxruntime-node");
 const diff = require("diff-match-patch");
+const { getModelPath, checkAndWarn } = require("./model_paths");
 
 const dmp = new diff();
 start();
@@ -24,11 +25,19 @@ async function load(src) {
 }
 
 async function start() {
+    // 检查模型是否存在，如果不存在会显示下载提醒
+    const version = "v6_small";
+    if (!checkAndWarn(version)) {
+        console.log("请先下载模型文件，参考上面的下载地址");
+        return;
+    }
+
+    const paths = getModelPath(version);
     const detRatio = 0.75;
     const ocr = await x.init({
         rec: {
-            input: "./m/v5/ppocr_v5_mobile_rec.onnx",
-            decodeDic: fs.readFileSync("../assets/ppocrv5_dict.txt").toString(),
+            input: paths.rec,
+            decodeDic: fs.readFileSync(paths.dic).toString(),
             optimize: {
                 space: false,
             },
@@ -37,7 +46,7 @@ async function start() {
             },
         },
         det: {
-            input: "./m/v5/ppocr_v5_mobile_det.onnx",
+            input: paths.det,
             ratio: detRatio,
         },
         ort,
