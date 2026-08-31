@@ -1,7 +1,7 @@
 {
     "main": "main.js",
     "dependencies": {
-        "canvas": "^3.1.0",
+        "canvas": "^3.2.3",
         "diff-match-patch": "^1.0.5",
         "onnxruntime-node": "^1.29.0"
     }
