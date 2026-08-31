@@ -24,6 +24,8 @@ export {
     /** @deprecated use return obj from init */
     Rec as rec,
     afAfRec as analyzeLayout,
+    detectReadingDir,
+    calcInlineAngles,
     initDet,
     initRec,
     initDocDirCls,
@@ -152,7 +154,7 @@ type resultType1<Char extends CharType> = {
 }[];
 
 type ReadingDirPart = "lr" | "rl" | "tb" | "bt";
-type ReadingDir = {
+export type ReadingDir = {
     block: ReadingDirPart;
     inline: ReadingDirPart;
 };
@@ -1124,6 +1126,161 @@ function afterRec(
     return line;
 }
 
+function normalAngle(angle: number) {
+    return ((angle % 360) + 360) % 360;
+}
+
+function averLineAngles(a: number[]) {
+    let iav = 0;
+    let n = 0;
+    const l: number[] = [];
+    for (const [index, i] of a.entries()) {
+        const a1 = i > 180 ? i - 180 : i;
+        const a2 = a1 - 180;
+        const a = index === 0 ? a1 : Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1;
+        l.push(a);
+        iav = (iav * n + a) / (n + 1);
+        n++;
+    }
+    return { av: iav, l };
+}
+
+function lineAngleNear(a1: number, a2: number) {
+    if (Math.abs(a1 - a2) < 45) return true;
+    if (Math.abs(a1 - (a2 - 180)) < 45) return true;
+    if (Math.abs(a1 - 180 - a2) < 45) return true;
+    return false;
+}
+
+function median(l: number[]) {
+    l.sort((a, b) => a - b);
+    const mid = Math.floor(l.length / 2);
+    return l.length % 2 === 0 ? (l[mid - 1] + l[mid]) / 2 : l[mid];
+}
+
+function smallest<I>(l: I[], f: (a: I) => number) {
+    let min = Number.POSITIVE_INFINITY;
+    let minIndex = -1;
+    for (let i = 0; i < l.length; i++) {
+        const v = f(l[i]);
+        if (v < min) {
+            min = v;
+            minIndex = i;
+        }
+    }
+    return l[minIndex];
+}
+
+function dir2xy(d: ReadingDirPart) {
+    if (d === "lr" || d === "rl") return "x";
+    return "y";
+}
+
+type DetectReadingDirResult = {
+    readingDir: ReadingDir;
+    angle: { reading: { inline: number; block: number }; angle: number };
+};
+
+/** 检测文本阅读方向 */
+function detectReadingDir(inlineAngles: number[], docDirs?: ReadingDir[]): DetectReadingDirResult {
+    const dirs: ReadingDir[] = docDirs ?? [
+        { block: "tb", inline: "lr" },
+        { block: "rl", inline: "tb" },
+    ];
+    const dir: ReadingDir = { block: "tb", inline: "lr" };
+
+    if (inlineAngles.length === 0) {
+        return {
+            readingDir: dir,
+            angle: { reading: { inline: 0, block: 90 }, angle: 0 },
+        };
+    }
+
+    const rAngle = {
+        inline: 0,
+        block: 90,
+    };
+
+    const firstAngleAnalysis = averLineAngles(inlineAngles);
+    const filterAngles = inlineAngles.filter((i) => lineAngleNear(i, firstAngleAnalysis.av));
+    const md = median(filterAngles);
+    const MAD = median(filterAngles.map((i) => Math.abs(i - md)));
+    const filterAngles1 =
+        MAD === 0 ? [...filterAngles] : filterAngles.filter((i) => Math.abs((i - md) / (MAD * 1.4826)) < 2);
+    if (filterAngles1.length === 0) filterAngles1.push(...filterAngles);
+    const inlineangle = normalAngle(averLineAngles(filterAngles1).av);
+
+    const blockangle = normalAngle(inlineangle + 90);
+
+    const inlineDir = lineAngleNear(inlineangle, 0) ? "x" : "y";
+    const blockDir = lineAngleNear(blockangle, 90) ? "y" : "x";
+    const fdir = dirs.find((d) => inlineDir === dir2xy(d.inline) && blockDir === dir2xy(d.block)) ?? dirs.at(0);
+    if (fdir) {
+        dir.block = fdir.block;
+        dir.inline = fdir.inline;
+    }
+
+    const tipAngle: Record<ReadingDirPart, number> = {
+        lr: 0,
+        rl: 180,
+        tb: 90,
+        bt: 270,
+    };
+    rAngle.inline = smallest([inlineangle, inlineangle - 360, inlineangle - 180, inlineangle + 180], (a) =>
+        Math.abs(a - tipAngle[dir.inline]),
+    );
+    rAngle.block = smallest([blockangle, blockangle - 360, blockangle - 180, blockangle + 180], (a) =>
+        Math.abs(a - tipAngle[dir.block]),
+    );
+
+    let angle = 0;
+    if (dir.inline === "lr") {
+        angle = rAngle.inline;
+    }
+    if (dir.inline === "rl") {
+        angle = rAngle.inline - 180;
+    }
+    if (dir.block === "lr") {
+        angle = rAngle.block;
+    }
+    if (dir.block === "rl") {
+        angle = rAngle.block - 180;
+    }
+
+    return {
+        readingDir: dir,
+        angle: { reading: rAngle, angle },
+    };
+}
+
+/** 从文本框计算 inline 角度 */
+function calcInlineAngles(l: resultType): number[] {
+    if (l.length === 0) return [];
+
+    const Vector = {
+        fromPonts: (p1: pointType, p2: pointType): pointType => [p1[0] - p2[0], p1[1] - p2[1]],
+    };
+
+    const Point = {
+        center: (p1: pointType, p2: pointType): pointType => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
+    };
+
+    return l.map((i) => {
+        const b = i.box;
+        const w = b[1][0] - b[0][0];
+        const h = b[3][1] - b[0][1];
+        let v = { x: 0, y: 0 };
+        if (w < h) {
+            const p = Vector.fromPonts(Point.center(b[2], b[3]), Point.center(b[0], b[1]));
+            v = { x: p[0], y: p[1] };
+        } else {
+            const p = Vector.fromPonts(Point.center(b[1], b[2]), Point.center(b[0], b[3]));
+            v = { x: p[0], y: p[1] };
+        }
+        return normalAngle(Math.atan2(v.y, v.x) * (180 / Math.PI));
+    });
+}
+
 /** 排版分析 */
 function afAfRec(
     l: resultType,
@@ -1146,19 +1303,6 @@ function afAfRec(
     type columnType = "none" | ColumnsTip[0]["type"];
     type resultItem = resultType[0];
 
-    // 假定阅读方向都是统一的
-
-    const dirs: ReadingDir[] = op?.docDirs ?? [
-        { block: "tb", inline: "lr" },
-        { block: "rl", inline: "tb" },
-    ];
-    const dir: ReadingDir = { block: "tb", inline: "lr" };
-
-    const dirVector = {
-        inline: [1, 0] as VectorType,
-        block: [0, 1] as VectorType,
-    };
-
     const baseVector = {
         inline: [1, 0] as VectorType,
         block: [0, 1] as VectorType,
@@ -1168,7 +1312,7 @@ function afAfRec(
         return {
             columns: [],
             parragraphs: [],
-            readingDir: dir,
+            readingDir: { block: "tb", inline: "lr" },
             angle: { reading: { inline: 0, block: 90 }, angle: 0 },
         };
     }
@@ -1244,48 +1388,6 @@ function afAfRec(
         numMup: (a: VectorType, b: number) => [a[0] * b, a[1] * b] as VectorType,
         add: (a: VectorType, b: VectorType) => [a[0] + b[0], a[1] + b[1]] as VectorType,
     };
-
-    function averLineAngles(a: number[]) {
-        let iav = 0;
-        let n = 0;
-        const l: number[] = [];
-        for (const [index, i] of a.entries()) {
-            const a1 = i > 180 ? i - 180 : i;
-            const a2 = a1 - 180;
-            const a = index === 0 ? a1 : Math.abs(a2 - iav) < Math.abs(a1 - iav) ? a2 : a1;
-            l.push(a);
-            iav = (iav * n + a) / (n + 1);
-            n++;
-        }
-        return { av: iav, l };
-    }
-    function lineAngleNear(a1: number, a2: number) {
-        if (Math.abs(a1 - a2) < 45) return true;
-        if (Math.abs(a1 - (a2 - 180)) < 45) return true;
-        if (Math.abs(a1 - 180 - a2) < 45) return true;
-        return false;
-    }
-    function median(l: number[]) {
-        l.sort((a, b) => a - b);
-        const mid = Math.floor(l.length / 2);
-        return l.length % 2 === 0 ? (l[mid - 1] + l[mid]) / 2 : l[mid];
-    }
-    function dir2xy(d: ReadingDirPart) {
-        if (d === "lr" || d === "rl") return "x";
-        return "y";
-    }
-    function smallest<I>(l: I[], f: (a: I) => number) {
-        let min = Number.POSITIVE_INFINITY;
-        let minIndex = -1;
-        for (let i = 0; i < l.length; i++) {
-            const v = f(l[i]);
-            if (v < min) {
-                min = v;
-                minIndex = i;
-            }
-        }
-        return l[minIndex];
-    }
 
     const tipV: Record<ReadingDirPart, VectorType> = {
         lr: [1, 0],
@@ -1433,64 +1535,17 @@ function afAfRec(
     }
 
     // 获取角度 竖排 横排
+    const inlineAngles = calcInlineAngles(l);
+    const dirResult = detectReadingDir(inlineAngles, op?.docDirs);
+    const dir: ReadingDir = dirResult.readingDir;
+    const rAngle = dirResult.angle.reading;
 
-    /** 以x轴为正方向，图形学坐标 */
-    const rAngle = {
-        inline: 0,
-        block: 90,
+    const dirVector = {
+        inline: [Math.cos(rAngle.inline * (Math.PI / 180)), Math.sin(rAngle.inline * (Math.PI / 180))] as VectorType,
+        block: [Math.cos(rAngle.block * (Math.PI / 180)), Math.sin(rAngle.block * (Math.PI / 180))] as VectorType,
     };
-    const inlineAngles = l.map((i) => {
-        const b = i.box;
-        const w = b[1][0] - b[0][0];
-        const h = b[3][1] - b[0][1];
-        let v = { x: 0, y: 0 };
-        if (w < h) {
-            const p = Vector.fromPonts(Point.center(b[2], b[3]), Point.center(b[0], b[1]));
-            v = { x: p[0], y: p[1] };
-        } else {
-            const p = Vector.fromPonts(Point.center(b[1], b[2]), Point.center(b[0], b[3]));
-            v = { x: p[0], y: p[1] };
-        }
-        const a = normalAngle(Math.atan2(v.y, v.x) * (180 / Math.PI));
-        return a;
-    });
-    const firstAngleAnalysis = averLineAngles(inlineAngles);
-    // 排除正交的
-    const filterAngles = inlineAngles.filter((i) => lineAngleNear(i, firstAngleAnalysis.av));
-    const md = median(filterAngles);
-    const MAD = median(filterAngles.map((i) => Math.abs(i - md)));
-    const filterAngles1 = filterAngles.filter((i) => Math.abs((i - md) / (MAD * 1.4826)) < 2);
-    const inlineangle = normalAngle(averLineAngles(filterAngles1).av);
 
-    log("dir0", inlineAngles, firstAngleAnalysis, filterAngles, filterAngles1, inlineangle);
-
-    const blockangle = normalAngle(inlineangle + 90);
-
-    const inlineDir = lineAngleNear(inlineangle, 0) ? "x" : "y";
-    const blockDir = lineAngleNear(blockangle, 90) ? "y" : "x";
-    const fdir = dirs.find((d) => inlineDir === dir2xy(d.inline) && blockDir === dir2xy(d.block)) ?? dirs.at(0);
-    if (fdir) {
-        dir.block = fdir.block;
-        dir.inline = fdir.inline;
-    }
-
-    const tipAngle: Record<ReadingDirPart, number> = {
-        lr: 0,
-        rl: 180,
-        tb: 90,
-        bt: 270,
-    };
-    rAngle.inline = smallest([inlineangle, inlineangle - 360, inlineangle - 180, inlineangle + 180], (a) =>
-        Math.abs(a - tipAngle[dir.inline]),
-    );
-    rAngle.block = smallest([blockangle, blockangle - 360, blockangle - 180, blockangle + 180], (a) =>
-        Math.abs(a - tipAngle[dir.block]),
-    );
-
-    dirVector.inline = [Math.cos(rAngle.inline * (Math.PI / 180)), Math.sin(rAngle.inline * (Math.PI / 180))];
-    dirVector.block = [Math.cos(rAngle.block * (Math.PI / 180)), Math.sin(rAngle.block * (Math.PI / 180))];
-
-    log("dir", dir, rAngle, dirVector, inlineangle, blockangle);
+    log("dir", dir, rAngle, dirVector);
 
     // 按照阅读方向，把box内部点重新排序
     const reOrderMapX = [
@@ -1865,13 +1920,6 @@ function average2(args: [number, number][]) {
         n += (i[0] * i[1]) / xsum;
     }
     return n;
-}
-
-/**
- * 0-360
- */
-function normalAngle(angle: number) {
-    return ((angle % 360) + 360) % 360;
 }
 
 function rotateImg(img: ImageData, angle: number) {

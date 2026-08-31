@@ -2,7 +2,16 @@ import { describe, expect, it, beforeAll } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import ort from "onnxruntime-node";
-import { init, setOCREnv, initDet, initRec, initDocDirCls, warpDet, analyzeLayout } from "../";
+import {
+    init,
+    setOCREnv,
+    initDet,
+    initRec,
+    initDocDirCls,
+    analyzeLayout,
+    detectReadingDir,
+    type ReadingDir,
+} from "../src/main";
 import { getModelPath, checkAndWarn } from "./model_paths";
 import { setupCanvas, loadImage, createCanvas } from "./setup";
 import { createImageData } from "canvas";
@@ -236,5 +245,61 @@ describe("OCR", () => {
         it("9.svg is horizontal", () => checkDirection("9.svg", false));
         it("10.svg is vertical", () => checkDirection("10.svg", true));
         it("11.svg is vertical", () => checkDirection("11.svg", true));
+    });
+
+    describe("detectReadingDir", () => {
+        it("should return default direction for empty input", () => {
+            const result = detectReadingDir([]);
+            expect(result.readingDir).toEqual({ block: "tb", inline: "lr" });
+            expect(result.angle.reading.inline).toBe(0);
+            expect(result.angle.reading.block).toBe(90);
+        });
+
+        it("should detect horizontal direction for 0 degree angles", () => {
+            // 横排文本 inline 角度接近 0 度
+            const angles = [0, 0, 0, 0];
+            const result = detectReadingDir(angles);
+            expect(result.readingDir.inline).toBe("lr");
+            expect(result.readingDir.block).toBe("tb");
+        });
+
+        it("should detect vertical direction for 90 degree angles", () => {
+            // 竖排文本 inline 角度接近 90 度
+            const angles = [90, 90, 90, 90];
+            const result = detectReadingDir(angles);
+            expect(result.readingDir.inline).toBe("tb");
+            expect(result.readingDir.block).toBe("rl");
+        });
+
+        it("should detect direction with slight angle variation", () => {
+            // 允许轻微角度偏差
+            const angles = [85, 88, 92, 90];
+            const result = detectReadingDir(angles);
+            expect(result.readingDir.inline).toBe("tb");
+            expect(result.readingDir.block).toBe("rl");
+        });
+
+        it("有其他方向", () => {
+            const angles = [0, 88, 92, 90, 91, 2];
+            const result = detectReadingDir(angles);
+            expect(result.readingDir.inline).toBe("tb");
+            expect(result.readingDir.block).toBe("rl");
+        });
+
+        it("存在反向", () => {
+            const angles = [91, 89, 270, 269, 271];
+            // 应该tb而不是bt，因为提示限制
+            const result = detectReadingDir(angles);
+            expect(result.readingDir.inline).toBe("tb");
+            expect(result.readingDir.block).toBe("rl");
+        });
+
+        it("should respect custom docDirs", () => {
+            const angles = [0, 0, 0];
+            const customDirs = [{ block: "tb", inline: "lr" }] as ReadingDir[];
+            const result = detectReadingDir(angles, customDirs);
+            expect(result.readingDir.inline).toBe("lr");
+            expect(result.readingDir.block).toBe("tb");
+        });
     });
 });
