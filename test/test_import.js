@@ -1,7 +1,7 @@
-// @ts-check
-import { init, det, rec, ocr, loadImg, initDet, initRec } from "../";
 // @ts-ignore
 import ort from "onnxruntime-node";
+// @ts-check
+import { det, init, initDet, initRec, loadImg, ocr, rec } from "../";
 
 const lOcr = await init({
     detPath: "",

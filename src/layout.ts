@@ -1,5 +1,5 @@
-import { int, resizeImg, data2canvas, toPaddleInput } from "./untils";
-import type { SessionType, AsyncType } from "./untils";
+import { data2canvas, int, resizeImg, toPaddleInput } from "./untils";
+import type { AsyncType, SessionType } from "./untils";
 type ortType = typeof import("onnxruntime-common");
 
 async function layout(img: ImageData, ort: ortType, session: SessionType, dic: string[]) {
@@ -55,15 +55,15 @@ function afterS(data: AsyncType<ReturnType<typeof runS>>, w: number, h: number, 
         scores.push(data[i]);
         boxes.push(data[i + n]);
     }
-    const reg_max = int(boxes[0].dims.at(-1) / 4 - 1);
+    const reg_max = int((boxes[0]?.dims.at(-1) ?? 0) / 4 - 1);
     let out_boxes_num: number[] = [];
     const out_boxes_list: number[][][] = [];
     const results: { bbox: number[]; label: string }[] = [];
     const ori_shape = [800, 608];
     const scale_factor = [800 / h, 608 / w];
 
-    const decode_boxes = [];
-    const select_scores = [];
+    const decode_boxes: number[][][] = [];
+    const select_scores: number[][][] = [];
 
     for (let i = 0; i < strides.length; i++) {
         const stride = strides[i];
@@ -285,7 +285,7 @@ function hard_nms(box_scores: number[][], iou_threshold: number, top_k = -1, can
         .slice(0, candidate_size)
         .reverse();
     while (indexes.length > 0) {
-        const current: number = indexes.at(-1);
+        const current: number = indexes.at(-1) ?? 0;
         picked.push(current);
         if ((top_k > 0 && picked.length === top_k) || indexes.length === 1) {
             break;
@@ -339,9 +339,9 @@ function meshgrid(...args: number[][]): number[][][] {
     }
 
     for (const y in args[1]) {
-        const row = [];
+        const row: number[] = [];
         for (const x in args[0]) {
-            row.push(args[1][y]);
+            row.push(args[1][Number(y)]);
         }
         results[1].push(row);
     }

@@ -17,7 +17,7 @@
         }
     },
     "homepage": "https://github.com/xushengfeng/eSearch-OCR",
-    "repository": {"url": "https://github.com/xushengfeng/eSearch-OCR"},
+    "repository": { "url": "https://github.com/xushengfeng/eSearch-OCR" },
     "type": "module",
     "types": "./dist/main.d.ts",
     "scripts": {
@@ -26,16 +26,8 @@
         "build": "vite build",
         "preview": "vite preview"
     },
-    "files": [
-        "dist/",
-        "package.json",
-        "README.md"
-    ],
-    "keywords": [
-        "ocr",
-        "paddleocr",
-        "onnx"
-    ],
+    "files": ["dist/", "package.json", "README.md"],
+    "keywords": ["ocr", "paddleocr", "onnx"],
     "author": {
         "name": "xsf",
         "email": "xushengfeng_zg@163.com"

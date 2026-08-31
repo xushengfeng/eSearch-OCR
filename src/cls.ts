@@ -1,5 +1,5 @@
 import type { OrtOption } from "./main";
-import { resizeImg, type SessionType, toPaddleInput } from "./untils";
+import { type SessionType, resizeImg, toPaddleInput } from "./untils";
 type ortType = OrtOption["ort"];
 
 export { Cls };

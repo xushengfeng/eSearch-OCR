@@ -1,8 +1,8 @@
-// @ts-check
-import { init, det, rec, ocr, loadImg, initDet, initRec, analyzeLayout, warpDet } from "../";
 // @ts-ignore
 import ort from "onnxruntime-node";
-import { getModelPath, checkAndWarn } from "./model_paths.js";
+// @ts-check
+import { analyzeLayout, det, init, initDet, initRec, loadImg, ocr, rec, warpDet } from "../";
+import { checkAndWarn, getModelPath } from "./model_paths.js";
 
 // 检查模型是否存在，如果不存在会显示下载提醒
 const version = "v6_small";

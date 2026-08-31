@@ -5,9 +5,7 @@
             "cwd": "${workspaceFolder}/js",
             "program": "./js.js",
             "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
+            "skipFiles": ["<node_internals>/**"],
             "type": "node"
         },
         {

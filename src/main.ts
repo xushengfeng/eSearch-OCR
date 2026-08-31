@@ -1,17 +1,17 @@
 import { Cls } from "./cls";
+import { type Contour, type Point, findContours, minAreaRect } from "./cv";
 import {
-    newCanvas,
-    setCanvas,
-    toPaddleInput,
-    type SessionType,
     type AsyncType,
-    data2canvas,
-    resizeImg,
-    int,
-    tLog,
+    type SessionType,
     clip,
+    data2canvas,
+    int,
+    newCanvas,
+    resizeImg,
+    setCanvas,
+    tLog,
+    toPaddleInput,
 } from "./untils";
-import { type Contour, findContours, minAreaRect, type Point } from "./cv";
 
 export {
     setOCREnv,

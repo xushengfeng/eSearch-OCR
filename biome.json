@@ -6,10 +6,12 @@
     "formatter": {
         "indentStyle": "space",
         "indentWidth": 4,
-        "lineWidth": 120
+        "lineWidth": 120,
+        "ignore": ["dist/**"]
     },
     "linter": {
         "enabled": true,
+        "ignore": ["dist/**"],
         "rules": {
             "recommended": true,
             "suspicious": {
