@@ -3,6 +3,6 @@
     "dependencies": {
         "canvas": "^3.1.0",
         "diff-match-patch": "^1.0.5",
-        "onnxruntime-node": "^1.26.0"
+        "onnxruntime-node": "^1.29.0"
     }
 }
