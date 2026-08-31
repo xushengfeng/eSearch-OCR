@@ -2,7 +2,8 @@
     "main": "main.js",
     "scripts": {
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "ocr": "node cli.js"
     },
     "dependencies": {
         "canvas": "^3.2.3",
