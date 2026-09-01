@@ -683,7 +683,7 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
         const { bg, text } = getImgColor(c);
 
-        const bb = matchBestBox(box, c, text);
+        const bb = matchBestBox(box1, c, text);
 
         edgeRect.push({ box: bb, img: c, style: { bg, text } });
     }
@@ -1563,6 +1563,7 @@ function afAfRec(
                 lb: 3,
             })[i === "l" || i === "r" ? i + b : b + i],
     ) as number[];
+    // 把坐标和盒子转成lrtb的标准阅读方向，这样后续就只用处理一个逻辑，到时候再转过来
     const xyT = transBox({ inline: "lr", block: "tb" }, dir);
     const reOrderBoxT = reOrderBox(reOrderMap);
     const logicL = l.map((i) => {
