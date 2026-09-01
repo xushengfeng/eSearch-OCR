@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>四边形预览</title>
+    <style>
+        body {
+            margin: 10px;
+            font-family: sans-serif;
+            font-size: 14px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            display: block;
+            margin-bottom: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            margin: 2px 0;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .controls {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 5px;
+        }
+        h1 {
+            font-size: 18px;
+            margin: 0 0 10px 0;
+        }
+        h3 {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        p {
+            margin: 2px 0;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>四边形预览</h1>
+    <div class="controls">
+        <button id="drawBtn">绘制</button>
+        <button id="resetBtn">重置</button>
+        <button id="exampleBtn">示例</button>
+    </div>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    <h3>数据</h3>
+    <p>格式: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]，多四边形用逗号分隔</p>
+    <textarea id="dataInput">[[100, 100], [200, 50], [250, 150], [150, 200]],
+[[-100, -100], [0, -50], [50, 0], [0, 50]],
+[[300, 300], [400, 250], [450, 350], [350, 400]]</textarea>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dataInput = document.getElementById('dataInput');
+        const drawBtn = document.getElementById('drawBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const exampleBtn = document.getElementById('exampleBtn');
+
+        let quads = [];
+        let viewBox = { x: 0, y: 0, width: 600, height: 400 };
+
+        function parseData() {
+            const input = dataInput.value.trim();
+            if (input === '') {
+                alert('请输入四边形数据');
+                return null;
+            }
+            let data;
+            try {
+                data = JSON.parse(input);
+            } catch (e) {
+                // 尝试隐式补上最外层的[]
+                try {
+                    data = JSON.parse('[' + input + ']');
+                } catch (e2) {
+                    alert('解析错误: ' + e.message);
+                    return null;
+                }
+            }
+            // 检查数据格式
+            if (!Array.isArray(data)) {
+                alert('数据必须是数组');
+                return null;
+            }
+            // 如果是单个四边形（包含4个点），将其包装为数组
+            if (data.length === 4 && Array.isArray(data[0]) && data[0].length === 2) {
+                data = [data];
+            }
+            const quads = [];
+            for (let i = 0; i < data.length; i++) {
+                const quad = data[i];
+                if (!Array.isArray(quad) || quad.length !== 4) {
+                    alert(`第${i + 1}个四边形必须包含4个点`);
+                    return null;
+                }
+                for (const point of quad) {
+                    if (!Array.isArray(point) || point.length !== 2) {
+                        alert(`第${i + 1}个四边形的点必须是 [x, y] 格式`);
+                        return null;
+                    }
+                }
+                quads.push(quad);
+            }
+            if (quads.length === 0) {
+                alert('没有有效的四边形数据');
+                return null;
+            }
+            return quads;
+        }
+
+        function calculateViewBox(quads) {
+            if (quads.length === 0) {
+                return { x: 0, y: 0, width: 600, height: 400 };
+            }
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (const quad of quads) {
+                for (const [x, y] of quad) {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                }
+            }
+            const padding = 20;
+            const width = maxX - minX + padding * 2;
+            const height = maxY - minY + padding * 2;
+            return {
+                x: minX - padding,
+                y: minY - padding,
+                width: Math.max(width, 100),
+                height: Math.max(height, 100)
+            };
+        }
+
+        function worldToCanvas(x, y) {
+            const scaleX = canvas.width / viewBox.width;
+            const scaleY = canvas.height / viewBox.height;
+            const scale = Math.min(scaleX, scaleY);
+            const offsetX = (canvas.width - viewBox.width * scale) / 2;
+            const offsetY = (canvas.height - viewBox.height * scale) / 2;
+            return [
+                (x - viewBox.x) * scale + offsetX,
+                (y - viewBox.y) * scale + offsetY
+            ];
+        }
+
+        function drawQuads() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (quads.length === 0) return;
+
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const colors = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990'];
+
+            quads.forEach((quad, quadIndex) => {
+                const color = colors[quadIndex % colors.length];
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+
+                // 绘制四边形
+                ctx.beginPath();
+                const [startX, startY] = worldToCanvas(quad[0][0], quad[0][1]);
+                ctx.moveTo(startX, startY);
+                for (let i = 1; i < 4; i++) {
+                    const [x, y] = worldToCanvas(quad[i][0], quad[i][1]);
+                    ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+
+                // 绘制点和顺序标签
+                quad.forEach(([x, y], pointIndex) => {
+                    const [cx, cy] = worldToCanvas(x, y);
+                    // 绘制点
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    // 绘制顺序标签
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(`${pointIndex + 1}`, cx + 10, cy - 10);
+                    ctx.fillStyle = color;
+                });
+            });
+        }
+
+        drawBtn.addEventListener('click', () => {
+            const parsed = parseData();
+            if (parsed) {
+                quads = parsed;
+                viewBox = calculateViewBox(quads);
+                drawQuads();
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            viewBox = calculateViewBox(quads);
+            drawQuads();
+        });
+
+        exampleBtn.addEventListener('click', () => {
+            dataInput.value = `[[100, 100], [200, 50], [250, 150], [150, 200]],
+[[-100, -100], [0, -50], [50, 0], [0, 50]],
+[[300, 300], [400, 250], [450, 350], [350, 400]]`;
+            drawBtn.click();
+        });
+
+        // 初始加载示例
+        exampleBtn.click();
+    </script>
+</body>
+</html>
