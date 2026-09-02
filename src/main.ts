@@ -1466,8 +1466,6 @@ function afAfRec(
         const p1 = getBoxPointFromX(bb, [r.inline[1], r.block[0]]);
         const p2 = getBoxPointFromX(bb, [r.inline[1], r.block[1]]);
         const p3 = getBoxPointFromX(bb, [r.inline[0], r.block[1]]);
-        console.log([r.inline[0], r.block[0]], bb[0], p0);
-
         return [p0, p1, p2, p3] as BoxType;
     }
 
