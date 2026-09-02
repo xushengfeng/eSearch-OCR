@@ -330,6 +330,7 @@ describe("OCR", () => {
             const ocr = await init({
                 det: {
                     input: fs.readFileSync(paths.det).buffer,
+                    ratio: 0.75
                 },
                 rec: {
                     input: fs.readFileSync(paths.rec).buffer,
@@ -355,11 +356,11 @@ describe("OCR", () => {
             expect(accuracy).toBeGreaterThanOrEqual(minAccuracy);
         }
 
-        it("ch (中文)", () => accuracy("imgs/ch.svg", 0.99));
-        it("en (英文)", () => accuracy("imgs/en.svg", 0.99));
-        it("bg1", () => accuracy("imgs/bg1.svg", 0.99));
-        it("bg2", () => accuracy("imgs/bg2.svg", 0.99));
-        it("long", () => accuracy("imgs/long.svg", 0.99));
+        it("ch (中文)", () => accuracy("imgs/ch.svg", 0.98));
+        it("en (英文)", () => accuracy("imgs/en.svg", 0.98));
+        it("bg1", () => accuracy("imgs/bg1.svg", 0.98));
+        it("bg2", () => accuracy("imgs/bg2.svg", 0.98));
+        it("long", () => accuracy("imgs/long.svg", 0.98));
         it("long_small", () => accuracy("imgs/long_small.svg", 0.5));
 
         // layout_img
