@@ -1438,6 +1438,26 @@ function afAfRec(
         };
     }
 
+    // l t b r
+    function getBoxPointFromX(b: BoxType, a: [string, string]) {
+        const m = ["lt", "rt", "rb", "lb"];
+        const aa = a.sort().join("");
+        return b[m.findIndex((i) => i.split("").sort().join("") === aa)];
+    }
+
+    function reOrderBox2(b: BoxType, r: ReadingDir) {
+        // 0->1 inline
+        // 0->3 block
+        const bb = orderPointsClockwise(b);
+        const p0 = getBoxPointFromX(bb, [r.inline[0], r.block[0]]);
+        const p1 = getBoxPointFromX(bb, [r.inline[1], r.block[0]]);
+        const p2 = getBoxPointFromX(bb, [r.inline[1], r.block[1]]);
+        const p3 = getBoxPointFromX(bb, [r.inline[0], r.block[1]]);
+        console.log([r.inline[0], r.block[0]], bb[0], p0);
+
+        return [p0, p1, p2, p3] as BoxType;
+    }
+
     function r(point: pointType, point2: pointType) {
         return Math.sqrt((point[0] - point2[0]) ** 2 + (point[1] - point2[1]) ** 2);
     }
@@ -1867,16 +1887,10 @@ function afAfRec(
         for (const x of c) rexyT.b(x.box); // ps引用了c，所以只变换c
         rexyT.b(col.outerBox);
 
-        const backOrderMap: number[] = [];
-        for (const [i, j] of reOrderMap.entries()) {
-            backOrderMap[j] = i;
-        }
-        const backOrder = reOrderBox(backOrderMap);
-
         for (const x of c) {
-            x.box = backOrder(x.box);
+            x.box = reOrderBox2(x.box, dir);
         }
-        col.outerBox = backOrder(col.outerBox);
+        col.outerBox = reOrderBox2(col.outerBox, dir);
 
         log(ps);
         return {
