@@ -104,7 +104,7 @@
        xml:space="preserve"
        transform="scale(0.26458333)"
        id="text1"
-       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect3);display:inline"
+       style="font-size:32px;line-height:1.25;font-family:MiSans;text-align:start;white-space:pre;shape-inside:url(#rect3);display:inline"
        x="-110.41801"
        y="0"><tspan
          x="72.138672"
@@ -120,7 +120,7 @@
        xml:space="preserve"
        transform="matrix(0.26458333,0,0,0.26458333,48.432369,-8.8668359)"
        id="text3"
-       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect5);display:inline"
+       style="font-size:32px;line-height:1.25;font-family:MiSans;text-align:start;white-space:pre;shape-inside:url(#rect5);display:inline"
        x="-61.376007"
        y="0"><tspan
          x="73.734375"
@@ -136,7 +136,7 @@
        xml:space="preserve"
        transform="scale(0.26458333)"
        id="text5"
-       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect6);display:inline"
+       style="font-size:32px;line-height:1.25;font-family:MiSans;text-align:start;white-space:pre;shape-inside:url(#rect6);display:inline"
        x="-285.85599"
        y="0"><tspan
          x="75.558594"
@@ -152,7 +152,7 @@
        xml:space="preserve"
        transform="matrix(0.26458333,0,0,0.26458333,1.4729721,1.3360653)"
        id="text6"
-       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect7);display:inline"
+       style="font-size:32px;line-height:1.25;font-family:MiSans;text-align:start;white-space:pre;shape-inside:url(#rect7);display:inline"
        x="-60.447998"
        y="0"><tspan
          x="77.542969"
@@ -171,7 +171,7 @@
        xml:space="preserve"
        transform="matrix(0.26458333,0,0,0.26458333,55.780728,-54.778679)"
        id="text7"
-       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect8);display:inline"
+       style="font-size:32px;line-height:1.25;font-family:MiSans;text-align:start;white-space:pre;shape-inside:url(#rect8);display:inline"
        x="-285.02399"
        y="0"><tspan
          x="81.222656"
@@ -187,7 +187,7 @@
        xml:space="preserve"
        transform="scale(0.26458333)"
        id="text8"
-       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect9);display:inline"
+       style="font-size:32px;line-height:1.25;font-family:MiSans;text-align:start;white-space:pre;shape-inside:url(#rect9);display:inline"
        x="-302"
        y="0"><tspan
          x="83.078125"

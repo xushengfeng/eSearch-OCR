@@ -91,7 +91,7 @@
        xml:space="preserve"
        transform="matrix(0.26458333,0,0,0.26458333,-10.148933,-38.465919)"
        id="text1"
-       style="font-size:16px;line-height:1.25;font-family:sans-serif;white-space:pre;shape-inside:url(#rect1);display:inline"><tspan
+       style="font-size:16px;line-height:1.25;font-family:MiSans;white-space:pre;shape-inside:url(#rect1);display:inline"><tspan
          x="121.97656"
          y="218.10195"
          id="tspan2">空空道人遂向石头说道：“石兄，你这一段故事，据你自己说有些趣味，故编写在此，意</tspan><tspan
@@ -212,7 +212,7 @@
          xml:space="preserve"
          transform="matrix(0.26458333,0,0,0.26458333,-10.148933,-38.465919)"
          id="text1-3"
-         style="font-size:16px;line-height:1.25;font-family:sans-serif;white-space:pre;shape-inside:url(#rect1-7);display:inline"><tspan
+         style="font-size:16px;line-height:1.25;font-family:MiSans;white-space:pre;shape-inside:url(#rect1-7);display:inline"><tspan
            x="121.97656"
            y="218.10195"
            id="tspan72">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque vulputate tincidunt </tspan><tspan

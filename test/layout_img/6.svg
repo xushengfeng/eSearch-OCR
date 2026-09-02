@@ -104,7 +104,7 @@
        xml:space="preserve"
        transform="scale(0.26458333)"
        id="text1"
-       style="font-size:32px;line-height:1.25;font-family:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect3);display:inline"
+       style="font-size:32px;line-height:1.25;font-family:MiSans;text-align:start;white-space:pre;shape-inside:url(#rect3);display:inline"
        x="-110.41801"
        y="0"><tspan
          x="72.138672"

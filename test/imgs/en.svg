@@ -56,7 +56,7 @@
        xml:space="preserve"
        transform="matrix(0.26458333,0,0,0.26458333,-10.148933,-38.465919)"
        id="text1"
-       style="font-size:16px;line-height:1.25;font-family:sans-serif;white-space:pre;shape-inside:url(#rect1)"><tspan
+       style="font-size:16px;line-height:1.25;font-family:MiSans;white-space:pre;shape-inside:url(#rect1)"><tspan
          x="121.97656"
          y="218.10195"
          id="tspan1">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque vulputate tincidunt </tspan><tspan
