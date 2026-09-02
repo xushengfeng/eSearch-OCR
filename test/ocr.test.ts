@@ -200,11 +200,6 @@ describe("OCR", () => {
                 input: fs.readFileSync(paths.det).buffer,
                 ort,
             });
-            const rec = await initRec({
-                input: fs.readFileSync(paths.rec).buffer,
-                decodeDic: fs.readFileSync(paths.dic).toString(),
-                ort,
-            });
 
             const img = await loadImage(path.join("layout_img", file));
             const canvas = createCanvas(img.width, img.height);
@@ -213,8 +208,7 @@ describe("OCR", () => {
             const imageData = toImageData(ctx.getImageData(0, 0, img.width, img.height));
 
             const detResult = await det.det(imageData);
-            const recResult = await rec.rec(detResult);
-            const layoutResult = analyzeLayout(recResult);
+            const layoutResult = analyzeLayout(detResult.map((i, n) => ({ ...i, text: n.toString(), mean: 1 })));
 
             const inlineAngle = layoutResult.angle.reading.inline;
             const blockAngle = layoutResult.angle.reading.block;
