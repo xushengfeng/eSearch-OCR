@@ -31,6 +31,12 @@ async function main() {
     setOCREnv({
         canvas: (w, h) => createCanvas(w, h),
         imageData: createImageData,
+        imgdev: (canvas, id) => {
+            const outPath = path.join("/tmp", `esearch-ocr-debug-${id || Date.now()}.png`);
+            const buffer = canvas.toBuffer("image/png");
+            fs.writeFileSync(outPath, buffer);
+            console.log(`调试图片已保存: ${outPath}`);
+        },
     });
 
     const paths = getModelPath(VERSION);

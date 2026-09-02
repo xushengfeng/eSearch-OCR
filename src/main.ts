@@ -33,7 +33,7 @@ export {
     warpDet,
 };
 export type initType = AsyncType<ReturnType<typeof init>>;
-export type { OrtOption, InitOcrBase, InitOcrGlobal, detResultType, resultType, loadImgType };
+export type { OrtOption, InitOcrBase, InitOcrGlobal, detResultType, resultType, loadImgType, ImgDevCallback };
 
 type ColumnsTip = {
     box: BoxType;
@@ -119,6 +119,8 @@ type InitOcrBase = {
     };
     dev?: boolean;
     log?: boolean;
+    /** 图片调试回调，传入 canvas 回调用于输出调试图片 */
+    imgdev?: ImgDevCallback;
 } & OrtOption;
 
 type InitOcrGlobal = {
@@ -130,6 +132,8 @@ type InitOcrGlobal = {
 };
 
 type loadImgType = string | HTMLImageElement | HTMLCanvasElement | ImageData;
+/** 图片调试回调，用于接收调试用的 canvas */
+type ImgDevCallback = (canvas: OffscreenCanvas, id?: string) => void;
 type detResultType = { box: BoxType; img: ImageData; style: { bg: color; text: color } }[];
 type detDataType = {
     data: AsyncType<ReturnType<typeof runDet>>["data"];
@@ -162,12 +166,19 @@ export type ReadingDir = {
 const task = new tLog("t");
 const task2 = new tLog("af_det");
 
+const isDocument = "document" in globalThis;
+
 let dev = false;
 let canlog = false;
+let imgDev: ImgDevCallback | undefined;
 
 let globalOCR: AsyncType<ReturnType<typeof initOCR>> | null = null;
 
 function putImgDom(img: OffscreenCanvas, id?: string) {
+    if (imgDev) {
+        imgDev(img, id);
+        return;
+    }
     const canvas = document.createElement("canvas");
     canvas.width = img.width;
     canvas.height = img.height;
@@ -286,12 +297,14 @@ async function init(
 function setOCREnv(op: {
     dev?: boolean;
     log?: boolean;
+    imgdev?: ImgDevCallback;
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     canvas?: (w: number, h: number) => any;
     imageData?;
 }) {
     dev = Boolean(op.dev);
     canlog = dev || Boolean(op.log);
+    if (op.imgdev) imgDev = op.imgdev;
     if (!dev) {
         task.l = () => {};
         task2.l = () => {};
@@ -626,7 +639,7 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
 
     findContours(src2, contours2);
 
-    if (dev) {
+    if (dev && isDocument) {
         const xctx = (document.querySelector("#det_ru") as HTMLCanvasElement).getContext("2d")!;
 
         for (const item of contours2) {
@@ -1967,7 +1980,7 @@ for (let h = 0; h < 360; h += Math.floor(360 / 8)) {
 }
 
 function drawBox(box: BoxType, id = "", _color?: string, qid?: string, cid?: number) {
-    if (!dev) return;
+    if (!(dev && isDocument)) return;
     const canvas = document.querySelector(qid ? `#${qid}` : "canvas") as HTMLCanvasElement;
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     ctx.beginPath();
@@ -1983,7 +1996,7 @@ function drawBox(box: BoxType, id = "", _color?: string, qid?: string, cid?: num
 }
 
 function drawBox2(box: BoxType, id = "", bg = "white", color = "red") {
-    if (!dev) return;
+    if (!(dev && isDocument)) return;
     const canvas = document.querySelector("canvas") as HTMLCanvasElement;
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     ctx.beginPath();
