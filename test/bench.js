@@ -88,10 +88,10 @@ async function start() {
             zqls.push(l / srcText.length);
             times.push(spendTime);
         }
-        const time = times.reduce((a, b) => (a + b) / 2);
+        const time = times.reduce((a, b) => a + b) / times.length;
         r.push({
             name: i,
-            zql: zqls.reduce((a, b) => (a + b) / 2),
+            zql: zqls.reduce((a, b) => a + b) / zqls.length,
             spendTime: time,
             charsP: srcText.length / (time / 1000),
         });
@@ -123,5 +123,5 @@ async function start() {
         models: { rec: "v6_small" },
         r,
     };
-    fs.writeFileSync("log.json", JSON.stringify(log, null, 2));
+    fs.writeFileSync("log.json", JSON.stringify(log, null, 4));
 }
