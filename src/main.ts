@@ -31,6 +31,8 @@ export {
     initDocDirCls,
     rotateImg,
     warpDet,
+    getImgColor,
+    matchBestBox,
 };
 export type initType = AsyncType<ReturnType<typeof init>>;
 export type { OrtOption, InitOcrBase, InitOcrGlobal, detResultType, resultType, loadImgType, ImgDevCallback };
@@ -305,10 +307,10 @@ function setOCREnv(op: {
     dev = Boolean(op.dev);
     canlog = dev || Boolean(op.log);
     if (op.imgdev) imgDev = op.imgdev;
-    if (!dev) {
+    // if (!dev) {
         task.l = () => {};
         task2.l = () => {};
-    }
+    // }
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
 }
@@ -443,11 +445,6 @@ async function initDet(op: InitDetBase & OrtOption) {
 
     async function Det(srcimg: ImageData) {
         const img = srcimg;
-
-        if (dev) {
-            const srcCanvas = data2canvas(img);
-            putImgDom(srcCanvas);
-        }
 
         task.l("pre_det");
         const { data: beforeDetData, width: resizeW, height: resizeH } = beforeDet(img, detRatio);
@@ -593,7 +590,7 @@ function beforeDet(srcImg: ImageData, detRatio: number) {
     log(image);
     if (dev) {
         const srcCanvas = data2canvas(image);
-        putImgDom(srcCanvas);
+        putImgDom(srcCanvas,'det_resize');
     }
     return { data: { transposedData, image }, width: resizeW, height: resizeH };
 }
@@ -686,7 +683,8 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
         const rect_height = int(linalgNorm(box1[0], box1[3]));
         if (rect_width <= 3 || rect_height <= 3) continue;
 
-        drawBox(box, "", "red", "det_ru");
+        drawBox(box, "", "#f66", "det_ru");
+        drawBox(box, "", "#f66", "det_resize");
 
         task2.l("crop");
 
@@ -697,6 +695,7 @@ function afterDet(dataSet: detDataType, _resizeW: number, _resizeH: number, srcD
         const { bg, text } = getImgColor(c);
 
         const bb = matchBestBox(box1, c, text);
+        drawBox(bb, "", "#66f", "det_resize");
 
         edgeRect.push({ box: bb, img: c, style: { bg, text } });
     }
