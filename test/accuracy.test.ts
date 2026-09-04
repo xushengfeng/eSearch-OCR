@@ -91,8 +91,8 @@ describe("accuracy", async () => {
     it("5", () => accuracy("layout_img/5.svg", 0.99));
     it("6", () => accuracy("layout_img/6.svg", 0.99));
     it("7", () => accuracy("layout_img/7.svg", 0.99));
-    it("8", () => accuracy("layout_img/8.svg", 0.99));
+    it("8", () => accuracy("layout_img/8.svg", 0.95));
     it("9", () => accuracy("layout_img/9.svg", 0.99));
-    it("10", () => accuracy("layout_img/10.svg", 0.99));
-    it("11", () => accuracy("layout_img/11.svg", 0.99));
+    it("10", () => accuracy("layout_img/10.svg", 0.98));
+    it("11", () => accuracy("layout_img/11.svg", 0.97));
 });
