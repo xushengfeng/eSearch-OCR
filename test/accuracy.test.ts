@@ -20,12 +20,7 @@ function toImageData(canvasImageData: any): ImageData {
     ) as unknown as ImageData;
 }
 
-describe("accuracy", () => {
-    beforeAll(() => {
-        const env = setupCanvas();
-        setOCREnv(env);
-    });
-
+describe("accuracy", async () => {
     function calcAccuracy(recognized: string, expected: string): number {
         const diff = dmp.diff_main(recognized, expected);
         let score = 0;
@@ -40,24 +35,6 @@ describe("accuracy", () => {
     }
 
     async function accuracy(imgPath: string, minAccuracy: number) {
-        if (!checkAndWarn(VERSION)) {
-            console.warn("跳过测试：模型文件缺失");
-            return;
-        }
-
-        const paths = getModelPath(VERSION);
-        const ocr = await init({
-            det: {
-                input: fs.readFileSync(paths.det).buffer,
-                ratio: 0.75,
-            },
-            rec: {
-                input: fs.readFileSync(paths.rec).buffer,
-                decodeDic: fs.readFileSync(paths.dic).toString(),
-            },
-            ort,
-        });
-
         const img = await loadImage(imgPath);
         const canvas = createCanvas(img.width, img.height);
         const ctx = canvas.getContext("2d");
@@ -74,6 +51,30 @@ describe("accuracy", () => {
 
         expect(accuracy).toBeGreaterThanOrEqual(minAccuracy);
     }
+
+    if (!checkAndWarn(VERSION)) {
+        console.warn("跳过测试：模型文件缺失");
+        return;
+    }
+
+    const env = setupCanvas();
+    setOCREnv(env);
+
+    const paths = getModelPath(VERSION);
+    const ocr = await init({
+        det: {
+            input: fs.readFileSync(paths.det).buffer,
+            ratio: 0.75,
+        },
+        rec: {
+            input: fs.readFileSync(paths.rec).buffer,
+            decodeDic: fs.readFileSync(paths.dic).toString(),
+        },
+        ort,
+        ortOption: {
+            executionProviders: ["webgpu"],
+        },
+    });
 
     it("ch (中文)", () => accuracy("imgs/ch.svg", 0.98));
     it("en (英文)", () => accuracy("imgs/en.svg", 0.98));
