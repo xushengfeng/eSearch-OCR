@@ -843,4 +843,72 @@ describe("det", () => {
         expect(detectedBoxes.length).toBeGreaterThan(0);
         expect(iou).toBeGreaterThanOrEqual(0.3);
     });
+
+    it("紧密排布文本", async () => {
+        if (!checkAndWarn(VERSION)) {
+            console.warn("跳过测试：模型文件缺失");
+            return;
+        }
+
+        const paths = getModelPath(VERSION);
+        const det = await initDet({
+            input: fs.readFileSync(paths.det).buffer,
+            ort,
+        });
+
+        const width = 700;
+        const height = 400;
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = "black";
+
+        const fontSize = 20;
+        ctx.font = `${fontSize}px sans-serif`;
+        const lineHeight = fontSize * 1;
+
+        const lines = [
+            "紧密排布测试：行间距仅为1倍",
+            "短文本",
+            "这是一段较长的文本行，用于测试紧密排布时OCR检测模型是否能够正确区分每一行文字",
+            "中等长度文本行测试",
+            "This is a longer English text line to test if the detection model can handle tight spacing with mixed line lengths correctly",
+            "混合中英文短行",
+            "包含数字123和符号!@#的较长文本行测试内容，验证紧密排布下的检测效果",
+        ];
+
+        const expectedBoxes: Box[] = [];
+        for (let i = 0; i < lines.length; i++) {
+            const y = fontSize + 10 + i * lineHeight;
+            ctx.fillText(lines[i], 20, y);
+            const metrics = ctx.measureText(lines[i]);
+            const ascent = metrics.actualBoundingBoxAscent || fontSize * 0.8;
+            const descent = metrics.actualBoundingBoxDescent || fontSize * 0.2;
+            expectedBoxes.push([
+                [20, y - ascent],
+                [20 + metrics.width, y - ascent],
+                [20 + metrics.width, y + descent],
+                [20, y + descent],
+            ]);
+        }
+
+        const imageData = toImageData(ctx.getImageData(0, 0, width, height));
+        const result = await det.det(imageData);
+        const detectedBoxes = result.map((r) => r.box);
+
+        const expectedCanvas = drawBoxesOnCanvas(width, height, expectedBoxes);
+        const detectedCanvas = drawBoxesOnCanvas(width, height, detectedBoxes);
+        const iou = calculateCanvasIoU(expectedCanvas, detectedCanvas);
+
+        console.log(
+            `紧密排布文本 - IoU: ${(iou * 100).toFixed(1)}%, 检测: ${detectedBoxes.length}, 期望: ${expectedBoxes.length}`,
+        );
+
+        saveComparisonImage("紧密排布文本", canvas, expectedBoxes, detectedBoxes, iou);
+
+        expect(detectedBoxes.length).toBeGreaterThan(0);
+        expect(iou).toBeGreaterThanOrEqual(0.3);
+    });
 });
