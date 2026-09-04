@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createImageData } from "canvas";
+import { createCanvas, createImageData } from "canvas";
 import ort from "onnxruntime-node";
 import { beforeAll, describe, expect, it } from "vitest";
-import { initDet, setOCREnv } from "../src/main";
+import { getImgColor, initDet, matchBestBox, setOCREnv } from "../src/main";
 import { checkAndWarn, getModelPath } from "./model_paths";
-import { createCanvas, loadImage, setupCanvas } from "./setup";
+import { createCanvas as createCanvasNode, loadImage, setupCanvas } from "./setup";
 
 const VERSION = "v6_small";
 const OUTPUT_DIR = "det_output";
@@ -910,5 +910,344 @@ describe("det", () => {
 
         expect(detectedBoxes.length).toBeGreaterThan(0);
         expect(iou).toBeGreaterThanOrEqual(0.3);
+    });
+});
+
+function toImageDataForColor(canvasImageData: { data: Uint8ClampedArray; width: number; height: number }): ImageData {
+    return createImageData(
+        new Uint8ClampedArray(canvasImageData.data),
+        canvasImageData.width,
+        canvasImageData.height,
+    ) as unknown as ImageData;
+}
+
+function createTextImage(
+    width: number,
+    height: number,
+    bgColor: string,
+    textColor: string,
+    text: string,
+    fontSize = 20,
+): ImageData {
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `${fontSize}px sans-serif`;
+    ctx.fillText(text, 10, height / 2);
+
+    return toImageDataForColor(ctx.getImageData(0, 0, width, height));
+}
+
+describe("getImgColor", () => {
+    it("should detect white background with black text", () => {
+        const img = createTextImage(200, 100, "white", "black", "Hello World");
+        const result = getImgColor(img);
+
+        expect(result.bg[0]).toBeGreaterThan(200);
+        expect(result.bg[1]).toBeGreaterThan(200);
+        expect(result.bg[2]).toBeGreaterThan(200);
+
+        expect(result.text).toBeDefined();
+        expect(result.text.length).toBe(3);
+    });
+
+    it("should detect black background with white text", () => {
+        const img = createTextImage(200, 100, "black", "white", "Hello World");
+        const result = getImgColor(img);
+
+        expect(result.bg[0]).toBeLessThan(50);
+        expect(result.bg[1]).toBeLessThan(50);
+        expect(result.bg[2]).toBeLessThan(50);
+
+        expect(result.text).toBeDefined();
+        expect(result.text.length).toBe(3);
+    });
+
+    it("should detect colored background and text", () => {
+        const img = createTextImage(200, 100, "blue", "red", "Hello World");
+        const result = getImgColor(img);
+
+        expect(result.bg[2]).toBeGreaterThan(200);
+
+        expect(result.text).toBeDefined();
+        expect(result.text.length).toBe(3);
+    });
+
+    it("should return default colors for empty image", () => {
+        const canvas = createCanvas(100, 100);
+        const ctx = canvas.getContext("2d");
+        const img = toImageDataForColor(ctx.getImageData(0, 0, 100, 100));
+        const result = getImgColor(img);
+
+        expect(result.bg).toBeDefined();
+        expect(result.text).toBeDefined();
+        expect(result.bg.length).toBe(3);
+        expect(result.text.length).toBe(3);
+    });
+
+    it("should handle similar colors by finding alternative text color", () => {
+        const canvas = createCanvas(200, 100);
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "rgb(200, 200, 200)";
+        ctx.fillRect(0, 0, 200, 100);
+
+        ctx.fillStyle = "rgb(50, 50, 50)";
+        ctx.font = "20px sans-serif";
+        ctx.fillText("Hello", 50, 50);
+
+        const img = toImageDataForColor(ctx.getImageData(0, 0, 200, 100));
+        const result = getImgColor(img);
+
+        expect(result.bg[0]).toBeGreaterThan(180);
+        expect(result.bg[1]).toBeGreaterThan(180);
+        expect(result.bg[2]).toBeGreaterThan(180);
+
+        expect(result.text).toBeDefined();
+    });
+
+    it("should return textEdge color", () => {
+        const img = createTextImage(200, 100, "white", "black", "Hello World");
+        const result = getImgColor(img);
+
+        expect(result.textEdge).toBeDefined();
+        expect(result.textEdge.length).toBe(3);
+    });
+
+    it("should handle multiple text colors", () => {
+        const canvas = createCanvas(300, 100);
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, 300, 100);
+
+        ctx.fillStyle = "black";
+        ctx.font = "20px sans-serif";
+        ctx.fillText("Black", 20, 40);
+
+        ctx.fillStyle = "red";
+        ctx.fillText("Red", 120, 40);
+
+        ctx.fillStyle = "blue";
+        ctx.fillText("Blue", 200, 40);
+
+        const img = toImageDataForColor(ctx.getImageData(0, 0, 300, 100));
+        const result = getImgColor(img);
+
+        expect(result.bg[0]).toBeGreaterThan(200);
+        expect(result.bg[1]).toBeGreaterThan(200);
+        expect(result.bg[2]).toBeGreaterThan(200);
+
+        expect(result.text).toBeDefined();
+    });
+});
+
+type BoxType = [[number, number], [number, number], [number, number], [number, number]];
+type color = [number, number, number];
+
+function createTextImageForBox(
+    width: number,
+    height: number,
+    bgColor: string,
+    textColor: string,
+    text: string,
+    x: number,
+    y: number,
+    fontSize = 20,
+): ImageData {
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `${fontSize}px sans-serif`;
+    ctx.fillText(text, x, y);
+
+    return toImageDataForColor(ctx.getImageData(0, 0, width, height));
+}
+
+describe("matchBestBox", () => {
+    it("should match text color and adjust box boundaries", () => {
+        const width = 200;
+        const height = 100;
+        const img = createTextImageForBox(width, height, "white", "black", "Hello", 50, 50);
+        const textEdgeColor: color = [0, 0, 0];
+
+        const box: BoxType = [
+            [0, 0],
+            [width, 0],
+            [width, height],
+            [0, height],
+        ];
+
+        const result = matchBestBox(box, img, textEdgeColor);
+
+        expect(result).toBeDefined();
+        expect(result.length).toBe(4);
+
+        expect(result[0][0]).toBeGreaterThan(0);
+        expect(result[0][1]).toBeGreaterThan(0);
+        expect(result[2][0]).toBeLessThan(width);
+        expect(result[2][1]).toBeLessThan(height);
+    });
+
+    it("should handle text at edges", () => {
+        const width = 200;
+        const height = 100;
+        const img = createTextImageForBox(width, height, "white", "black", "Top", 10, 20);
+        const textEdgeColor: color = [0, 0, 0];
+
+        const box: BoxType = [
+            [0, 0],
+            [width, 0],
+            [width, height],
+            [0, height],
+        ];
+
+        const result = matchBestBox(box, img, textEdgeColor);
+
+        expect(result).toBeDefined();
+        expect(result[0][1]).toBeLessThan(height / 2);
+    });
+
+    it("should handle no matching text color", () => {
+        const width = 200;
+        const height = 100;
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, width, height);
+        const img = toImageDataForColor(ctx.getImageData(0, 0, width, height));
+
+        const textEdgeColor: color = [0, 0, 0];
+
+        const box: BoxType = [
+            [0, 0],
+            [width, 0],
+            [width, height],
+            [0, height],
+        ];
+
+        const result = matchBestBox(box, img, textEdgeColor);
+
+        expect(result).toBeDefined();
+        expect(result.length).toBe(4);
+    });
+
+    it("should handle colored text on colored background", () => {
+        const width = 200;
+        const height = 100;
+        const img = createTextImageForBox(width, height, "blue", "red", "Color", 60, 60);
+        const textEdgeColor: color = [255, 0, 0];
+
+        const box: BoxType = [
+            [0, 0],
+            [width, 0],
+            [width, height],
+            [0, height],
+        ];
+
+        const result = matchBestBox(box, img, textEdgeColor);
+
+        expect(result).toBeDefined();
+        expect(result.length).toBe(4);
+
+        expect(result[0][0]).toBeGreaterThan(0);
+        expect(result[0][1]).toBeGreaterThan(0);
+        expect(result[2][0]).toBeLessThan(width);
+        expect(result[2][1]).toBeLessThan(height);
+    });
+
+    it("should handle text in different positions", () => {
+        const width = 200;
+        const height = 100;
+        const img = createTextImageForBox(width, height, "white", "black", "Bottom", 120, 80);
+        const textEdgeColor: color = [0, 0, 0];
+
+        const box: BoxType = [
+            [0, 0],
+            [width, 0],
+            [width, height],
+            [0, height],
+        ];
+
+        const result = matchBestBox(box, img, textEdgeColor);
+
+        expect(result).toBeDefined();
+        expect(result.length).toBe(4);
+
+        expect(result[0][0]).toBeGreaterThanOrEqual(0);
+        expect(result[0][1]).toBeGreaterThanOrEqual(0);
+        expect(result[2][0]).toBeLessThanOrEqual(width);
+        expect(result[2][1]).toBeLessThanOrEqual(height);
+    });
+
+    it("should preserve box structure", () => {
+        const width = 200;
+        const height = 100;
+        const img = createTextImageForBox(width, height, "white", "black", "Test", 80, 50);
+        const textEdgeColor: color = [0, 0, 0];
+
+        const box: BoxType = [
+            [10, 10],
+            [190, 10],
+            [190, 90],
+            [10, 90],
+        ];
+
+        const result = matchBestBox(box, img, textEdgeColor);
+
+        expect(result).toBeDefined();
+        expect(Array.isArray(result)).toBe(true);
+        expect(result.length).toBe(4);
+
+        for (const point of result) {
+            expect(Array.isArray(point)).toBe(true);
+            expect(point.length).toBe(2);
+            expect(typeof point[0]).toBe("number");
+            expect(typeof point[1]).toBe("number");
+        }
+    });
+
+    it("should handle multiple lines of text", () => {
+        const width = 200;
+        const height = 100;
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "black";
+        ctx.font = "16px sans-serif";
+        ctx.fillText("Line 1", 20, 30);
+        ctx.fillText("Line 2", 20, 50);
+        ctx.fillText("Line 3", 20, 70);
+
+        const img = toImageDataForColor(ctx.getImageData(0, 0, width, height));
+        const textEdgeColor: color = [0, 0, 0];
+
+        const box: BoxType = [
+            [0, 0],
+            [width, 0],
+            [width, height],
+            [0, height],
+        ];
+
+        const result = matchBestBox(box, img, textEdgeColor);
+
+        expect(result).toBeDefined();
+        expect(result.length).toBe(4);
+
+        expect(result[0][0]).toBeGreaterThan(0);
+        expect(result[0][1]).toBeGreaterThan(0);
+        expect(result[2][0]).toBeLessThan(width);
+        expect(result[2][1]).toBeLessThan(height);
     });
 });

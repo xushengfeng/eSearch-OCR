@@ -54,6 +54,8 @@ test
 ```
 test下的其他文件用于electron运行视觉测试，不参与自动化开发
 
+test.ts使用vitest测试，需要进入test文件夹才能用，因为测试文件夹下安装了运行时等依赖，与主目录隔离
+
 ## 概念
 
 ocr流程：det识别文本区域，提取出来文本框，单行文本，交给rec识别为文本，layout（afAfRec）用传统算法统计分析栏、段落等结构。核心流程就是main initOCR 返回的ocr函数里面所表示的。

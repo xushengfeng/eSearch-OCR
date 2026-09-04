@@ -21,10 +21,7 @@
     "type": "module",
     "types": "./dist/main.d.ts",
     "scripts": {
-        "test": "vite ",
-        "dev": "vite --host 0.0.0.0",
-        "build": "vite build",
-        "preview": "vite preview"
+        "build": "vite build"
     },
     "files": ["dist/", "package.json", "README.md"],
     "keywords": ["ocr", "paddleocr", "onnx"],
