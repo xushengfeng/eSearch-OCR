@@ -308,8 +308,8 @@ function setOCREnv(op: {
     canlog = dev || Boolean(op.log);
     if (op.imgdev) imgDev = op.imgdev;
     // if (!dev) {
-        task.l = () => {};
-        task2.l = () => {};
+    task.l = () => {};
+    task2.l = () => {};
     // }
     if (op.canvas) setCanvas(op.canvas);
     if (op.imageData) createImageData = op.imageData;
@@ -590,7 +590,7 @@ function beforeDet(srcImg: ImageData, detRatio: number) {
     log(image);
     if (dev) {
         const srcCanvas = data2canvas(image);
-        putImgDom(srcCanvas,'det_resize');
+        putImgDom(srcCanvas, "det_resize");
     }
     return { data: { transposedData, image }, width: resizeW, height: resizeH };
 }
@@ -1035,10 +1035,11 @@ function matchBestBox(box: BoxType, img: ImageData, textEdgeColor: color) {
         }
     }
 
-    const dyT = clip(yFromTop - 1, 0, 4);
-    const dyB = clip(img.height - yFromBottom - 1, 0, 4);
-    const dxL = clip(xFromLeft - 1, 0, 4);
-    const dxR = clip(img.width - xFromRight - 1, 0, 4);
+    const max = img.height * 0.5; // 1.5 unclip
+    const dyT = clip(yFromTop - 1, 0, max);
+    const dyB = clip(img.height - yFromBottom - 1, 0, max);
+    const dxL = clip(xFromLeft - 1, 0, max);
+    const dxR = clip(img.width - xFromRight - 1, 0, max);
 
     const newBox = [
         [box[0][0] + dxL, box[0][1] + dyT],
